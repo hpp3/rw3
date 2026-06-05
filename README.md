@@ -24,14 +24,15 @@ The static site (`site/`) lets you:
 - **Build / wishlist** — on the Equipment tab, *＋ Build* toggles an item into a sticky build
   bar at the top that aggregates the **total essence (tag) count** needed to craft the whole
   set (specific tags + `Any`), and lists each item with its cost and recipe. It persists across
-  reloads (localStorage), and *→ Calculator* loads the specific totals into the Craft Calculator.
-- **Craft Calculator** — set how many of each tag you have in your pool (or click
-  *"Add tags to craft pool"* on any component) and instantly see **what you can craft**.
-  `Any` recipe requirements are filled by leftover tags. An *"Allow missing ≤ N"* option shows
-  items that are almost within reach. Answers *"what can I craft with 2 dark, 2 fire, 1 light,
-  1 metal…"* directly.
-- **Components** — all 83 component items (tiers 1–3 + rares) with their on-pickup effects
-  and the tags they contribute to crafting.
+  reloads (localStorage). Hovering an item name shows its full stat card.
+- **Components & inventory** — all 83 component items (tiers 1–3 + rares) with their on-pickup /
+  on-craft effects. *＋ Add to pool* collects components into a **"My components"** inventory
+  (mental model: *"I have 2 Chaos Seeds and 1 Blood Basin"*), shown as editable chips between
+  the search and the list, with the derived essence pool underneath. Persists across reloads.
+- **Craft Calculator** — automatically uses the essence pool derived from your component
+  inventory and shows **what you can craft**. `Any` recipe requirements are filled by leftover
+  essences; an *"Allow missing ≤ N"* option shows items that are almost within reach; results
+  can be narrowed by slot and by the same stat search (Modifies/Scales-with) as the other tabs.
 - **Spells** — all 186 player spells with level, tags, stats, descriptions, and upgrades.
 - **Summon stat sheets** — any spell, item, or component that summons a unit shows the
   unit(s) as chips; hovering one pops a floating stat sheet (HP, tags, resistances,

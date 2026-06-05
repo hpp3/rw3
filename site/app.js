@@ -448,19 +448,12 @@ function renderWishlist() {
 function wireWishlist() {
   // Add buttons on equipment cards (delegated; cards are re-rendered)
   document.addEventListener('click', e => {
-    const add = e.target.closest && e.target.closest('.add-build');
+    const add = e.target.closest && e.target.closest('.add-build[data-add]');
     if (add) { wishToggle(add.dataset.add); return; }
     const rm = e.target.closest && e.target.closest('.wl-remove');
     if (rm) { wishToggle(rm.dataset.wishRemove); return; }
   });
   $('#wl-clear').addEventListener('click', () => { WISH = new Set(); saveWish(); renderWishlist(); renderEquipment(); });
-  $('#wl-tocraft').addEventListener('click', () => {
-    const { tot, any } = wishTotals();
-    for (const k in POOL) delete POOL[k];
-    for (const [tag, n] of Object.entries(tot)) POOL[tag] = n;
-    syncPoolUI();
-    switchTab('craft');
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -482,12 +475,7 @@ function componentCard(c) {
     </div>
     <div class="desc">${renderMarkup(c.desc)}</div>
     ${summonRow(c.summons)}
-    <div class="recipe"><button class="chip" data-addpool>＋ Add tags to craft pool</button></div>`;
-  card.querySelector('[data-addpool]').addEventListener('click', () => {
-    c.tags.forEach(t => { if (t !== 'Any') POOL[t] = (POOL[t] || 0) + 1; });
-    syncPoolUI();
-    switchTab('craft');
-  });
+    <div class="recipe"><button class="add-build${INVENTORY[c.name] ? ' in' : ''}" data-addcomp="${esc(c.name)}">${INVENTORY[c.name] ? `✓ In pool ×${INVENTORY[c.name]}` : '＋ Add to pool'}</button></div>`;
   return card;
 }
 
@@ -572,10 +560,98 @@ function renderSpells() {
 }
 
 // ---------------------------------------------------------------------------
+// COMPONENT INVENTORY ("I have 2 Chaos Seeds and 1 Blood Basin")
+// ---------------------------------------------------------------------------
+let INVENTORY = {};        // component name -> count
+let CP_BY_NAME = {};       // name -> component object
+const INV_KEY = 'rw3_inventory';
+
+function loadInv() {
+  try { INVENTORY = JSON.parse(localStorage.getItem(INV_KEY)) || {}; } catch (e) { INVENTORY = {}; }
+}
+function saveInv() {
+  try { localStorage.setItem(INV_KEY, JSON.stringify(INVENTORY)); } catch (e) {}
+}
+function invChange(name, d) {
+  const n = (INVENTORY[name] || 0) + d;
+  if (n <= 0) delete INVENTORY[name]; else INVENTORY[name] = n;
+  saveInv();
+  renderInventory(); renderComponents(); renderCraft();
+}
+function invRemove(name) { delete INVENTORY[name]; saveInv(); renderInventory(); renderComponents(); renderCraft(); }
+function invClear() { INVENTORY = {}; saveInv(); renderInventory(); renderComponents(); renderCraft(); }
+
+// Essence pool derived from the component inventory (each component contributes
+// one of each of its tags per copy held).
+function inventoryEssences() {
+  const tot = {};
+  for (const [name, n] of Object.entries(INVENTORY)) {
+    const c = CP_BY_NAME[name];
+    if (!c) continue;
+    for (const t of c.tags) { if (t === 'Any') continue; tot[t] = (tot[t] || 0) + n; }
+  }
+  return tot;
+}
+function invChipsHtml() {
+  return Object.keys(INVENTORY)
+    .sort((a, b) => { const ca = CP_BY_NAME[a], cb = CP_BY_NAME[b]; return (ca && cb ? (ca.tier - cb.tier || a.localeCompare(b)) : a.localeCompare(b)); })
+    .map(name => {
+      const c = CP_BY_NAME[name];
+      const ic = c ? `<img src="icons/components/${esc(c.icon)}" onerror="this.remove()">` : '';
+      return `<span class="inv-chip">${ic}<span class="inv-name">${esc(name)}</span>
+        <span class="inv-qty"><button data-inv="${esc(name)}" data-d="-1">−</button><b>${INVENTORY[name]}</b><button data-inv="${esc(name)}" data-d="1">＋</button></span>
+        <button class="inv-rm" data-inv-rm="${esc(name)}" title="Remove">✕</button></span>`;
+    }).join('');
+}
+function essenceChipsHtml() {
+  const tot = inventoryEssences();
+  return Object.entries(tot).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([t, n]) => `<span class="req" style="color:${TAGCOLOR[t] || 'var(--muted)'}"><span class="n">${n}×</span> ${esc(t)}</span>`).join('');
+}
+function renderInventory() {
+  const names = Object.keys(INVENTORY);
+  const has = names.length > 0;
+  const count = names.reduce((a, n) => a + INVENTORY[n], 0);
+  const chips = invChipsHtml();
+  const essences = essenceChipsHtml();
+
+  // Components-tab section
+  const cp = $('#cp-inventory');
+  if (cp) {
+    if (!has) { cp.classList.add('hidden'); cp.innerHTML = ''; }
+    else {
+      cp.classList.remove('hidden');
+      cp.innerHTML = `<div class="inv-head"><span class="inv-title">My components <span class="wl-badge">${count}</span></span><button class="btn-ghost inv-clear">Clear</button></div>
+        <div class="inv-chips">${chips}</div>
+        <div class="inv-essences"><span class="inv-ess-label">Essence pool:</span> ${essences || '—'}</div>`;
+    }
+  }
+  // Calculator-tab panel
+  const ci = $('#craft-inventory');
+  if (ci) ci.innerHTML = has ? `<div class="inv-chips">${chips}</div>`
+    : `<p class="hint empty-inv">No components yet. Add them on the <a class="tablink" data-goto="components">Components</a> tab.</p>`;
+  const ce = $('#craft-essences');
+  if (ce) ce.innerHTML = essences || '<span class="muted-note">—</span>';
+}
+function wireInventory() {
+  document.addEventListener('click', e => {
+    const inc = e.target.closest && e.target.closest('[data-inv]');
+    if (inc) { invChange(inc.dataset.inv, parseInt(inc.dataset.d, 10)); return; }
+    const rm = e.target.closest && e.target.closest('[data-inv-rm]');
+    if (rm) { invRemove(rm.dataset.invRm); return; }
+    const add = e.target.closest && e.target.closest('[data-addcomp]');
+    if (add) { invChange(add.dataset.addcomp, 1); return; }
+    const cl = e.target.closest && e.target.closest('.inv-clear');
+    if (cl) { invClear(); return; }
+    const go = e.target.closest && e.target.closest('[data-goto]');
+    if (go) { e.preventDefault(); switchTab(go.dataset.goto); return; }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // CRAFT CALCULATOR
 // ---------------------------------------------------------------------------
-const POOL = {};            // tag -> count
-const CRAFT = { search: '', slots: null, slack: 0 };
+const CRAFT = { search: '', slots: null, slack: 0, statFilters: [] };
 
 // returns {ok, missing} where missing is how many tags short (0 = exact craftable)
 function evalRecipe(recipe, pool) {
@@ -593,52 +669,27 @@ function evalRecipe(recipe, pool) {
   if (leftover < anyNeed) missing += (anyNeed - leftover);
   return { ok: missing === 0, missing };
 }
-
-function buildPoolSteppers() {
-  const box = $('#pool-steppers');
-  box.innerHTML = '';
-  COMPONENT_TAGS.forEach(tag => {
-    const row = el('div', 'stepper');
-    row.dataset.tag = tag;
-    const col = TAGCOLOR[tag] || 'var(--muted)';
-    row.innerHTML = `
-      <span class="lbl"><span class="dot" style="background:${col}"></span>${esc(tag)}</span>
-      <button data-d="-1">−</button>
-      <span class="val">0</span>
-      <button data-d="1">＋</button>`;
-    row.querySelector('[data-d="-1"]').addEventListener('click', () => { POOL[tag] = Math.max(0, (POOL[tag] || 0) - 1); syncPoolUI(); });
-    row.querySelector('[data-d="1"]').addEventListener('click', () => { POOL[tag] = (POOL[tag] || 0) + 1; syncPoolUI(); });
-    box.appendChild(row);
-  });
-}
-function syncPoolUI() {
-  $$('#pool-steppers .stepper').forEach(row => {
-    const tag = row.dataset.tag;
-    const v = POOL[tag] || 0;
-    row.querySelector('.val').textContent = v;
-    row.classList.toggle('has', v > 0);
-  });
-  renderCraft();
-}
 function renderCraft() {
-  const total = Object.values(POOL).reduce((a, b) => a + b, 0);
+  const pool = inventoryEssences();
+  const total = Object.values(pool).reduce((a, b) => a + b, 0);
   const slack = CRAFT.slack;
   const q = CRAFT.search.toLowerCase();
   const grid = $('#craft-grid');
   grid.innerHTML = '';
   if (total === 0) {
-    grid.appendChild(el('div', 'empty', 'Add some tags to your pool (left) or click “Add tags to craft pool” on a component.'));
+    grid.appendChild(el('div', 'empty', 'Your component pool is empty. Add components on the Components tab to see what you can craft.'));
     $('#craft-count').textContent = '';
     return;
   }
   let results = [];
   for (const e of DATA.equipment) {
     if (CRAFT.slots.size && !CRAFT.slots.has(e.slot)) continue;
+    if (CRAFT.statFilters && !passesStatFilters(e, CRAFT.statFilters)) continue;
     if (q) {
       const hay = (e.name + ' ' + e.desc + ' ' + e.bonuses.join(' ')).toLowerCase();
       if (!hay.includes(q)) continue;
     }
-    const r = evalRecipe(e.recipe, POOL);
+    const r = evalRecipe(e.recipe, pool);
     if (r.missing <= slack) results.push({ e, missing: r.missing });
   }
   results.sort((a, b) => a.missing - b.missing || b.e.recipe_cost - a.e.recipe_cost || a.e.name.localeCompare(b.e.name));
@@ -654,7 +705,7 @@ function renderCraft() {
     });
   }
   const exact = results.filter(r => r.missing === 0).length;
-  $('#craft-count').textContent = `${total} tags in pool · ${exact} craftable now` + (slack ? ` · ${results.length - exact} within reach` : '');
+  $('#craft-count').textContent = `${total} essences in pool · ${exact} craftable now` + (slack ? ` · ${results.length - exact} within reach` : '');
 }
 
 // ---------------------------------------------------------------------------
@@ -678,9 +729,12 @@ async function init() {
   STAT_META = DATA.stat_meta || {};
   if (DATA.generated) $('#last-updated').textContent = DATA.generated;
   for (const e of DATA.equipment) EQ_BY_NAME[e.name] = e;
+  for (const c of DATA.components) CP_BY_NAME[c.name] = c;
   loadWish();
+  loadInv();
   wireTooltips();
   wireWishlist();
+  wireInventory();
 
   // tabs
   $$('#tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
@@ -722,13 +776,12 @@ async function init() {
 
   // --- Craft calculator ---
   CRAFT.slots = buildChips($('#craft-slots'), DATA.slots, { onChange: renderCraft, activeColor: () => '#fff' });
-  $('#craft-search').addEventListener('input', e => { CRAFT.search = e.target.value; renderCraft(); });
+  makeStatSearch({ inputEl: $('#craft-search'), filtersEl: $('#craft-filters'), state: CRAFT, getDataset: () => DATA.equipment, render: renderCraft });
   $('#craft-slack').addEventListener('change', e => { CRAFT.slack = parseInt(e.target.value, 10); renderCraft(); });
-  $('#pool-clear').addEventListener('click', () => { for (const k in POOL) delete POOL[k]; syncPoolUI(); });
-  buildPoolSteppers();
 
   // render all
   renderWishlist();
+  renderInventory();
   renderEquipment(); renderComponents(); renderSpells(); renderCraft();
 
   // initial tab from hash

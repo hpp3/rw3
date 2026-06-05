@@ -28,7 +28,6 @@
         <span class="wl-title">Build <span class="wl-badge" id="wl-count">0</span></span>
         <div class="wl-totals" id="wl-totals"></div>
         <div class="wl-actions">
-          <button id="wl-tocraft" class="btn-ghost" title="Load these essence totals into the Craft Calculator">→ Calculator</button>
           <button id="wl-clear" class="btn-ghost">Clear</button>
         </div>
       </div>
@@ -63,11 +62,13 @@
   <section id="tab-craft" class="tab-panel">
     <div class="craft-layout">
       <aside class="craft-pool">
-        <h2>Your tag pool</h2>
-        <p class="hint">Set how many of each tag you have (from component pickups). Equipment you can craft appears on the right. <code>Any</code> requirements are filled by leftover tags.</p>
-        <div class="pool-steppers" id="pool-steppers"></div>
+        <h2>Your components</h2>
+        <p class="hint">Collected on the <a class="tablink" data-goto="components">Components</a> tab. Equipment you can craft appears on the right. <code>Any</code> requirements are filled by leftover essences.</p>
+        <div class="craft-inventory" id="craft-inventory"></div>
+        <div class="section-label">Essence pool</div>
+        <div class="recipe pool-essences" id="craft-essences"></div>
         <div class="pool-actions">
-          <button id="pool-clear" class="btn-ghost">Clear all</button>
+          <button class="btn-ghost inv-clear">Clear components</button>
           <label class="missing-toggle">Allow missing
             <select id="craft-slack">
               <option value="0">0 (exact)</option>
@@ -80,12 +81,13 @@
       </aside>
       <div class="craft-results">
         <div class="controls slim">
-          <input type="search" id="craft-search" class="search" placeholder="Filter results…">
+          <input type="search" id="craft-search" class="search" placeholder="Filter results by name, effect, or stat…">
           <div class="control-group">
             <label>Slot</label>
             <div class="chips" id="craft-slots"></div>
           </div>
         </div>
+        <div class="active-filters hidden" id="craft-filters"></div>
         <div class="count" id="craft-count"></div>
         <div class="grid" id="craft-grid"></div>
       </div>
@@ -109,6 +111,7 @@
         <div class="chips" id="cp-tags"></div>
       </div>
     </div>
+    <div class="inventory hidden" id="cp-inventory"></div>
     <div class="count" id="cp-count"></div>
     <div class="grid" id="cp-grid"></div>
   </section>
