@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rift Wizard 3 — Spell & Equipment Compendium</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="title">
+    <h1>Rift Wizard 3 Compendium</h1>
+    <p class="sub">Last Updated: <span id="last-updated">—</span></p>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="equipment" class="active">Equipment</button>
+    <button data-tab="craft">Craft Calculator</button>
+    <button data-tab="components">Components</button>
+    <button data-tab="spells">Spells</button>
+  </nav>
+</header>
+
+<main>
+  <!-- EQUIPMENT -->
+  <section id="tab-equipment" class="tab-panel active">
+    <div class="wishlist hidden" id="wishlist">
+      <div class="wl-head">
+        <span class="wl-title">Build <span class="wl-badge" id="wl-count">0</span></span>
+        <div class="wl-totals" id="wl-totals"></div>
+        <div class="wl-actions">
+          <button id="wl-tocraft" class="btn-ghost" title="Load these essence totals into the Craft Calculator">→ Calculator</button>
+          <button id="wl-clear" class="btn-ghost">Clear</button>
+        </div>
+      </div>
+      <div class="wl-items" id="wl-items"></div>
+    </div>
+    <div class="controls">
+      <input type="search" id="eq-search" class="search" placeholder="Search equipment by name or effect…">
+      <div class="control-group">
+        <label>Slot</label>
+        <div class="chips" id="eq-slots"></div>
+      </div>
+      <div class="control-group">
+        <label>Recipe contains tag</label>
+        <div class="chips" id="eq-tags"></div>
+      </div>
+      <div class="control-group">
+        <label>Sort</label>
+        <select id="eq-sort">
+          <option value="cost">Recipe cost ↑</option>
+          <option value="cost-desc">Recipe cost ↓</option>
+          <option value="name">Name A–Z</option>
+          <option value="slot">Slot</option>
+        </select>
+      </div>
+    </div>
+    <div class="active-filters hidden" id="eq-filters"></div>
+    <div class="count" id="eq-count"></div>
+    <div class="grid" id="eq-grid"></div>
+  </section>
+
+  <!-- CRAFT CALCULATOR -->
+  <section id="tab-craft" class="tab-panel">
+    <div class="craft-layout">
+      <aside class="craft-pool">
+        <h2>Your tag pool</h2>
+        <p class="hint">Set how many of each tag you have (from component pickups). Equipment you can craft appears on the right. <code>Any</code> requirements are filled by leftover tags.</p>
+        <div class="pool-steppers" id="pool-steppers"></div>
+        <div class="pool-actions">
+          <button id="pool-clear" class="btn-ghost">Clear all</button>
+          <label class="missing-toggle">Allow missing
+            <select id="craft-slack">
+              <option value="0">0 (exact)</option>
+              <option value="1">≤ 1</option>
+              <option value="2">≤ 2</option>
+              <option value="3">≤ 3</option>
+            </select>
+          </label>
+        </div>
+      </aside>
+      <div class="craft-results">
+        <div class="controls slim">
+          <input type="search" id="craft-search" class="search" placeholder="Filter results…">
+          <div class="control-group">
+            <label>Slot</label>
+            <div class="chips" id="craft-slots"></div>
+          </div>
+        </div>
+        <div class="count" id="craft-count"></div>
+        <div class="grid" id="craft-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section id="tab-components" class="tab-panel">
+    <div class="controls">
+      <input type="search" id="cp-search" class="search" placeholder="Search components by name or effect…">
+      <div class="control-group">
+        <label>Tier</label>
+        <div class="chips" id="cp-tiers"></div>
+      </div>
+      <div class="control-group">
+        <label>Effect</label>
+        <div class="chips" id="cp-effects"></div>
+      </div>
+      <div class="control-group">
+        <label>Tag</label>
+        <div class="chips" id="cp-tags"></div>
+      </div>
+    </div>
+    <div class="count" id="cp-count"></div>
+    <div class="grid" id="cp-grid"></div>
+  </section>
+
+  <!-- SPELLS -->
+  <section id="tab-spells" class="tab-panel">
+    <div class="controls">
+      <input type="search" id="sp-search" class="search" placeholder="Search spells by name or effect…">
+      <div class="control-group">
+        <label>Level</label>
+        <div class="chips" id="sp-levels"></div>
+      </div>
+      <div class="control-group">
+        <label>Tag</label>
+        <div class="chips" id="sp-tags"></div>
+      </div>
+    </div>
+    <div class="active-filters hidden" id="sp-filters"></div>
+    <div class="count" id="sp-count"></div>
+    <div class="grid" id="sp-grid"></div>
+  </section>
+</main>
+
+<footer>
+  <p>Unofficial fan resource. Data &amp; icons © Rift Wizard 3.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
