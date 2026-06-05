@@ -1,8 +1,7 @@
 # Rift Wizard 3 Compendium
 
 A searchable, filterable browser resource for **Rift Wizard 3** spells, equipment, and
-crafting components — in the spirit of the Armchair Wizard spell list, but covering the
-new RW3 crafting system.
+crafting components.
 
 ## What it does
 
