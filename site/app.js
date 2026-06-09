@@ -340,13 +340,15 @@ function equipmentCard(e) {
   return card;
 }
 
-const EQ = { search: '', slots: null, tags: null, sort: 'cost' };
+const EQ = { search: '', slots: null, tags: null, sort: 'cost', craftableOnly: false, statFilters: [] };
 function renderEquipment() {
   const q = EQ.search.toLowerCase();
   const slots = EQ.slots, tags = EQ.tags;
+  const pool = EQ.craftableOnly ? inventoryEssences() : null;
   let list = DATA.equipment.filter(e => {
     if (slots.size && !slots.has(e.slot)) return false;
     if (EQ.statFilters && !passesStatFilters(e, EQ.statFilters)) return false;
+    if (EQ.craftableOnly && evalRecipe(e.recipe, pool).missing > 0) return false;
     if (tags.size) {
       const rtags = new Set(e.recipe.map(r => r[0]));
       for (const t of tags) if (!rtags.has(t)) return false;
@@ -366,9 +368,15 @@ function renderEquipment() {
   list.sort(sorters[EQ.sort]);
   const grid = $('#eq-grid');
   grid.innerHTML = '';
-  if (!list.length) grid.appendChild(el('div', 'empty', 'No equipment matches those filters.'));
+  if (!list.length) {
+    const msg = (EQ.craftableOnly && Object.keys(INVENTORY).length === 0)
+      ? 'Add components on the Components tab to see what you can craft.'
+      : 'No equipment matches those filters.';
+    grid.appendChild(el('div', 'empty', msg));
+  }
   list.forEach(e => grid.appendChild(equipmentCard(e)));
-  $('#eq-count').textContent = `${list.length} of ${DATA.equipment.length} items`;
+  const suffix = EQ.craftableOnly ? ' craftable' : '';
+  $('#eq-count').textContent = `${list.length} of ${DATA.equipment.length} items${suffix}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -405,6 +413,27 @@ function wishTotals() {
   }
   return { tot, any };
 }
+function compMini(name, count) {
+  const c = CP_BY_NAME[name];
+  const ic = c ? `<img src="icons/components/${esc(c.icon)}" onerror="this.remove()">` : '';
+  const cnt = count && count > 1 ? `${count}× ` : '';
+  return `<span class="comp-mini">${ic}${cnt}${esc(name)}</span>`;
+}
+function recipeChipsPlanned(recipe, st) {
+  const { anyNeed, total } = recipeNeeds(recipe);
+  const need = st.need || {};
+  const anyCovered = st.specificsMet ? Math.max(0, Math.min(anyNeed, st.E - (total - anyNeed))) : 0;
+  return recipe.map(([tag, n]) => {
+    if (tag === 'Any') {
+      const ok = anyCovered >= n;
+      return `<span class="req any ${ok ? 'rok' : 'rmiss'}">${ok ? '✓ ' : ''}<span class="n">${ok ? n : anyCovered + '/' + n}×</span> Any</span>`;
+    }
+    const covered = n - (need[tag] || 0);
+    const ok = covered >= n;
+    const col = TAGCOLOR[tag] || 'var(--muted)';
+    return `<span class="req ${ok ? 'rok' : 'rmiss'}"${ok ? ` style="color:${col}"` : ''}>${ok ? '✓ ' : ''}<span class="n">${ok ? n : covered + '/' + n}×</span> ${esc(tag)}</span>`;
+  }).join('');
+}
 function renderWishlist() {
   const panel = $('#wishlist');
   const names = [...WISH];
@@ -420,8 +449,15 @@ function renderWishlist() {
     .map(([tag, n]) => `<span class="req" style="color:${TAGCOLOR[tag] || 'var(--muted)'}"><span class="n">${n}×</span> ${esc(tag)}</span>`)
     .join('');
   const anyHtml = any ? `<span class="req any"><span class="n">${any}×</span> Any</span>` : '';
-  const totalLabel = `<span class="wl-total-label">${specific + any} essence${specific + any !== 1 ? 's' : ''} (${specific} specific${any ? ` + ${any} any` : ''})</span>`;
-  $('#wl-totals').innerHTML = totalsHtml + anyHtml + totalLabel;
+  const totalLabel = `<span class="wl-total-label">${specific + any} essence${specific + any !== 1 ? 's' : ''} to craft all</span>`;
+
+  const plan = planBuild();
+  let summary = '';
+  if (plan.hasInventory) {
+    const okCount = names.filter(n => plan.status[n] && plan.status[n].ok).length;
+    summary = `<span class="wl-craftcount ${okCount === names.length ? 'all' : ''}">${okCount}/${names.length} craftable with your components</span>`;
+  }
+  $('#wl-totals').innerHTML = totalsHtml + anyHtml + totalLabel + summary;
 
   $('#wl-items').innerHTML = names
     .sort((a, b) => EQ_BY_NAME[a] && EQ_BY_NAME[b] ? (EQ_BY_NAME[a].recipe_cost - EQ_BY_NAME[b].recipe_cost || a.localeCompare(b)) : 0)
@@ -429,20 +465,36 @@ function renderWishlist() {
       const e = EQ_BY_NAME[name];
       const slot = e ? e.slot : '';
       const ic = e ? iconImg('equipment', e).replace('class="icon"', 'class="wl-ic"').replace('class="icon ', 'class="wl-ic ') : '';
-      const rcp = e ? recipeChips(e.recipe) : '';
-      return `<div class="wl-item">
+      const st = plan.status[name];
+      const planned = plan.hasInventory && e;
+      const rcp = planned ? recipeChipsPlanned(e.recipe, st) : (e ? recipeChips(e.recipe) : '');
+      const badge = planned ? (st.ok ? '<span class="wl-ok">✓ craftable</span>' : '<span class="wl-miss">✗ short</span>') : '';
+      const uses = (planned && st.ok && st.usedNames.length)
+        ? `<div class="wl-uses"><span class="wl-uses-label">uses</span> ${st.usedNames.map(n => compMini(n)).join('')}</div>` : '';
+      return `<div class="wl-item${planned ? (st.ok ? ' is-ok' : ' is-miss') : ''}">
         ${ic}
         <div class="wl-info">
           <div class="wl-row1">
             <span class="wl-name" data-eqtip="${esc(name)}" tabindex="0">${esc(name)}</span>
             <span class="badge slot">${esc(slot)}</span>
             <span class="wl-cost">cost ${e ? e.recipe_cost : '?'}</span>
+            ${badge}
           </div>
           <div class="wl-recipe">${rcp}</div>
+          ${uses}
         </div>
         <button class="wl-remove" data-wish-remove="${esc(name)}" title="Remove from build">✕</button>
       </div>`;
     }).join('');
+
+  const loEl = $('#wl-leftover');
+  if (loEl) {
+    const lo = plan.hasInventory ? Object.entries(plan.leftover) : [];
+    if (lo.length) {
+      loEl.classList.remove('hidden');
+      loEl.innerHTML = `<span class="wl-uses-label">Unused</span> ${lo.sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) => compMini(n, c)).join('')}`;
+    } else { loEl.classList.add('hidden'); loEl.innerHTML = ''; }
+  }
 }
 
 function wireWishlist() {
@@ -572,14 +624,15 @@ function loadInv() {
 function saveInv() {
   try { localStorage.setItem(INV_KEY, JSON.stringify(INVENTORY)); } catch (e) {}
 }
+function invRefresh() { renderInventory(); renderComponents(); renderWishlist(); renderEquipment(); }
 function invChange(name, d) {
   const n = (INVENTORY[name] || 0) + d;
   if (n <= 0) delete INVENTORY[name]; else INVENTORY[name] = n;
   saveInv();
-  renderInventory(); renderComponents(); renderCraft();
+  invRefresh();
 }
-function invRemove(name) { delete INVENTORY[name]; saveInv(); renderInventory(); renderComponents(); renderCraft(); }
-function invClear() { INVENTORY = {}; saveInv(); renderInventory(); renderComponents(); renderCraft(); }
+function invRemove(name) { delete INVENTORY[name]; saveInv(); invRefresh(); }
+function invClear() { INVENTORY = {}; saveInv(); invRefresh(); }
 
 // Essence pool derived from the component inventory (each component contributes
 // one of each of its tags per copy held).
@@ -623,15 +676,30 @@ function renderInventory() {
       cp.classList.remove('hidden');
       cp.innerHTML = `<div class="inv-head"><span class="inv-title">My components <span class="wl-badge">${count}</span></span><button class="btn-ghost inv-clear">Clear</button></div>
         <div class="inv-chips">${chips}</div>
-        <div class="inv-essences"><span class="inv-ess-label">Essence pool:</span> ${essences || '—'}</div>`;
+        <div class="inv-essences"><span class="inv-ess-label">Essence pool:</span> ${essences || '—'}</div>
+        <div class="inv-tip">On the <a class="tablink" data-goto="equipment">Equipment</a> tab, toggle <b>Craftable only</b> to see what these can make.</div>`;
     }
   }
-  // Calculator-tab panel
-  const ci = $('#craft-inventory');
-  if (ci) ci.innerHTML = has ? `<div class="inv-chips">${chips}</div>`
-    : `<p class="hint empty-inv">No components yet. Add them on the <a class="tablink" data-goto="components">Components</a> tab.</p>`;
-  const ce = $('#craft-essences');
-  if (ce) ce.innerHTML = essences || '<span class="muted-note">—</span>';
+
+  // Compact read-only readout on the Equipment tab
+  const eq = $('#eq-inv');
+  if (eq) {
+    if (!has) { eq.classList.add('hidden'); eq.innerHTML = ''; }
+    else {
+      eq.classList.remove('hidden');
+      const essTotal = Object.values(inventoryEssences()).reduce((a, b) => a + b, 0);
+      const comps = Object.keys(INVENTORY)
+        .sort((a, b) => { const ca = CP_BY_NAME[a], cb = CP_BY_NAME[b]; return (ca && cb ? (ca.tier - cb.tier || a.localeCompare(b)) : a.localeCompare(b)); })
+        .map(name => {
+          const c = CP_BY_NAME[name];
+          const ic = c ? `<img src="icons/components/${esc(c.icon)}" onerror="this.remove()">` : '';
+          return `<span class="eq-comp" title="${esc(name)}">${ic}<span class="eq-comp-n">${esc(name)}</span><span class="eq-comp-q">×${INVENTORY[name]}</span></span>`;
+        }).join('');
+      eq.innerHTML = `<span class="eq-inv-label">My components</span><div class="eq-inv-comps">${comps}</div>`
+        + `<span class="eq-inv-label">${essTotal} essence${essTotal !== 1 ? 's' : ''}</span><div class="eq-inv-ess">${essences || '—'}</div>`
+        + `<a class="tablink eq-inv-edit" data-goto="components">edit</a>`;
+    }
+  }
 }
 function wireInventory() {
   document.addEventListener('click', e => {
@@ -649,11 +717,12 @@ function wireInventory() {
 }
 
 // ---------------------------------------------------------------------------
-// CRAFT CALCULATOR
+// CRAFTING LOGIC
 // ---------------------------------------------------------------------------
-const CRAFT = { search: '', slots: null, slack: 0, statFilters: [] };
-
-// returns {ok, missing} where missing is how many tags short (0 = exact craftable)
+// Single-item craftability from a flat essence pool. Because a single recipe
+// may draw from the entire inventory and any unused essences of a committed
+// component are simply wasted, this flat check is exact for one item.
+// returns {ok, missing} where missing is how many essences short.
 function evalRecipe(recipe, pool) {
   const avail = { ...pool };
   let anyNeed = 0, missing = 0;
@@ -669,43 +738,86 @@ function evalRecipe(recipe, pool) {
   if (leftover < anyNeed) missing += (anyNeed - leftover);
   return { ok: missing === 0, missing };
 }
-function renderCraft() {
-  const pool = inventoryEssences();
-  const total = Object.values(pool).reduce((a, b) => a + b, 0);
-  const slack = CRAFT.slack;
-  const q = CRAFT.search.toLowerCase();
-  const grid = $('#craft-grid');
-  grid.innerHTML = '';
-  if (total === 0) {
-    grid.appendChild(el('div', 'empty', 'Your component pool is empty. Add components on the Components tab to see what you can craft.'));
-    $('#craft-count').textContent = '';
-    return;
+
+function recipeNeeds(recipe) {
+  const specifics = {}; let anyNeed = 0, total = 0;
+  for (const [tag, n] of recipe) {
+    total += n;
+    if (tag === 'Any') anyNeed += n; else specifics[tag] = (specifics[tag] || 0) + n;
   }
-  let results = [];
-  for (const e of DATA.equipment) {
-    if (CRAFT.slots.size && !CRAFT.slots.has(e.slot)) continue;
-    if (CRAFT.statFilters && !passesStatFilters(e, CRAFT.statFilters)) continue;
-    if (q) {
-      const hay = (e.name + ' ' + e.desc + ' ' + e.bonuses.join(' ')).toLowerCase();
-      if (!hay.includes(q)) continue;
+  return { specifics, anyNeed, total };
+}
+
+// Crafting commits WHOLE components: a component's full tag set is spent on one
+// recipe (extra tags wasted, never shared). Greedily satisfy one recipe from a
+// pool of component instances; returns which were used + remaining shortfalls.
+function satisfyFromPool(recipe, pool, avail) {
+  const { specifics, total } = recipeNeeds(recipe);
+  const need = { ...specifics };
+  const used = [];
+  let E = 0;
+  // Phase 1: cover specific tags, preferring components that cover the most
+  // still-needed tags with the least waste.
+  while (Object.values(need).some(v => v > 0)) {
+    let best = -1, bestCov = 0, bestWaste = Infinity;
+    for (const i of avail) {
+      const tags = pool[i].tags;
+      let cov = 0;
+      for (const t of tags) if (need[t] > 0) cov++;
+      if (cov <= 0) continue;
+      const waste = tags.length - cov;
+      if (cov > bestCov || (cov === bestCov && waste < bestWaste)) { best = i; bestCov = cov; bestWaste = waste; }
     }
-    const r = evalRecipe(e.recipe, pool);
-    if (r.missing <= slack) results.push({ e, missing: r.missing });
+    if (best < 0) break;                 // cannot cover remaining specifics
+    avail.delete(best); used.push(best); E += pool[best].tags.length;
+    for (const t of pool[best].tags) if (need[t] > 0) need[t]--;
   }
-  results.sort((a, b) => a.missing - b.missing || b.e.recipe_cost - a.e.recipe_cost || a.e.name.localeCompare(b.e.name));
-  if (!results.length) {
-    grid.appendChild(el('div', 'empty', 'Nothing craftable from this pool yet.'));
-  } else {
-    results.forEach(({ e, missing }) => {
-      const card = equipmentCard(e);
-      const tag = el('div', 'craftable-tag' + (missing ? ' slack' : ''));
-      tag.textContent = missing ? `missing ${missing}` : 'craftable';
-      card.appendChild(tag);
-      grid.appendChild(card);
-    });
+  const specificsMet = Object.values(need).every(v => v <= 0);
+  // Phase 2: commit more components (smallest first to minimize waste) until we
+  // have enough total essences to also fill the Any slots.
+  if (specificsMet) {
+    while (E < total && avail.size) {
+      let best = -1, bestLen = Infinity;
+      for (const i of avail) { const l = pool[i].tags.length; if (l < bestLen) { bestLen = l; best = i; } }
+      avail.delete(best); used.push(best); E += pool[best].tags.length;
+    }
   }
-  const exact = results.filter(r => r.missing === 0).length;
-  $('#craft-count').textContent = `${total} essences in pool · ${exact} craftable now` + (slack ? ` · ${results.length - exact} within reach` : '');
+  return { ok: specificsMet && E >= total, used, need, E, total, specificsMet };
+}
+
+function expandInventory() {
+  const pool = [];
+  for (const [name, n] of Object.entries(INVENTORY)) {
+    const c = CP_BY_NAME[name];
+    if (!c) continue;
+    const tags = c.tags.filter(t => t !== 'Any');
+    for (let i = 0; i < n; i++) pool.push({ name, tags });
+  }
+  return pool;
+}
+
+// Allocate the inventory across all build items (no component shared between
+// items). Best-effort: hardest recipes first. Returns per-item status + leftovers.
+function planBuild() {
+  const pool = expandInventory();
+  const avail = new Set(pool.map((_, i) => i));
+  const names = [...WISH];
+  const order = names.slice().sort((a, b) => {
+    const ea = EQ_BY_NAME[a], eb = EQ_BY_NAME[b];
+    return (eb ? eb.recipe_cost : 0) - (ea ? ea.recipe_cost : 0);
+  });
+  const status = {};
+  for (const name of order) {
+    const e = EQ_BY_NAME[name];
+    if (!e) { status[name] = { ok: false, need: {}, E: 0, total: 0, specificsMet: false, usedNames: [] }; continue; }
+    // Trial on a copy; only consume components from the real pool if it succeeds.
+    const r = satisfyFromPool(e.recipe, pool, new Set(avail));
+    if (r.ok) r.used.forEach(i => avail.delete(i));
+    status[name] = { ...r, usedNames: r.ok ? r.used.map(i => pool[i].name) : [] };
+  }
+  const leftover = {};
+  for (const i of avail) leftover[pool[i].name] = (leftover[pool[i].name] || 0) + 1;
+  return { status, leftover, hasInventory: pool.length > 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -748,6 +860,11 @@ async function init() {
   });
   makeStatSearch({ inputEl: $('#eq-search'), filtersEl: $('#eq-filters'), state: EQ, getDataset: () => DATA.equipment, render: renderEquipment });
   $('#eq-sort').addEventListener('change', e => { EQ.sort = e.target.value; renderEquipment(); });
+  $('#eq-craftable').addEventListener('click', e => {
+    EQ.craftableOnly = !EQ.craftableOnly;
+    e.target.classList.toggle('active', EQ.craftableOnly);
+    renderEquipment();
+  });
 
   // --- Components controls ---
   CP.tiers = buildChips($('#cp-tiers'), ['1', '2', '3'], { label: t => 'Tier ' + t, onChange: renderComponents, activeColor: () => '#fff' });
@@ -774,19 +891,14 @@ async function init() {
   });
   makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: () => DATA.spells, render: renderSpells });
 
-  // --- Craft calculator ---
-  CRAFT.slots = buildChips($('#craft-slots'), DATA.slots, { onChange: renderCraft, activeColor: () => '#fff' });
-  makeStatSearch({ inputEl: $('#craft-search'), filtersEl: $('#craft-filters'), state: CRAFT, getDataset: () => DATA.equipment, render: renderCraft });
-  $('#craft-slack').addEventListener('change', e => { CRAFT.slack = parseInt(e.target.value, 10); renderCraft(); });
-
   // render all
   renderWishlist();
   renderInventory();
-  renderEquipment(); renderComponents(); renderSpells(); renderCraft();
+  renderEquipment(); renderComponents(); renderSpells();
 
   // initial tab from hash
   const hash = location.hash.slice(1);
-  if (['equipment', 'craft', 'components', 'spells'].includes(hash)) switchTab(hash);
+  if (['equipment', 'components', 'spells'].includes(hash)) switchTab(hash);
 }
 
 init();

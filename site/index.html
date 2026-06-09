@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rift Wizard 3 — Spell & Equipment Compendium</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 <header>
@@ -14,7 +14,6 @@
   </div>
   <nav class="tabs" id="tabs">
     <button data-tab="equipment" class="active">Equipment</button>
-    <button data-tab="craft">Craft Calculator</button>
     <button data-tab="components">Components</button>
     <button data-tab="spells">Spells</button>
   </nav>
@@ -32,7 +31,9 @@
         </div>
       </div>
       <div class="wl-items" id="wl-items"></div>
+      <div class="wl-leftover hidden" id="wl-leftover"></div>
     </div>
+    <div class="eq-inv hidden" id="eq-inv"></div>
     <div class="controls">
       <input type="search" id="eq-search" class="search" placeholder="Search equipment by name or effect…">
       <div class="control-group">
@@ -42,6 +43,10 @@
       <div class="control-group">
         <label>Recipe contains tag</label>
         <div class="chips" id="eq-tags"></div>
+      </div>
+      <div class="control-group">
+        <label>Components</label>
+        <button class="toggle" id="eq-craftable" title="Show only equipment you can craft with your current components (set on the Components tab)">Craftable only</button>
       </div>
       <div class="control-group">
         <label>Sort</label>
@@ -56,42 +61,6 @@
     <div class="active-filters hidden" id="eq-filters"></div>
     <div class="count" id="eq-count"></div>
     <div class="grid" id="eq-grid"></div>
-  </section>
-
-  <!-- CRAFT CALCULATOR -->
-  <section id="tab-craft" class="tab-panel">
-    <div class="craft-layout">
-      <aside class="craft-pool">
-        <h2>Your components</h2>
-        <p class="hint">Collected on the <a class="tablink" data-goto="components">Components</a> tab. Equipment you can craft appears on the right. <code>Any</code> requirements are filled by leftover essences.</p>
-        <div class="craft-inventory" id="craft-inventory"></div>
-        <div class="section-label">Essence pool</div>
-        <div class="recipe pool-essences" id="craft-essences"></div>
-        <div class="pool-actions">
-          <button class="btn-ghost inv-clear">Clear components</button>
-          <label class="missing-toggle">Allow missing
-            <select id="craft-slack">
-              <option value="0">0 (exact)</option>
-              <option value="1">≤ 1</option>
-              <option value="2">≤ 2</option>
-              <option value="3">≤ 3</option>
-            </select>
-          </label>
-        </div>
-      </aside>
-      <div class="craft-results">
-        <div class="controls slim">
-          <input type="search" id="craft-search" class="search" placeholder="Filter results by name, effect, or stat…">
-          <div class="control-group">
-            <label>Slot</label>
-            <div class="chips" id="craft-slots"></div>
-          </div>
-        </div>
-        <div class="active-filters hidden" id="craft-filters"></div>
-        <div class="count" id="craft-count"></div>
-        <div class="grid" id="craft-grid"></div>
-      </div>
-    </div>
   </section>
 
   <!-- COMPONENTS -->
@@ -139,6 +108,6 @@
   <p>Unofficial fan resource. Data &amp; icons © Rift Wizard 3.</p>
 </footer>
 
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

@@ -11,7 +11,8 @@ The static site (`site/`) lets you:
   (Trinket / Head / Body / Feet / Weapon — slots aren't shown in-game, but are exposed here),
   search by name/effect, and **filter by recipe tag** (e.g. *"show me everything that crafts
   from Dark"*). Each card shows the icon, slot, item tags, full effect/bonus text, and the
-  recipe with per-tag counts.
+  recipe with per-tag counts. A **Craftable only** toggle restricts the list to what your
+  current component inventory can make (combined with all other filters).
 - **Stat search** (Equipment & Spells) — type a stat name or synonym (e.g. `dama`, `minion hp`,
   `charges`) and an autocomplete offers *Modifies X* (grants a bonus to that stat) and
   *Scales with X* (has an effect that uses it), each with a result count. Selecting one clears
@@ -21,18 +22,17 @@ The static site (`site/`) lets you:
   effects that add damage through bespoke handlers rather than the engine's stat-bonus system —
   e.g. Boiling Blood's `extra_damage` — are intentionally not tagged, as there's no structured
   signal to read.)*
-- **Build / wishlist** — on the Equipment tab, *＋ Build* toggles an item into a sticky build
-  bar at the top that aggregates the **total essence (tag) count** needed to craft the whole
-  set (specific tags + `Any`), and lists each item with its cost and recipe. It persists across
-  reloads (localStorage). Hovering an item name shows its full stat card.
+- **Build planner** — on the Equipment tab, *＋ Build* toggles an item into a sticky build bar.
+  With a component inventory it allocates your components across the build respecting the game's
+  **whole-component commitment** rule (a component is spent entirely on one recipe — extra
+  essences wasted, never shared between items) and marks each item ✓ craftable / ✗ short with
+  per-requirement detail, the components it consumes, and any leftover components. Hovering an
+  item name shows its full stat card. Persists across reloads (localStorage).
 - **Components & inventory** — all 83 component items (tiers 1–3 + rares) with their on-pickup /
   on-craft effects. *＋ Add to pool* collects components into a **"My components"** inventory
-  (mental model: *"I have 2 Chaos Seeds and 1 Blood Basin"*), shown as editable chips between
-  the search and the list, with the derived essence pool underneath. Persists across reloads.
-- **Craft Calculator** — automatically uses the essence pool derived from your component
-  inventory and shows **what you can craft**. `Any` recipe requirements are filled by leftover
-  essences; an *"Allow missing ≤ N"* option shows items that are almost within reach; results
-  can be narrowed by slot and by the same stat search (Modifies/Scales-with) as the other tabs.
+  (mental model: *"I have 2 Chaos Seeds and 1 Blood Basin"*), shown as editable chips with the
+  derived essence pool. The Equipment tab's *Craftable only* toggle and build planner both read
+  from this inventory. Persists across reloads.
 - **Spells** — all 186 player spells with level, tags, stats, descriptions, and upgrades.
 - **Summon stat sheets** — any spell, item, or component that summons a unit shows the
   unit(s) as chips; hovering one pops a floating stat sheet (HP, tags, resistances,

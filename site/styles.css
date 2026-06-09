@@ -162,25 +162,30 @@ select{
   padding:2px 7px;border-radius:5px;background:#13391f;color:#7ee0a0;border:1px solid #2f6b45}
 .craftable-tag.slack{background:#3a2f14;color:#e7c66b;border-color:#6b5a2f}
 
-/* Craft calculator */
-.craft-layout{display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:start}
-.craft-pool{
-  position:sticky;top:96px;
-  background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px;
-}
-.craft-pool h2{margin:0 0 4px;font-size:15px}
-.craft-pool .hint{font-size:11.5px;line-height:1.4;color:var(--muted);margin:0 0 9px}
-.craft-pool code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px}
-.craft-pool .section-label{margin:10px 0 4px}
-.craft-pool .pool-essences{margin-bottom:2px}
-.craft-inventory{max-height:46vh;overflow:auto}
-.empty-inv{margin:2px 0 0}
 .tablink{color:var(--accent);cursor:pointer;text-decoration:underline}
-.pool-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap}
 .btn-ghost{background:var(--bg2);border:1px solid var(--border);color:var(--muted);
   padding:6px 11px;border-radius:7px;cursor:pointer;font-weight:600}
 .btn-ghost:hover{color:var(--text);border-color:var(--accent)}
-.missing-toggle{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+
+/* Craftable-only toggle */
+.toggle{background:var(--bg2);border:1px solid var(--border);color:var(--muted);
+  padding:6px 12px;border-radius:7px;cursor:pointer;font-weight:700;font-size:13px}
+.toggle:hover{color:var(--text);border-color:var(--accent)}
+.toggle.active{background:#13391f;color:#7ee0a0;border-color:#2f6b45}
+.toggle.active::before{content:"✓ "}
+
+/* Compact inventory readout on the Equipment tab */
+.eq-inv{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:10px;
+  background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:7px 11px}
+.eq-inv.hidden{display:none}
+.eq-inv-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:800}
+.eq-inv-comps{display:flex;flex-wrap:wrap;gap:5px}
+.eq-inv-ess{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.eq-inv-ess .req{font-size:11px;padding:1px 6px}
+.eq-comp{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#cdd6e6}
+.eq-comp img{width:18px;height:18px;image-rendering:pixelated;object-fit:contain}
+.eq-comp-q{color:var(--accent);font-variant-numeric:tabular-nums}
+.eq-inv-edit{font-size:11px;margin-left:auto}
 
 /* Component inventory ("I have 2 Chaos Seeds…") */
 .inventory{background:linear-gradient(180deg,#16212b,#121a24);border:1px solid #2f5a4a;
@@ -239,6 +244,25 @@ select{
 }
 .add-build:hover{border-color:var(--accent);color:#fff;background:#1d2940}
 .add-build.in{color:#7ee0a0;border-color:#2f6b45;background:#13391f}
+
+/* Build planner: craft satisfaction */
+.wl-craftcount{font-size:11.5px;font-weight:600;color:#e7c66b;margin-left:4px}
+.wl-craftcount.all{color:#7ee0a0}
+.wl-ok{font-size:10.5px;font-weight:800;color:#7ee0a0;text-transform:uppercase;letter-spacing:.4px}
+.wl-miss{font-size:10.5px;font-weight:800;color:#e79a6b;text-transform:uppercase;letter-spacing:.4px}
+.wl-item.is-ok{}
+.wl-item.is-miss{opacity:.92}
+.wl-recipe .req.rok{}
+.wl-recipe .req.rmiss{color:var(--muted)!important;border-style:dashed;opacity:.75}
+.wl-uses{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:1px}
+.wl-uses-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:800}
+.comp-mini{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1px 6px 1px 3px;color:#cdd6e6}
+.comp-mini img{width:16px;height:16px;image-rendering:pixelated;object-fit:contain}
+.wl-leftover{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:9px;
+  border-top:1px dashed var(--border);padding-top:8px}
+.wl-leftover.hidden{display:none}
+.inv-tip{font-size:11px;color:var(--muted);margin-top:8px}
 
 /* Summon chips + unit tooltip */
 .summon-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
