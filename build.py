@@ -7,8 +7,7 @@ print("== extracting data ==")
 runpy.run_path(os.path.join(HERE, "extract.py"), run_name="__main__")
 print("== copying icons ==")
 runpy.run_path(os.path.join(HERE, "copy_icons.py"), run_name="__main__")
-print("== animating monster sprites (idle loop) ==")
-runpy.run_path(os.path.join(HERE, "animate_monsters.py"), run_name="__main__")
-print("== generating favicon ==")
-runpy.run_path(os.path.join(HERE, "make_favicon.py"), run_name="__main__")
-print("== done. serve with:  python -m http.server --directory site ==")
+# Monster idle animation is done in pure CSS (background-position) from the full
+# spritesheets, so no per-sprite processing here. The favicon is a committed
+# static asset (regenerate once with make_favicon.py if the source ever changes).
+print("== done. serve with:  python devserver.py ==")

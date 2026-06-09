@@ -4,7 +4,7 @@ let DATA = null;
 let COLORS = {};
 let TAGCOLOR = {};        // Tag name -> "rgb(...)"
 let COMPONENT_TAGS = [];  // recipe-able tags excluding "Any"
-let IV = '';              // icon cache-busting suffix (?v=<build date>), set in init
+let IV = '';              // (unused) icon URL suffix; kept empty — caching handled by the host
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -69,10 +69,30 @@ function recipeChips(recipe) {
 
 // --- Summoned-unit stat sheets ---------------------------------------------
 let UNITS = {};
+// A unit's icon is a spritesheet; show its looping idle animation (last row of
+// frames) in pure CSS via background-position. ctxClass supplies the size (--d).
+function unitSprite(u, ctxClass) {
+  if (!u) return `<div class="sprite ${ctxClass}"></div>`;
+  const cols = u.cols || 1, rows = u.rows || 1;
+  const anim = cols > 1 ? ' c' + cols : '';
+  return `<div class="sprite ${ctxClass}${anim}" style="--cols:${cols};--rows:${rows};background-image:url(icons/units/${esc(u.icon)})"></div>`;
+}
 function summonRow(summons) {
   if (!summons || !summons.length) return '';
-  const chips = summons.map(n => `<span class="summon-chip" data-unit="${esc(n)}" tabindex="0"><img src="icons/units/${esc(UNITS[n] ? UNITS[n].icon : '')}${IV}" onerror="this.remove()">${esc(n)}</span>`).join('');
+  const chips = summons.map(n => `<span class="summon-chip" data-unit="${esc(n)}" tabindex="0">${unitSprite(UNITS[n], 'chip-sprite')}${esc(n)}</span>`).join('');
   return `<div class="summon-row"><span class="section-label">Summons</span><div class="summon-chips">${chips}</div></div>`;
+}
+// One steps() keyframe per distinct idle-frame count (idle loops at 5fps).
+function injectSpriteKeyframes() {
+  const counts = new Set(Object.values(UNITS).map(u => u.cols || 1).filter(c => c > 1));
+  let css = '';
+  for (const n of counts) {
+    css += `@keyframes spr${n}{to{background-position-x:calc(${n} * var(--d) * -1)}}`;
+    css += `.sprite.c${n}{animation:spr${n} ${(n * 0.2).toFixed(1)}s steps(${n}) infinite}`;
+  }
+  const st = document.createElement('style');
+  st.textContent = css;
+  document.head.appendChild(st);
 }
 function renderUnitSheet(name) {
   const u = UNITS[name];
@@ -95,7 +115,7 @@ function renderUnitSheet(name) {
   const passives = u.passives.map(p => `<div class="upass">${renderMarkup(p)}</div>`).join('');
   return `<div class="unit-sheet">
     <div class="uhead">
-      <img class="uicon" src="icons/units/${esc(u.icon)}${IV}" onerror="this.style.visibility='hidden'">
+      ${unitSprite(u, 'uicon-sprite')}
       <div class="uhmeta">
         <div class="uname">${esc(u.name)}</div>
         <div class="card-meta">${u.tags.map(tagPill).join('')}</div>
@@ -746,7 +766,7 @@ function monsterCard(u) {
   const hp = u.hp ? `${u.hp} HP` : 'HP varies';
   card.innerHTML = `
     <div class="card-head">
-      <img class="mon-art" loading="lazy" src="icons/units/${esc(u.icon)}${IV}" onerror="this.style.visibility='hidden'">
+      ${unitSprite(u, 'mon-art')}
       <div class="card-title">
         <div class="name">${esc(u.name)}</div>
         <div class="card-meta">${depthBadge}${typeBadge}${u.tags.map(tagPill).join('')}</div>
@@ -1019,14 +1039,14 @@ function switchTab(name) {
 // Init
 // ---------------------------------------------------------------------------
 async function init() {
-  DATA = await fetch('data.json', { cache: 'no-cache' }).then(r => r.json());
+  DATA = await fetch('data.json').then(r => r.json());
   COLORS = DATA.colors;
   UNITS = DATA.units || {};
   for (const [name, info] of Object.entries(DATA.tags.all)) TAGCOLOR[name] = rgb(info.color);
   COMPONENT_TAGS = DATA.tags.component_tags.filter(t => t !== 'Any').sort();
   STAT_META = DATA.stat_meta || {};
-  IV = '?v=' + (DATA.generated || '1');
   if (DATA.generated) $('#last-updated').textContent = DATA.generated;
+  injectSpriteKeyframes();
   for (const e of DATA.equipment) EQ_BY_NAME[e.name] = e;
   for (const c of DATA.components) CP_BY_NAME[c.name] = c;
   for (const s of DATA.spells) SPELL_BY_NAME[s.name] = s;

@@ -264,9 +264,19 @@ select{
 .wl-leftover.hidden{display:none}
 .inv-tip{font-size:11px;color:var(--muted);margin-top:8px}
 
+/* Animated unit sprites (pure CSS idle loop via background-position) */
+.sprite{
+  --d:48px;
+  width:var(--d);height:var(--d);flex:0 0 auto;
+  background-repeat:no-repeat;image-rendering:pixelated;
+  background-size:calc(var(--cols,1) * var(--d)) calc(var(--rows,1) * var(--d));
+  background-position-x:0;
+  background-position-y:calc((1 - var(--rows,1)) * var(--d));
+}
+/* keyframes .sprite.cN are injected at runtime, one per distinct frame count */
+
 /* Monster cards */
-.mon-art{width:56px;height:56px;flex:0 0 56px;border-radius:9px;background:var(--bg);
-  border:1px solid var(--border);image-rendering:pixelated;object-fit:contain;padding:3px}
+.mon-art{--d:56px;border-radius:9px;background-color:var(--bg);border:1px solid var(--border)}
 .mon-card .uline{display:flex;flex-wrap:wrap;gap:9px;font-size:12.5px;font-weight:700;margin-top:5px}
 .mon-card .uhp{color:#ff7a7a}
 .mon-card .ush{color:#4dfdfc}
@@ -299,7 +309,7 @@ select{
   padding:1px 7px 1px 3px;font-size:11.5px;font-weight:700;color:#d7e0f0;
 }
 .summon-chip:hover,.summon-chip:focus{border-color:var(--accent2);color:#fff;outline:none}
-.summon-chip img{width:18px;height:18px;image-rendering:pixelated;object-fit:contain}
+.summon-chip .chip-sprite{--d:18px}
 
 .unit-tip{
   position:fixed;z-index:100;width:280px;max-width:92vw;
@@ -308,8 +318,7 @@ select{
   box-shadow:0 10px 34px rgba(0,0,0,.6);padding:10px;pointer-events:none;
 }
 .unit-sheet .uhead{display:flex;gap:9px;align-items:center;margin-bottom:6px}
-.unit-sheet .uicon{width:42px;height:42px;image-rendering:pixelated;object-fit:contain;
-  background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:2px}
+.unit-sheet .uicon-sprite{--d:42px;background-color:var(--bg);border:1px solid var(--border);border-radius:7px}
 .unit-sheet .uname{font-weight:800;font-size:15px}
 .unit-sheet .uline{display:flex;flex-wrap:wrap;gap:9px;font-size:12.5px;font-weight:700;margin:3px 0}
 .unit-sheet .uhp{color:#ff7a7a}
