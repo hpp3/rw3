@@ -4,6 +4,7 @@ let DATA = null;
 let COLORS = {};
 let TAGCOLOR = {};        // Tag name -> "rgb(...)"
 let COMPONENT_TAGS = [];  // recipe-able tags excluding "Any"
+let IV = '';              // icon cache-busting suffix (?v=<build date>), set in init
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -55,7 +56,7 @@ function iconImg(cat, item) {
   if (item.has_icon === false) {
     return `<div class="icon placeholder">✦</div>`;
   }
-  return `<img class="icon" loading="lazy" src="icons/${cat}/${esc(item.icon)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'icon placeholder',textContent:'✦'}))">`;
+  return `<img class="icon" loading="lazy" src="icons/${cat}/${esc(item.icon)}${IV}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'icon placeholder',textContent:'✦'}))">`;
 }
 
 function recipeChips(recipe) {
@@ -70,7 +71,7 @@ function recipeChips(recipe) {
 let UNITS = {};
 function summonRow(summons) {
   if (!summons || !summons.length) return '';
-  const chips = summons.map(n => `<span class="summon-chip" data-unit="${esc(n)}" tabindex="0"><img src="icons/units/${esc(UNITS[n] ? UNITS[n].icon : '')}" onerror="this.remove()">${esc(n)}</span>`).join('');
+  const chips = summons.map(n => `<span class="summon-chip" data-unit="${esc(n)}" tabindex="0"><img src="icons/units/${esc(UNITS[n] ? UNITS[n].icon : '')}${IV}" onerror="this.remove()">${esc(n)}</span>`).join('');
   return `<div class="summon-row"><span class="section-label">Summons</span><div class="summon-chips">${chips}</div></div>`;
 }
 function renderUnitSheet(name) {
@@ -94,7 +95,7 @@ function renderUnitSheet(name) {
   const passives = u.passives.map(p => `<div class="upass">${renderMarkup(p)}</div>`).join('');
   return `<div class="unit-sheet">
     <div class="uhead">
-      <img class="uicon" src="icons/units/${esc(u.icon)}" onerror="this.style.visibility='hidden'">
+      <img class="uicon" src="icons/units/${esc(u.icon)}${IV}" onerror="this.style.visibility='hidden'">
       <div class="uhmeta">
         <div class="uname">${esc(u.name)}</div>
         <div class="card-meta">${u.tags.map(tagPill).join('')}</div>
@@ -181,7 +182,7 @@ function renderEquipSheet(name) {
   const bonuses = e.bonuses.length ? `<div class="bonuses">${e.bonuses.map(b => `<div class="b">${renderMarkup(b)}</div>`).join('')}</div>` : '';
   return `<div class="unit-sheet">
     <div class="uhead">
-      <img class="uicon" src="icons/equipment/${esc(e.icon)}" onerror="this.style.visibility='hidden'">
+      <img class="uicon" src="icons/equipment/${esc(e.icon)}${IV}" onerror="this.style.visibility='hidden'">
       <div class="uhmeta">
         <div class="uname">${esc(e.name)}</div>
         <div class="card-meta"><span class="badge slot">${esc(e.slot)}</span>${e.tags.map(tagPill).join('')}</div>
@@ -197,7 +198,7 @@ function renderSpellSheet(name) {
   const stats = Object.entries(s.stats).map(([k, v]) => `<span class="stat">${STAT_LABEL[k] || k} <b>${v}</b></span>`).join('');
   return `<div class="unit-sheet">
     <div class="uhead">
-      <img class="uicon" src="icons/spells/${esc(s.icon)}" onerror="this.style.visibility='hidden'">
+      <img class="uicon" src="icons/spells/${esc(s.icon)}${IV}" onerror="this.style.visibility='hidden'">
       <div class="uhmeta">
         <div class="uname">${esc(s.name)}</div>
         <div class="card-meta"><span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">Lv ${s.level}</span>${s.tags.map(tagPill).join('')}</div>
@@ -460,7 +461,7 @@ function wishTotals() {
 }
 function compMini(name, count) {
   const c = CP_BY_NAME[name];
-  const ic = c ? `<img src="icons/components/${esc(c.icon)}" onerror="this.remove()">` : '';
+  const ic = c ? `<img src="icons/components/${esc(c.icon)}${IV}" onerror="this.remove()">` : '';
   const cnt = count && count > 1 ? `${count}× ` : '';
   return `<span class="comp-mini">${ic}${cnt}${esc(name)}</span>`;
 }
@@ -745,7 +746,7 @@ function monsterCard(u) {
   const hp = u.hp ? `${u.hp} HP` : 'HP varies';
   card.innerHTML = `
     <div class="card-head">
-      <img class="mon-art" loading="lazy" src="icons/units/${esc(u.icon)}" onerror="this.style.visibility='hidden'">
+      <img class="mon-art" loading="lazy" src="icons/units/${esc(u.icon)}${IV}" onerror="this.style.visibility='hidden'">
       <div class="card-title">
         <div class="name">${esc(u.name)}</div>
         <div class="card-meta">${depthBadge}${typeBadge}${u.tags.map(tagPill).join('')}</div>
@@ -829,7 +830,7 @@ function invChipsHtml() {
     .sort((a, b) => { const ca = CP_BY_NAME[a], cb = CP_BY_NAME[b]; return (ca && cb ? (ca.tier - cb.tier || a.localeCompare(b)) : a.localeCompare(b)); })
     .map(name => {
       const c = CP_BY_NAME[name];
-      const ic = c ? `<img src="icons/components/${esc(c.icon)}" onerror="this.remove()">` : '';
+      const ic = c ? `<img src="icons/components/${esc(c.icon)}${IV}" onerror="this.remove()">` : '';
       return `<span class="inv-chip">${ic}<span class="inv-name">${esc(name)}</span>
         <span class="inv-qty"><button data-inv="${esc(name)}" data-d="-1">−</button><b>${INVENTORY[name]}</b><button data-inv="${esc(name)}" data-d="1">＋</button></span>
         <button class="inv-rm" data-inv-rm="${esc(name)}" title="Remove">✕</button></span>`;
@@ -871,7 +872,7 @@ function renderInventory() {
         .sort((a, b) => { const ca = CP_BY_NAME[a], cb = CP_BY_NAME[b]; return (ca && cb ? (ca.tier - cb.tier || a.localeCompare(b)) : a.localeCompare(b)); })
         .map(name => {
           const c = CP_BY_NAME[name];
-          const ic = c ? `<img src="icons/components/${esc(c.icon)}" onerror="this.remove()">` : '';
+          const ic = c ? `<img src="icons/components/${esc(c.icon)}${IV}" onerror="this.remove()">` : '';
           return `<span class="eq-comp" title="${esc(name)}">${ic}<span class="eq-comp-n">${esc(name)}</span><span class="eq-comp-q">×${INVENTORY[name]}</span></span>`;
         }).join('');
       eq.innerHTML = `<span class="eq-inv-label">My components</span><div class="eq-inv-comps">${comps}</div>`
@@ -1002,10 +1003,16 @@ function planBuild() {
 // ---------------------------------------------------------------------------
 // Tabs
 // ---------------------------------------------------------------------------
+const TAB_SCROLL = {};
+let currentTab = 'equipment';
 function switchTab(name) {
+  if (name === currentTab) return;
+  TAB_SCROLL[currentTab] = window.scrollY;   // remember where we were
   $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   $$('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  currentTab = name;
   location.hash = name;
+  window.scrollTo(0, TAB_SCROLL[name] || 0); // restore this tab's last position
 }
 
 // ---------------------------------------------------------------------------
@@ -1018,6 +1025,7 @@ async function init() {
   for (const [name, info] of Object.entries(DATA.tags.all)) TAGCOLOR[name] = rgb(info.color);
   COMPONENT_TAGS = DATA.tags.component_tags.filter(t => t !== 'Any').sort();
   STAT_META = DATA.stat_meta || {};
+  IV = '?v=' + (DATA.generated || '1');
   if (DATA.generated) $('#last-updated').textContent = DATA.generated;
   for (const e of DATA.equipment) EQ_BY_NAME[e.name] = e;
   for (const c of DATA.components) CP_BY_NAME[c.name] = c;
