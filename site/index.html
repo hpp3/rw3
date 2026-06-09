@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rift Wizard 3 — Spell & Equipment Compendium</title>
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 <header>
@@ -16,6 +16,7 @@
     <button data-tab="equipment" class="active">Equipment</button>
     <button data-tab="components">Components</button>
     <button data-tab="spells">Spells</button>
+    <button data-tab="monsters">Monsters</button>
   </nav>
 </header>
 
@@ -102,12 +103,41 @@
     <div class="count" id="sp-count"></div>
     <div class="grid" id="sp-grid"></div>
   </section>
+
+  <!-- MONSTERS -->
+  <section id="tab-monsters" class="tab-panel">
+    <div class="controls">
+      <input type="search" id="mon-search" class="search" placeholder="Search monsters by name, ability, or tag…">
+      <div class="control-group">
+        <label>Type</label>
+        <div class="chips" id="mon-types"></div>
+      </div>
+      <div class="control-group">
+        <label>Movement</label>
+        <div class="chips" id="mon-moves"></div>
+      </div>
+      <div class="control-group">
+        <label>Tag</label>
+        <div class="chips" id="mon-tags"></div>
+      </div>
+      <div class="control-group">
+        <label>Sort</label>
+        <select id="mon-sort">
+          <option value="name">Name A–Z</option>
+          <option value="depth">Depth ↑</option>
+          <option value="hp">HP ↓</option>
+        </select>
+      </div>
+    </div>
+    <div class="count" id="mon-count"></div>
+    <div class="grid" id="mon-grid"></div>
+  </section>
 </main>
 
 <footer>
   <p>Unofficial fan resource. Data &amp; icons © Rift Wizard 3.</p>
 </footer>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

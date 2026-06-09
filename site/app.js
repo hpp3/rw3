@@ -131,11 +131,17 @@ function showTip(html, x, y) {
 }
 function hideTip() { if (unitTip) unitTip.style.display = 'none'; }
 
-const TIP_SELECTOR = '.summon-chip, [data-eqtip]';
+const TIP_SELECTOR = '.summon-chip, [data-eqtip], .xref';
 function tipTrigger(target) { return target.closest && target.closest(TIP_SELECTOR); }
 function tipHtml(node) {
   if (node.dataset.unit != null) return renderUnitSheet(node.dataset.unit);
   if (node.dataset.eqtip != null) return renderEquipSheet(node.dataset.eqtip);
+  if (node.classList && node.classList.contains('xref')) {
+    const k = node.dataset.k, n = node.dataset.n;
+    if (k === 'spell') return renderSpellSheet(n);
+    if (k === 'equipment') return renderEquipSheet(n);
+    if (k === 'unit') return renderUnitSheet(n);
+  }
   return null;
 }
 function wireTooltips() {
@@ -149,10 +155,14 @@ function wireTooltips() {
   document.addEventListener('mouseout', e => {
     if (tipTrigger(e.target)) hideTip();
   });
-  // touch / keyboard
+  // touch / keyboard / navigation
   document.addEventListener('click', e => {
+    const xr = e.target.closest && e.target.closest('.xref');
+    if (xr) { e.preventDefault(); hideTip(); gotoEntry(xr.dataset.k, xr.dataset.n); return; }
     const c = tipTrigger(e.target);
     if (c) {
+      // summon chip → jump to the full monster entry; equipment-name preview → toggle tip
+      if (c.dataset.unit != null) { hideTip(); gotoEntry('unit', c.dataset.unit); return; }
       const h = tipHtml(c);
       if (unitTip && unitTip.style.display === 'block') hideTip();
       else if (h) { const r = c.getBoundingClientRect(); showTip(h, e.clientX || r.left + 20, e.clientY || r.bottom); }
@@ -179,6 +189,40 @@ function renderEquipSheet(name) {
     </div>
     ${desc}${bonuses}
   </div>`;
+}
+let SPELL_BY_NAME = {};
+function renderSpellSheet(name) {
+  const s = SPELL_BY_NAME[name];
+  if (!s) return `<div class="unit-sheet"><div class="uname">${esc(name)}</div></div>`;
+  const stats = Object.entries(s.stats).map(([k, v]) => `<span class="stat">${STAT_LABEL[k] || k} <b>${v}</b></span>`).join('');
+  return `<div class="unit-sheet">
+    <div class="uhead">
+      <img class="uicon" src="icons/spells/${esc(s.icon)}" onerror="this.style.visibility='hidden'">
+      <div class="uhmeta">
+        <div class="uname">${esc(s.name)}</div>
+        <div class="card-meta"><span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">Lv ${s.level}</span>${s.tags.map(tagPill).join('')}</div>
+      </div>
+    </div>
+    ${s.desc ? `<div class="udesc">${renderMarkup(s.desc)}</div>` : ''}
+    ${stats ? `<div class="stats" style="margin-top:6px">${stats}</div>` : ''}
+  </div>`;
+}
+
+// Cross-reference linking ---------------------------------------------------
+// refs = [[displayName, kind], …] this entity references (from AST analysis).
+// We only linkify names that are CONFIRMED references, located by position in
+// the rendered text — so no false positives from common words.
+function linkify(html, refs) {
+  if (!html || !refs || !refs.length) return html;
+  const kindOf = {};
+  for (const [n, k] of refs) kindOf[n] = k;
+  const names = refs.map(r => r[0]).sort((a, b) => b.length - a.length);
+  const re = new RegExp('(?<![A-Za-z])(' + names.map(escapeRegex).join('|') + ')(?![A-Za-z])', 'g');
+  // Only touch text between tags so we never corrupt existing markup/attributes.
+  return html.split(/(<[^>]+>)/).map(seg => {
+    if (!seg || seg[0] === '<') return seg;
+    return seg.replace(re, m => `<span class="xref" data-k="${kindOf[m]}" data-n="${esc(m)}">${m}</span>`);
+  }).join('');
 }
 
 // Stat search (modifies / scales-with) -------------------------------------
@@ -317,10 +361,11 @@ function buildChips(container, values, opts = {}) {
 // ---------------------------------------------------------------------------
 function equipmentCard(e) {
   const card = el('div', 'card');
+  card.id = 'e-' + slug(e.name);
   const recipe = recipeChips(e.recipe);
   const bonuses = e.bonuses.length
-    ? `<div class="bonuses">${e.bonuses.map(b => `<div class="b">${renderMarkup(b)}</div>`).join('')}</div>` : '';
-  const desc = e.desc ? `<div class="desc">${renderMarkup(e.desc)}</div>` : '';
+    ? `<div class="bonuses">${e.bonuses.map(b => `<div class="b">${linkify(renderMarkup(b), e.refs)}</div>`).join('')}</div>` : '';
+  const desc = e.desc ? `<div class="desc">${linkify(renderMarkup(e.desc), e.refs)}</div>` : '';
   card.innerHTML = `
     <div class="card-head">
       ${iconImg('equipment', e)}
@@ -525,7 +570,7 @@ function componentCard(c) {
         </div>
       </div>
     </div>
-    <div class="desc">${renderMarkup(c.desc)}</div>
+    <div class="desc">${linkify(renderMarkup(c.desc), c.refs)}</div>
     ${summonRow(c.summons)}
     <div class="recipe"><button class="add-build${INVENTORY[c.name] ? ' in' : ''}" data-addcomp="${esc(c.name)}">${INVENTORY[c.name] ? `✓ In pool ×${INVENTORY[c.name]}` : '＋ Add to pool'}</button></div>`;
   return card;
@@ -565,12 +610,13 @@ const STAT_LABEL = {
 };
 function spellCard(s) {
   const card = el('div', 'card');
+  card.id = 's-' + slug(s.name);
   const stats = Object.entries(s.stats)
     .map(([k, v]) => `<span class="stat">${STAT_LABEL[k] || k} <b>${v}</b></span>`).join('');
   const dt = s.damage_type.length ? `<div class="card-meta">${s.damage_type.map(tagPill).join('')}</div>` : '';
   const upg = s.upgrades.length ? `
     <details class="upgrades"><summary>${s.upgrades.length} upgrade${s.upgrades.length > 1 ? 's' : ''}</summary>
-      ${s.upgrades.map(u => `<div class="upg"><span class="uh">${esc(u.name)}</span><span class="ul">Lv ${u.level}</span><div class="desc">${renderMarkup(u.desc)}</div></div>`).join('')}
+      ${s.upgrades.map(u => `<div class="upg"><span class="uh">${esc(u.name)}</span><span class="ul">Lv ${u.level}</span><div class="desc">${linkify(renderMarkup(u.desc), s.refs)}</div></div>`).join('')}
     </details>` : '';
   card.innerHTML = `
     <div class="card-head">
@@ -585,7 +631,7 @@ function spellCard(s) {
         </div>
       </div>
     </div>
-    <div class="desc">${renderMarkup(s.desc)}</div>
+    <div class="desc">${linkify(renderMarkup(s.desc), s.refs)}</div>
     ${stats ? `<div class="stats">${stats}</div>` : ''}
     ${dt}${summonRow(s.summons)}${upg}`;
   return card;
@@ -609,6 +655,139 @@ function renderSpells() {
   if (!list.length) grid.appendChild(el('div', 'empty', 'No spells match.'));
   list.forEach(s => grid.appendChild(spellCard(s)));
   $('#sp-count').textContent = `${list.length} of ${DATA.spells.length} spells`;
+}
+
+// ---------------------------------------------------------------------------
+// MONSTERS / units
+// ---------------------------------------------------------------------------
+const slug = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const unitCardId = name => 'u-' + slug(name);
+const escapeRegex = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const KIND_CARD_PREFIX = { spell: 's-', equipment: 'e-', unit: 'u-' };
+const KIND_TAB = { spell: 'spells', equipment: 'equipment', unit: 'monsters' };
+
+function flashCard(node) {
+  node.classList.remove('flash');
+  void node.offsetWidth;       // restart the animation
+  node.classList.add('flash');
+  setTimeout(() => node.classList.remove('flash'), 3200);
+}
+function smoothScrollTo(y, dur) {
+  const startY = window.scrollY, dist = y - startY, t0 = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - t0) / dur);
+    const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;  // easeInOutQuad
+    window.scrollTo(0, startY + dist * e);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function scrollToCard(node) {
+  const header = document.querySelector('header');
+  const offset = (header ? header.offsetHeight : 0) + 12;
+  const y = window.scrollY + node.getBoundingClientRect().top - offset;
+  smoothScrollTo(Math.max(0, y), 260);
+}
+function clearChipGroup(set, sel) {
+  if (set) set.clear();
+  $$(sel + ' .chip').forEach(c => { c.classList.remove('active'); c.style.background = ''; });
+}
+function clearFilters(tab) {
+  if (tab === 'equipment') {
+    EQ.search = ''; const i = $('#eq-search'); if (i) i.value = ''; EQ.statFilters.length = 0;
+    EQ.craftableOnly = false; const b = $('#eq-craftable'); if (b) b.classList.remove('active');
+    clearChipGroup(EQ.slots, '#eq-slots'); clearChipGroup(EQ.tags, '#eq-tags');
+    const f = $('#eq-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
+  } else if (tab === 'spells') {
+    SP.search = ''; const i = $('#sp-search'); if (i) i.value = ''; SP.statFilters.length = 0;
+    clearChipGroup(SP.levels, '#sp-levels'); clearChipGroup(SP.tags, '#sp-tags');
+    const f = $('#sp-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
+  } else if (tab === 'monsters') {
+    MON.search = ''; const i = $('#mon-search'); if (i) i.value = '';
+    clearChipGroup(MON.types, '#mon-types'); clearChipGroup(MON.moves, '#mon-moves'); clearChipGroup(MON.tags, '#mon-tags');
+  }
+}
+const TAB_RENDER = { equipment: () => renderEquipment(), spells: () => renderSpells(), monsters: () => renderMonsters() };
+function gotoEntry(kind, name) {
+  const tab = KIND_TAB[kind];
+  const id = KIND_CARD_PREFIX[kind] + slug(name);
+  switchTab(tab);
+  if (!document.getElementById(id)) { clearFilters(tab); TAB_RENDER[tab](); }
+  requestAnimationFrame(() => {
+    const node = document.getElementById(id);
+    if (node) { scrollToCard(node); flashCard(node); }
+  });
+}
+
+// Build the name->kind index and the linkify() that wraps references in <span class="xref">.
+function renderAbility(a, refs) {
+  const bits = [];
+  if (a.damage) bits.push(`<span class="udmg">${a.damage}${a.damage_type ? ' ' + a.damage_type.join('/') : ''} dmg</span>`);
+  if (a.range && a.range > 1.5) bits.push(`rng ${Math.round(a.range)}`);
+  else if (a.melee) bits.push('melee');
+  if (a.radius) bits.push(`rad ${a.radius}`);
+  if (a.cool_down) bits.push(`cd ${a.cool_down}`);
+  if (a.hp_cost) bits.push(`${a.hp_cost} hp`);
+  if (a.quick_cast) bits.push('quick');
+  return `<div class="uab"><span class="uabn">${esc(a.name)}</span>${bits.length ? ` <span class="ubits">${bits.join(' · ')}</span>` : ''}${a.desc ? `<div class="udesc">${linkify(renderMarkup(a.desc), refs)}</div>` : ''}</div>`;
+}
+
+function monsterCard(u) {
+  const card = el('div', 'card mon-card');
+  card.id = unitCardId(u.name);
+  const flags = [u.flying && 'Flying', u.stationary && 'Immobile', u.burrowing && 'Burrowing'].filter(Boolean);
+  const resists = Object.entries(u.resists).sort((a, b) => b[1] - a[1])
+    .map(([t, v]) => `<span class="ures" style="color:${TAGCOLOR[t] || 'var(--muted)'}">${v}% ${esc(t)}</span>`).join('');
+  const abilities = u.abilities.map(a => renderAbility(a, u.refs)).join('');
+  const passives = u.passives.map(p => `<div class="upass">${linkify(renderMarkup(p), u.refs)}</div>`).join('');
+  const depthBadge = u.depth ? `<span class="badge">Depth ${u.depth}</span>` : '';
+  const typeBadge = u.is_monster ? '' : '<span class="badge">summon</span>';
+  const hp = u.hp ? `${u.hp} HP` : 'HP varies';
+  card.innerHTML = `
+    <div class="card-head">
+      <img class="mon-art" loading="lazy" src="icons/units/${esc(u.icon)}" onerror="this.style.visibility='hidden'">
+      <div class="card-title">
+        <div class="name">${esc(u.name)}</div>
+        <div class="card-meta">${depthBadge}${typeBadge}${u.tags.map(tagPill).join('')}</div>
+        <div class="uline"><span class="uhp">❤ ${hp}</span>${u.shields ? `<span class="ush">◆ ${u.shields} SH</span>` : ''}${flags.length ? `<span class="uflags">${flags.join(' · ')}</span>` : ''}</div>
+      </div>
+    </div>
+    ${resists ? `<div class="uresists">${resists}</div>` : ''}
+    ${abilities ? `<div class="usec">Abilities</div>${abilities}` : ''}
+    ${passives ? `<div class="usec">Passives</div>${passives}` : ''}`;
+  return card;
+}
+
+const MON = { search: '', types: null, moves: null, tags: null, sort: 'name' };
+const MOVE_FLAG = { Flying: 'flying', Immobile: 'stationary', Burrowing: 'burrowing' };
+function renderMonsters() {
+  const q = MON.search.toLowerCase();
+  let list = Object.values(DATA.units).filter(u => {
+    if (MON.types.size) {
+      const ty = u.is_monster ? 'monster' : 'summon';
+      if (!MON.types.has(ty)) return false;
+    }
+    if (MON.moves.size) { for (const mv of MON.moves) if (!u[MOVE_FLAG[mv]]) return false; }
+    if (MON.tags.size) { for (const t of MON.tags) if (!u.tags.includes(t)) return false; }
+    if (q) {
+      const hay = (u.name + ' ' + u.tags.join(' ') + ' '
+        + u.abilities.map(a => a.name + ' ' + (a.desc || '')).join(' ') + ' '
+        + u.passives.join(' ')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  const sorters = {
+    name: (a, b) => a.name.localeCompare(b.name),
+    depth: (a, b) => (a.depth || 99) - (b.depth || 99) || a.name.localeCompare(b.name),
+    hp: (a, b) => b.hp - a.hp || a.name.localeCompare(b.name),
+  };
+  list.sort(sorters[MON.sort]);
+  const grid = $('#mon-grid');
+  grid.innerHTML = '';
+  if (!list.length) grid.appendChild(el('div', 'empty', 'No monsters match.'));
+  list.forEach(u => grid.appendChild(monsterCard(u)));
+  $('#mon-count').textContent = `${list.length} of ${Object.keys(DATA.units).length} units`;
 }
 
 // ---------------------------------------------------------------------------
@@ -842,6 +1021,7 @@ async function init() {
   if (DATA.generated) $('#last-updated').textContent = DATA.generated;
   for (const e of DATA.equipment) EQ_BY_NAME[e.name] = e;
   for (const c of DATA.components) CP_BY_NAME[c.name] = c;
+  for (const s of DATA.spells) SPELL_BY_NAME[s.name] = s;
   loadWish();
   loadInv();
   wireTooltips();
@@ -891,14 +1071,31 @@ async function init() {
   });
   makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: () => DATA.spells, render: renderSpells });
 
+  // --- Monsters controls ---
+  MON.types = buildChips($('#mon-types'), ['monster', 'summon'], {
+    label: t => t === 'monster' ? 'Monster' : 'Summonable',
+    onChange: renderMonsters, activeColor: () => '#fff'
+  });
+  MON.moves = buildChips($('#mon-moves'), ['Flying', 'Immobile', 'Burrowing'], {
+    onChange: renderMonsters, activeColor: () => '#fff'
+  });
+  const monTags = [...new Set(Object.values(DATA.units).flatMap(u => u.tags))].sort();
+  MON.tags = buildChips($('#mon-tags'), monTags, {
+    dot: t => TAGCOLOR[t] || 'var(--muted)',
+    activeColor: t => TAGCOLOR[t] || 'var(--accent)',
+    onChange: renderMonsters
+  });
+  $('#mon-search').addEventListener('input', e => { MON.search = e.target.value; renderMonsters(); });
+  $('#mon-sort').addEventListener('change', e => { MON.sort = e.target.value; renderMonsters(); });
+
   // render all
   renderWishlist();
   renderInventory();
-  renderEquipment(); renderComponents(); renderSpells();
+  renderEquipment(); renderComponents(); renderSpells(); renderMonsters();
 
   // initial tab from hash
   const hash = location.hash.slice(1);
-  if (['equipment', 'components', 'spells'].includes(hash)) switchTab(hash);
+  if (['equipment', 'components', 'spells', 'monsters'].includes(hash)) switchTab(hash);
 }
 
 init();

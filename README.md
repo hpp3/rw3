@@ -34,6 +34,16 @@ The static site (`site/`) lets you:
   derived essence pool. The Equipment tab's *Craftable only* toggle and build planner both read
   from this inventory. Persists across reloads.
 - **Spells** — all 186 player spells with level, tags, stats, descriptions, and upgrades.
+- **Monsters** — the full bestiary (340 monsters across base spawns, evolutions, and the rare
+  rosters) plus all summonable minions, as cards with art, HP/shields/resists, movement, tags,
+  depth, and every ability and passive. Filter by tag/element, monster vs. summonable, and text.
+- **Cross-reference links** — when a spell, item, or monster references another spell, item, or
+  unit, the name is a link: clicking it switches to the right tab, scrolls the entry into view,
+  and flashes it. References are found **programmatically** by static-analysing each class's
+  source (AST) for identifiers that are known game classes — e.g. Dread Lash's `cast()` method
+  contains `SealFate`, so it links to *Seal Fate*. This avoids the false positives of matching
+  names in prose (the word "Death" in "Death Bounty" is never mistaken for the Death unit).
+  Summoned-unit references additionally come from the structured summon data.
 - **Summon stat sheets** — any spell, item, or component that summons a unit shows the
   unit(s) as chips; hovering one pops a floating stat sheet (HP, tags, resistances,
   movement, abilities with damage/range/cooldown, and passives) for all 191 summonable units.

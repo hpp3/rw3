@@ -3,7 +3,7 @@ Extract Rift Wizard 3 spell / equipment / component data into a JSON file
 for the static browser resource. Reads ONLY from the game install dir;
 writes only into this project's site/ folder.
 """
-import os, sys, json
+import os, sys, json, ast, inspect, textwrap
 
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
@@ -235,13 +235,135 @@ def register_unit(u):
         "flying": bool(getattr(u, 'flying', False)),
         "stationary": bool(getattr(u, 'stationary', False)),
         "burrowing": bool(getattr(u, 'burrowing', False)),
+        "radius": int(getattr(u, 'radius', 0) or 0),
+        "is_boss": bool(getattr(u, 'is_boss', False)),
         "resists": {t.name: v for t, v in u.resists.items() if v},
         "abilities": [_unit_ability(sp) for sp in u.spells],
         "passives": _unit_passives(u),
+        "refs": [],
         "icon": asset_filename(u.get_asset()),
     }
     UNITS[name] = sheet
     return name
+
+# ---------------------------------------------------------------------------
+# Cross-references via static source analysis (AST)
+# ---------------------------------------------------------------------------
+# Instead of matching names in description prose (false positives), we read each
+# class/factory's *source code* and find identifiers that are known game classes
+# — e.g. Dread Lash's cast() contains `SealFate`, so it references Seal Fate.
+import Monsters
+import RareMonsters
+
+FRAMEWORK_BASES = {'Spell', 'Equipment', 'Buff', 'Upgrade', 'Unit', 'Component', 'object'}
+IDENT_MAP = {}   # python identifier -> (display_name, kind) ; value None == ambiguous
+
+def _register_ident(ident, name, kind):
+    if not ident or not name:
+        return
+    cur = IDENT_MAP.get(ident, '__missing__')
+    if cur == '__missing__':
+        IDENT_MAP[ident] = (name, kind)
+    elif cur is not None and cur != (name, kind):
+        IDENT_MAP[ident] = None   # same identifier maps to >1 thing -> unusable
+
+def build_ident_map(monster_factories):
+    for cons in Spells.all_player_spell_constructors:
+        try: _register_ident(cons.__name__, cons().name, 'spell')
+        except Exception: pass
+    for entry in Equipment.all_equipment:
+        if isinstance(entry, type):
+            try: _register_ident(entry.__name__, entry().name, 'equipment')
+            except Exception: pass
+    for fac in monster_factories:
+        try: _register_ident(getattr(fac, '__name__', None), fac().name, 'unit')
+        except Exception: pass
+
+def _collect_idents(srcs):
+    idents = set()
+    for src in srcs:
+        if not src:
+            continue
+        try:
+            tree = ast.parse(textwrap.dedent(src))
+        except (SyntaxError, ValueError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                idents.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                idents.add(node.attr)
+    return idents
+
+_SRC_CACHE = {}
+def _getsource(o):
+    key = id(o)
+    if key not in _SRC_CACHE:
+        try:
+            _SRC_CACHE[key] = inspect.getsource(o)
+        except Exception:
+            _SRC_CACHE[key] = None
+    return _SRC_CACHE[key]
+
+def refs_for(instance, entry, self_name):
+    """Return [[display_name, kind], …] this entity references in its code."""
+    srcs = [_getsource(entry)]                   # the registry entry (class / factory / lambda)
+    cls = type(instance)
+    if isinstance(cls, type):
+        for base in cls.__mro__:                 # base-class method bodies (generic logic)
+            if base is object or base.__name__ in FRAMEWORK_BASES:
+                continue
+            srcs.append(_getsource(base))
+    out, seen = [], set()
+    for ident in _collect_idents(srcs):
+        m = IDENT_MAP.get(ident)
+        if not m:
+            continue
+        name, kind = m
+        if name == self_name or name in seen:
+            continue
+        seen.add(name)
+        out.append([name, kind])
+    out.sort()
+    return out
+
+# ---------------------------------------------------------------------------
+# Full monster roster (bestiary): base spawns + evolutions + rare rosters
+# ---------------------------------------------------------------------------
+
+MONSTER_NAMES = set()   # names that belong to the bestiary
+MONSTER_DEPTH = {}      # name -> earliest spawn depth (base monsters only)
+
+def collect_monster_factories():
+    factories = {}        # factory -> earliest depth (or None)
+    for entry in Monsters.spawn_options:
+        base, depth = entry[0], entry[1]
+        factories.setdefault(base, depth)
+        if factories[base] is None or (depth and depth < factories[base]):
+            factories[base] = depth
+        if len(entry) > 2 and entry[2]:
+            factories.setdefault(entry[2], None)
+    for list_name in ['MONSTER_PACKS', 'IDOLS', 'SUPER_SPAWNERS', 'SPECIAL_MONSTERS', 'WIZARDS', 'KAIJU']:
+        L = getattr(RareMonsters, list_name, None) or []
+        for entry in L:
+            factories.setdefault(entry[0], None)
+    return factories
+
+def extract_monsters(factories):
+    for fac, depth in factories.items():
+        try:
+            u = fac()
+        except Exception as e:
+            print("skip monster", getattr(fac, '__name__', fac), e)
+            continue
+        if not isinstance(u, Unit):
+            continue
+        register_unit(u)
+        UNITS[u.name]["refs"] = refs_for(u, fac, u.name)   # factory is authoritative for monsters
+        MONSTER_NAMES.add(u.name)
+        if depth is not None:
+            cur = MONSTER_DEPTH.get(u.name)
+            MONSTER_DEPTH[u.name] = depth if cur is None else min(cur, depth)
 
 def summons_of(obj):
     """Return list of distinct unit names this spell/equipment/component can summon."""
@@ -314,6 +436,7 @@ def extract_spells():
             "desc": rtext(s.get_description() or "", fmt=fmt),
             "upgrades": upgrades,
             "summons": summons_of(s),
+            "refs": refs_for(s, cons, s.name),
             "mod_stats": mod_stats,
             "use_stats": use_stats,
             "icon": asset_filename(s.get_asset()),
@@ -347,6 +470,7 @@ def extract_equipment():
             "desc": desc,
             "bonuses": bonus_lines,
             "summons": summons_of(e),
+            "refs": refs_for(e, cons, e.name),
             "mod_stats": mod_stats,
             "use_stats": use_stats,
             "icon": asset_filename(e.get_asset()),
@@ -381,6 +505,7 @@ def extract_components():
                 "on_pickup": has_pickup,
                 "desc": rtext(getattr(c, 'description', "") or "", fmt={}),
                 "summons": summons_of(c),
+                "refs": refs_for(c, cons, c.name),
                 "icon": asset_filename(c.get_asset()),
             })
     out.sort(key=lambda d: (d["tier"], d["name"]))
@@ -398,9 +523,17 @@ def extract_tags():
     return {"all": tags, "component_tags": comp_tags}
 
 def main():
+    monster_factories = collect_monster_factories()
+    build_ident_map(monster_factories.keys())   # must precede any refs_for() call
     spells = extract_spells()
     equipment = extract_equipment()
-    components = extract_components()  # these populate UNITS via summons_of()
+    components = extract_components()            # these populate UNITS via summons_of()
+    extract_monsters(monster_factories)         # full bestiary into UNITS
+    # annotate units with monster-roster metadata
+    for name, sheet in UNITS.items():
+        sheet["is_monster"] = name in MONSTER_NAMES
+        if name in MONSTER_DEPTH:
+            sheet["depth"] = MONSTER_DEPTH[name]
     data = {
         "spells": spells,
         "equipment": equipment,
@@ -415,9 +548,11 @@ def main():
     out_path = os.path.join(OUT_DIR, "data.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    monsters = sum(1 for s in UNITS.values() if s.get("is_monster"))
     print("Wrote", out_path)
     print("spells:", len(data["spells"]), "equipment:", len(data["equipment"]),
-          "components:", len(data["components"]), "units:", len(data["units"]))
+          "components:", len(data["components"]), "units:", len(data["units"]),
+          "(monsters:", monsters, ")")
 
 if __name__ == "__main__":
     main()
