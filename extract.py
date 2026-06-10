@@ -593,6 +593,21 @@ def extract_tags():
     tags = {}
     for tag in Tags:
         tags[tag.name] = {"color": to_tup(tag.color)}
+    # Single-letter essence codes shown in the crafting UI. The game derives them
+    # from the tag-filter hotkeys (RiftWizard3.KEY_BIND_DEFS); mirrored here (UI
+    # module isn't imported — same reason tooltip_colors are mirrored). Distinct
+    # letters resolve first-letter clashes (Eye=Y, Dragon=R, Chaos=K, Slime=Z,
+    # Ritual=U, Any=∗). Keep in sync with TAG_ABBR in app.js.
+    tag_abbr = {
+        "Any": "∗", "Fire": "F", "Ice": "I", "Lightning": "L", "Nature": "N",
+        "Arcane": "A", "Dark": "D", "Holy": "H", "Metallic": "M", "Blood": "B",
+        "Sorcery": "S", "Enchantment": "E", "Conjuration": "C", "Eye": "Y",
+        "Dragon": "R", "Orb": "O", "Chaos": "K", "Slime": "Z", "Word": "W",
+        "Translocation": "T", "Ritual": "U",
+    }
+    for name, ab in tag_abbr.items():
+        if name in tags:
+            tags[name]["abbr"] = ab
     return {"all": tags, "component_tags": comp_tags}
 
 def main():

@@ -130,6 +130,7 @@ function renderUnitSheet(name) {
 
 // Shared floating tooltip
 let unitTip = null;
+let DRAGGING = false;   // suppress hover tooltips while a component is being dragged
 function ensureTip() {
   if (!unitTip) { unitTip = el('div', 'unit-tip'); unitTip.style.display = 'none'; document.body.appendChild(unitTip); }
   return unitTip;
@@ -145,6 +146,7 @@ function positionTip(x, y) {
   t.style.left = nx + 'px'; t.style.top = ny + 'px';
 }
 function showTip(html, x, y) {
+  if (DRAGGING) return;
   const t = ensureTip();
   t.innerHTML = html;
   t.style.display = 'block';
@@ -152,11 +154,12 @@ function showTip(html, x, y) {
 }
 function hideTip() { if (unitTip) unitTip.style.display = 'none'; }
 
-const TIP_SELECTOR = '.summon-chip, [data-eqtip], .xref';
+const TIP_SELECTOR = '.summon-chip, [data-eqtip], [data-comptip], .xref';
 function tipTrigger(target) { return target.closest && target.closest(TIP_SELECTOR); }
 function tipHtml(node) {
   if (node.dataset.unit != null) return renderUnitSheet(node.dataset.unit);
   if (node.dataset.eqtip != null) return renderEquipSheet(node.dataset.eqtip);
+  if (node.dataset.comptip != null) return renderComponentSheet(node.dataset.comptip);
   if (node.classList && node.classList.contains('xref')) {
     const k = node.dataset.k, n = node.dataset.n;
     if (k === 'spell') return renderSpellSheet(n);
@@ -182,6 +185,8 @@ function wireTooltips() {
     if (xr) { e.preventDefault(); hideTip(); gotoEntry(xr.dataset.k, xr.dataset.n); return; }
     const c = tipTrigger(e.target);
     if (c) {
+      // component tile → let the build handler assign/pick; hover already showed the effect
+      if (c.dataset.comptip != null) { hideTip(); return; }
       // summon chip → jump to the full monster entry; equipment-name preview → toggle tip
       if (c.dataset.unit != null) { hideTip(); gotoEntry('unit', c.dataset.unit); return; }
       const h = tipHtml(c);
@@ -209,6 +214,25 @@ function renderEquipSheet(name) {
       </div>
     </div>
     ${desc}${bonuses}
+  </div>`;
+}
+function renderComponentSheet(name) {
+  const c = CP_BY_NAME[name];
+  if (!c) return `<div class="unit-sheet"><div class="uname">${esc(name)}</div></div>`;
+  const badges = `<span class="badge">Tier ${c.tier}</span>`
+    + (c.on_craft ? '<span class="badge oncraft">On Craft</span>' : '')
+    + (c.on_pickup && !c.on_craft ? '<span class="badge onpickup">On Pickup</span>' : '')
+    + (c.rare ? '<span class="badge">rare</span>' : '');
+  const desc = c.desc ? `<div class="udesc">${linkify(renderMarkup(c.desc), c.refs)}</div>` : '';
+  return `<div class="unit-sheet">
+    <div class="uhead">
+      <img class="uicon" src="icons/components/${esc(c.icon)}${IV}" onerror="this.style.visibility='hidden'">
+      <div class="uhmeta">
+        <div class="uname">${esc(c.name)}</div>
+        <div class="card-meta">${badges}${c.tags.map(tagPill).join('')}</div>
+      </div>
+    </div>
+    ${desc}
   </div>`;
 }
 let SPELL_BY_NAME = {};
@@ -503,118 +527,335 @@ function shareBuild(e) {
 }
 function wishToggle(name) {
   if (WISH.has(name)) WISH.delete(name); else WISH.add(name);
+  if (!WISH.has(name)) delete ASSIGN[name];   // dropping an item frees its components
   updateUrl();
-  renderWishlist();
+  saveAssign();
+  renderBuild();
   renderEquipment();   // refresh button states
 }
-function wishTotals() {
-  const tot = {}; let any = 0;
-  for (const name of WISH) {
-    const e = EQ_BY_NAME[name];
-    if (!e) continue;
-    for (const [tag, n] of e.recipe) {
-      if (tag === 'Any') any += n;
-      else tot[tag] = (tot[tag] || 0) + n;
+
+// ---------------------------------------------------------------------------
+// MANUAL COMPONENT ASSIGNMENT (the build workspace)
+// ---------------------------------------------------------------------------
+// Manual is the default: the user assigns whole components to build items by
+// click-to-place or drag. `ASSIGN` is the single source of truth — even the
+// "Auto assign" button just overwrites it with a computed allocation. Each
+// component is committed WHOLE to one item (extra essences wasted, never shared
+// — §7). Persisted locally; the build itself stays in the URL.
+let ASSIGN = {};          // equipment name -> [component name, …] committed to it
+const ASSIGN_KEY = 'rw3_assign';
+let PICK = null;          // currently "held" component: {name, from} (from=equip name | null=pool)
+
+function loadAssign() {
+  try { ASSIGN = JSON.parse(localStorage.getItem(ASSIGN_KEY)) || {}; } catch (e) { ASSIGN = {}; }
+  if (!ASSIGN || typeof ASSIGN !== 'object' || Array.isArray(ASSIGN)) ASSIGN = {};
+}
+function saveAssign() { try { localStorage.setItem(ASSIGN_KEY, JSON.stringify(ASSIGN)); } catch (e) {} }
+
+// Keep ASSIGN consistent with the current build + inventory: drop assignments
+// for items no longer in the build, and trim any over-allocation if the owned
+// count of a component dropped below what's assigned.
+function reconcileAssign() {
+  let changed = false;
+  for (const k of Object.keys(ASSIGN)) {
+    if (!WISH.has(k)) { delete ASSIGN[k]; changed = true; }
+  }
+  const totals = {};
+  for (const k in ASSIGN) for (const cn of ASSIGN[k]) totals[cn] = (totals[cn] || 0) + 1;
+  for (const cn in totals) {
+    let excess = totals[cn] - (INVENTORY[cn] || 0);
+    for (const k of Object.keys(ASSIGN)) {
+      while (excess > 0) {
+        const i = ASSIGN[k].indexOf(cn);
+        if (i < 0) break;
+        ASSIGN[k].splice(i, 1); excess--; changed = true;
+      }
     }
   }
-  return { tot, any };
+  for (const name of WISH) if (!ASSIGN[name]) ASSIGN[name] = [];
+  if (changed) saveAssign();
 }
-function compMini(name, count) {
-  const c = CP_BY_NAME[name];
-  const ic = c ? `<img src="icons/components/${esc(c.icon)}${IV}" onerror="this.remove()">` : '';
-  const cnt = count && count > 1 ? `${count}× ` : '';
-  return `<span class="comp-mini">${ic}${cnt}${esc(name)}</span>`;
+
+const compEssences = name => { const c = CP_BY_NAME[name]; return c ? c.tags.filter(t => t !== 'Any') : []; };
+function totalAssigned(name) { let n = 0; for (const k in ASSIGN) for (const cn of ASSIGN[k]) if (cn === name) n++; return n; }
+function availableInPool(name) { return (INVENTORY[name] || 0) - totalAssigned(name); }
+function poolCounts() {
+  const out = {};
+  for (const name in INVENTORY) { const a = availableInPool(name); if (a > 0) out[name] = a; }
+  return out;
 }
-function recipeChipsPlanned(recipe, st) {
-  const { anyNeed, total } = recipeNeeds(recipe);
-  const need = st.need || {};
-  const anyCovered = st.specificsMet ? Math.max(0, Math.min(anyNeed, st.E - (total - anyNeed))) : 0;
-  return recipe.map(([tag, n]) => {
-    if (tag === 'Any') {
-      const ok = anyCovered >= n;
-      return `<span class="req any ${ok ? 'rok' : 'rmiss'}">${ok ? '✓ ' : ''}<span class="n">${ok ? n : anyCovered + '/' + n}×</span> Any</span>`;
+
+// Evaluate one item's assignment: map each committed component's essences onto
+// the recipe's slots (specific tags first, then Any), reporting filled/empty
+// slots, per-component used/wasted essences, and total waste.
+function evalAssignment(recipe, assignedNames) {
+  const slots = [];
+  for (const [tag, n] of recipe) for (let i = 0; i < n; i++) slots.push({ req: tag, filled: false, comp: -1, essence: null });
+  const comps = assignedNames.map((name, idx) => { const tags = compEssences(name); return { name, idx, tags, used: tags.map(() => false) }; });
+  // Phase 1 — specific tags
+  for (const slot of slots) {
+    if (slot.req === 'Any') continue;
+    for (const cmp of comps) {
+      const j = cmp.tags.findIndex((t, k) => !cmp.used[k] && t === slot.req);
+      if (j >= 0) { cmp.used[j] = true; slot.filled = true; slot.comp = cmp.idx; slot.essence = slot.req; break; }
     }
-    const covered = n - (need[tag] || 0);
-    const ok = covered >= n;
-    const col = TAGCOLOR[tag] || 'var(--muted)';
-    return `<span class="req ${ok ? 'rok' : 'rmiss'}"${ok ? ` style="color:${col}"` : ''}>${ok ? '✓ ' : ''}<span class="n">${ok ? n : covered + '/' + n}×</span> ${esc(tag)}</span>`;
-  }).join('');
+  }
+  // Phase 2 — Any slots take any leftover essence
+  for (const slot of slots) {
+    if (slot.req !== 'Any' || slot.filled) continue;
+    for (const cmp of comps) {
+      const j = cmp.used.findIndex(u => !u);
+      if (j >= 0) { cmp.used[j] = true; slot.filled = true; slot.comp = cmp.idx; slot.essence = cmp.tags[j]; break; }
+    }
+  }
+  const wasted = comps.reduce((a, c) => a + c.used.filter(u => !u).length, 0);
+  const filled = slots.filter(s => s.filled).length;
+  return { slots, comps, wasted, filled, total: slots.length, ok: filled === slots.length };
 }
-function renderWishlist() {
-  const panel = $('#wishlist');
+
+// --- assignment mutations ---------------------------------------------------
+function doAssign(name, from, equip) {
+  if (from === equip) return false;
+  if (from == null) { if (availableInPool(name) <= 0) return false; }
+  else { const arr = ASSIGN[from]; const i = arr ? arr.indexOf(name) : -1; if (i < 0) return false; arr.splice(i, 1); }
+  (ASSIGN[equip] = ASSIGN[equip] || []).push(name);
+  saveAssign();
+  return true;
+}
+function unassign(name, fromEquip) {
+  const arr = ASSIGN[fromEquip]; if (!arr) return;
+  const i = arr.indexOf(name); if (i < 0) return;
+  arr.splice(i, 1);
+  if (PICK && PICK.from === fromEquip && PICK.name === name) PICK = null;
+  saveAssign(); renderBuild();
+}
+function placeOn(equip) {     // click-to-place the held component
+  if (!PICK) return;
+  doAssign(PICK.name, PICK.from, equip);
+  PICK = null; renderBuild();
+}
+function togglePick(name, from) {
+  PICK = (PICK && PICK.name === name && PICK.from === from) ? null : { name, from };
+  renderBuild();
+}
+const pickMatches = (name, from) => !!PICK && PICK.name === name && PICK.from === from;
+
+function autoAssign() {       // overwrite ASSIGN with the greedy allocation (§7)
+  const plan = planBuild();
+  ASSIGN = {};
+  for (const name of WISH) ASSIGN[name] = (plan.status[name] && plan.status[name].ok) ? plan.status[name].usedNames.slice() : [];
+  PICK = null; saveAssign(); renderBuild();
+}
+function clearBuilt() {       // remove finished items + the components they consumed
+  const done = [];
+  for (const name of WISH) {
+    const e = EQ_BY_NAME[name]; if (!e) continue;
+    if (evalAssignment(e.recipe, ASSIGN[name] || []).ok) done.push(name);
+  }
+  if (!done.length) return;
+  for (const name of done) {
+    for (const cn of (ASSIGN[name] || [])) {
+      if (INVENTORY[cn]) { INVENTORY[cn]--; if (INVENTORY[cn] <= 0) delete INVENTORY[cn]; }
+    }
+    delete ASSIGN[name];
+    WISH.delete(name);
+  }
+  PICK = null;
+  saveInv(); saveAssign(); updateUrl();
+  invRefresh();
+}
+
+// --- rendering --------------------------------------------------------------
+// Single-letter essence codes, matching the game's crafting UI (the tag filter
+// hotkeys in RiftWizard3.py). Distinct letters resolve first-letter clashes:
+// Eye=Y, Dragon=R, Chaos=K, Slime=Z, Ritual=U; Any=∗. Prefer the value baked
+// into data.json (extract.py) if present, else this fallback, else first letter.
+const TAG_ABBR = {
+  Any: '∗', Fire: 'F', Ice: 'I', Lightning: 'L', Nature: 'N', Arcane: 'A', Dark: 'D',
+  Holy: 'H', Metallic: 'M', Blood: 'B', Sorcery: 'S', Enchantment: 'E', Conjuration: 'C',
+  Eye: 'Y', Dragon: 'R', Orb: 'O', Chaos: 'K', Slime: 'Z', Word: 'W', Translocation: 'T', Ritual: 'U',
+};
+function tagAbbr(t) {
+  const d = DATA.tags.all[t];
+  return (d && d.abbr) || TAG_ABBR[t] || (t ? t[0].toUpperCase() : '?');
+}
+function essenceCell(tag, used) {
+  const col = TAGCOLOR[tag] || 'var(--muted)';
+  return `<span class="ess${used === false ? ' wasted' : ''}" style="--ec:${col}" title="${esc(tag)}${used === false ? ' (wasted)' : ''}">${esc(tagAbbr(tag))}</span>`;
+}
+function compTileHtml(name, opts) {
+  const { mode, count, equip, usedFlags } = opts;
+  const c = CP_BY_NAME[name];
+  const tags = compEssences(name);
+  const oncraft = c && c.on_craft;
+  const ic = c
+    ? `<img class="ct-ic" loading="lazy" src="icons/components/${esc(c.icon)}${IV}" onerror="this.style.visibility='hidden'">`
+    : `<div class="ct-ic placeholder">✦</div>`;
+  const ess = tags.map((t, j) => essenceCell(t, usedFlags ? usedFlags[j] : null)).join('');
+  const picked = mode === 'pool' ? pickMatches(name, null) : pickMatches(name, equip);
+  const badge = (mode === 'pool' && count > 1) ? `<span class="ct-count">×${count}</span>` : '';
+  const rm = mode === 'assigned' ? `<button class="ct-rm" data-unassign="${esc(name)}" data-equip="${esc(equip)}" title="Unassign">✕</button>` : '';
+  const fromAttr = mode === 'assigned' ? ` data-from="${esc(equip)}"` : '';
+  // On-craft components show their effect in a rich hover tooltip; others get a plain title.
+  const tipAttr = oncraft ? ` data-comptip="${esc(name)}"` : ` title="${esc(name)}"`;
+  return `<div class="comp-tile${oncraft ? ' oncraft' : ''}${picked ? ' picked' : ''}" data-pick="${esc(name)}"${fromAttr}${tipAttr} draggable="true">
+    ${badge}${rm}
+    <div class="ct-name">${esc(name)}</div>
+    <div class="ct-bottom">${ic}<div class="ct-ess">${ess || '<span class="ess-none">—</span>'}</div></div>
+  </div>`;
+}
+function slotCell(s) {
+  const mark = s.filled ? '✓' : '?';
+  if (s.req === 'Any') {
+    return `<span class="eslot any ${s.filled ? 'filled' : 'miss'}" title="Any essence${s.filled ? ` — filled by ${esc(s.essence)}` : ''}">∗ ${mark}</span>`;
+  }
+  const col = TAGCOLOR[s.req] || 'var(--muted)';
+  return `<span class="eslot ${s.filled ? 'filled' : 'miss'}" style="--ec:${col}" title="${esc(s.req)}${s.filled ? '' : ' (missing)'}">${esc(tagAbbr(s.req))} ${mark}</span>`;
+}
+function buildItemHtml(name, ev) {
+  const e = EQ_BY_NAME[name];
+  if (!e) return `<div class="build-item"><div class="bi-left"><span class="bi-name">${esc(name)}</span></div><button class="wl-remove" data-wish-remove="${esc(name)}" title="Remove">✕</button></div>`;
+  const assigned = ASSIGN[name] || [];
+  const ic = `<img class="bi-ic" loading="lazy" src="icons/equipment/${esc(e.icon)}${IV}" onerror="this.style.visibility='hidden'">`;
+  const slotsHtml = ev.slots.map(slotCell).join('');
+  const tiles = assigned.length
+    ? assigned.map((cn, idx) => compTileHtml(cn, { mode: 'assigned', equip: name, usedFlags: ev.comps[idx].used })).join('')
+    : '<span class="bi-drop-hint">drop components here</span>';
+  // Denominator is the recipe cost, so don't repeat it. Built items show the
+  // cost in green; unbuilt show filled/cost.
+  const status = ev.ok
+    ? `<span class="wl-built" title="Built — recipe cost ${ev.total}">✓ ${ev.total}</span>`
+    : `<span class="wl-miss" title="${ev.filled} of ${ev.total} essences filled (recipe cost ${ev.total})">${ev.filled}/${ev.total}</span>`;
+  const wasteBadge = ev.wasted ? `<span class="bi-waste" title="${ev.wasted} committed essence${ev.wasted !== 1 ? 's' : ''} wasted">⊘ ${ev.wasted}</span>` : '';
+  return `<div class="build-item${ev.ok ? ' is-ok' : ''}${PICK ? ' droppable' : ''}" data-drop-equip="${esc(name)}">
+    <button class="wl-remove" data-wish-remove="${esc(name)}" title="Remove from build">✕</button>
+    <div class="bi-left">
+      ${ic}
+      <div class="bi-info">
+        <div class="bi-row1">
+          <span class="bi-name" data-eqtip="${esc(name)}" tabindex="0">${esc(name)}</span>
+          <span class="badge slot">${esc(e.slot)}</span>
+          ${status}${wasteBadge}
+        </div>
+        <div class="bi-slots" title="Recipe — ✓ filled, ? missing">${slotsHtml}</div>
+      </div>
+    </div>
+    <div class="bi-comps" data-drop-equip="${esc(name)}">${tiles}</div>
+  </div>`;
+}
+// The component pool is its own panel on the Equipment tab — shown whenever you
+// own components, independent of whether a build is selected, so the inventory
+// (and the "Craftable only" flow) is always visible.
+function renderPool() {
+  const pool = $('#eq-pool');
+  const ownsAny = Object.keys(INVENTORY).length > 0;
+  if (!ownsAny) { pool.classList.add('hidden'); pool.innerHTML = ''; pool.classList.remove('picking'); return; }
+  pool.classList.remove('hidden');
+  const counts = poolCounts();
+  const entries = Object.entries(counts).sort((a, b) => {
+    const ca = CP_BY_NAME[a[0]], cb = CP_BY_NAME[b[0]];
+    return (ca && cb ? ca.tier - cb.tier : 0) || a[0].localeCompare(b[0]);
+  });
+  const total = Object.values(INVENTORY).reduce((a, b) => a + b, 0);
+  let body;
+  if (!entries.length) body = `<div class="pool-empty">Every component is assigned. Drag or click one out of an item to free it.</div>`;
+  else body = entries.map(([name, cnt]) => compTileHtml(name, { mode: 'pool', count: cnt })).join('');
+  const hint = PICK
+    ? `<span class="pick-hint">Holding <b>${esc(PICK.name)}</b> — click a build item to place it${PICK.from ? ', or click here to unassign' : ''}.</span>`
+    : (entries.length && WISH.size
+      ? `<span class="pool-hint">Drag components onto build equipment to assign them.</span>`
+      : '');
+  pool.innerHTML = `<div class="pool-head"><span class="pool-title">My components <span class="wl-badge">${total}</span> <a class="tablink pool-edit" data-goto="components">edit</a></span>${hint}</div>
+    <div class="pool-tiles">${body}</div>`;
+  pool.classList.toggle('picking', !!PICK);
+}
+function renderBuild() {
+  reconcileAssign();
   const names = [...WISH];
+  if (!names.length) PICK = null;     // nothing to assign onto
+  renderPool();                       // standalone components panel, independent of the build
+  const panel = $('#build');
   if (!names.length) { panel.classList.add('hidden'); return; }
   panel.classList.remove('hidden');
-
   $('#wl-count').textContent = names.length;
 
-  const { tot, any } = wishTotals();
-  const specific = Object.values(tot).reduce((a, b) => a + b, 0);
-  const totalsHtml = Object.entries(tot)
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([tag, n]) => `<span class="req" style="color:${TAGCOLOR[tag] || 'var(--muted)'}"><span class="n">${n}×</span> ${esc(tag)}</span>`)
-    .join('');
-  const anyHtml = any ? `<span class="req any"><span class="n">${any}×</span> Any</span>` : '';
-  const totalLabel = `<span class="wl-total-label">${specific + any} essence${specific + any !== 1 ? 's' : ''} to craft all</span>`;
-
-  const plan = planBuild();
-  let summary = '';
-  if (plan.hasInventory) {
-    const okCount = names.filter(n => plan.status[n] && plan.status[n].ok).length;
-    summary = `<span class="wl-craftcount ${okCount === names.length ? 'all' : ''}">${okCount}/${names.length} craftable with your components</span>`;
+  const evals = {};
+  let okCount = 0, waste = 0;
+  for (const name of names) {
+    const e = EQ_BY_NAME[name];
+    const ev = evalAssignment(e ? e.recipe : [], ASSIGN[name] || []);
+    evals[name] = ev;
+    if (ev.ok) okCount++;
+    waste += ev.wasted;
   }
-  $('#wl-totals').innerHTML = totalsHtml + anyHtml + totalLabel + summary;
+  $('#build-summary').innerHTML =
+    `<span class="bs-craft ${okCount === names.length ? 'all' : ''}">${okCount}/${names.length} built</span>` +
+    (waste ? `<span class="bs-waste" title="essences committed but unused">⊘ ${waste} wasted</span>` : '');
+  $('#wl-clearbuilt').disabled = okCount === 0;
 
-  $('#wl-items').innerHTML = names
-    .sort((a, b) => EQ_BY_NAME[a] && EQ_BY_NAME[b] ? (EQ_BY_NAME[a].recipe_cost - EQ_BY_NAME[b].recipe_cost || a.localeCompare(b)) : 0)
-    .map(name => {
-      const e = EQ_BY_NAME[name];
-      const slot = e ? e.slot : '';
-      const ic = e ? iconImg('equipment', e).replace('class="icon"', 'class="wl-ic"').replace('class="icon ', 'class="wl-ic ') : '';
-      const st = plan.status[name];
-      const planned = plan.hasInventory && e;
-      const rcp = planned ? recipeChipsPlanned(e.recipe, st) : (e ? recipeChips(e.recipe) : '');
-      const badge = planned ? (st.ok ? '<span class="wl-ok">✓ craftable</span>' : '<span class="wl-miss">✗ short</span>') : '';
-      const uses = (planned && st.ok && st.usedNames.length)
-        ? `<div class="wl-uses"><span class="wl-uses-label">uses</span> ${st.usedNames.map(n => compMini(n)).join('')}</div>` : '';
-      return `<div class="wl-item${planned ? (st.ok ? ' is-ok' : ' is-miss') : ''}">
-        ${ic}
-        <div class="wl-info">
-          <div class="wl-row1">
-            <span class="wl-name" data-eqtip="${esc(name)}" tabindex="0">${esc(name)}</span>
-            <span class="badge slot">${esc(slot)}</span>
-            <span class="wl-cost">cost ${e ? e.recipe_cost : '?'}</span>
-            ${badge}
-          </div>
-          <div class="wl-recipe">${rcp}</div>
-          ${uses}
-        </div>
-        <button class="wl-remove" data-wish-remove="${esc(name)}" title="Remove from build">✕</button>
-      </div>`;
-    }).join('');
-
-  const loEl = $('#wl-leftover');
-  if (loEl) {
-    const lo = plan.hasInventory ? Object.entries(plan.leftover) : [];
-    if (lo.length) {
-      loEl.classList.remove('hidden');
-      loEl.innerHTML = `<span class="wl-uses-label">Unused</span> ${lo.sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) => compMini(n, c)).join('')}`;
-    } else { loEl.classList.add('hidden'); loEl.innerHTML = ''; }
-  }
+  $('#build-items').innerHTML = names
+    .sort((a, b) => (EQ_BY_NAME[a] ? EQ_BY_NAME[a].recipe_cost : 0) - (EQ_BY_NAME[b] ? EQ_BY_NAME[b].recipe_cost : 0) || a.localeCompare(b))
+    .map(name => buildItemHtml(name, evals[name])).join('');
+  panel.classList.toggle('picking', !!PICK);
 }
 
-function wireWishlist() {
-  // Add buttons on equipment cards (delegated; cards are re-rendered)
+function wireBuild() {
   document.addEventListener('click', e => {
-    const add = e.target.closest && e.target.closest('.add-build[data-add]');
+    const t = e.target;
+    const add = t.closest && t.closest('.add-build[data-add]');
     if (add) { wishToggle(add.dataset.add); return; }
-    const rm = e.target.closest && e.target.closest('.wl-remove');
+    const rm = t.closest && t.closest('[data-wish-remove]');
     if (rm) { wishToggle(rm.dataset.wishRemove); return; }
+    const un = t.closest && t.closest('[data-unassign]');
+    if (un) { unassign(un.dataset.unassign, un.dataset.equip); return; }
+    const tile = t.closest && t.closest('[data-pick]');
+    if (tile) { togglePick(tile.dataset.pick, tile.dataset.from || null); return; }
+    const drop = t.closest && t.closest('[data-drop-equip]');
+    if (drop && PICK) { placeOn(drop.dataset.dropEquip); return; }
+    if (PICK && t.closest && t.closest('#eq-pool')) {   // click empty pool → unassign held / cancel
+      if (PICK.from) unassign(PICK.name, PICK.from); else { PICK = null; renderBuild(); }
+      return;
+    }
   });
-  $('#wl-clear').addEventListener('click', () => { WISH = new Set(); updateUrl(); renderWishlist(); renderEquipment(); });
+  $('#wl-clear').addEventListener('click', () => { WISH = new Set(); ASSIGN = {}; PICK = null; updateUrl(); saveAssign(); renderBuild(); renderEquipment(); });
   $('#wl-share').addEventListener('click', shareBuild);
-  // Back/forward (or any external URL change) re-derives the build from the URL.
-  window.addEventListener('popstate', () => { loadWishFromUrl(); renderWishlist(); renderEquipment(); });
+  $('#wl-auto').addEventListener('click', autoAssign);
+  $('#wl-clearbuilt').addEventListener('click', clearBuilt);
+  window.addEventListener('popstate', () => { loadWishFromUrl(); PICK = null; renderBuild(); renderEquipment(); });
+
+  // Drag and drop (enhancement; click-to-place is the primary, mobile-friendly path)
+  document.addEventListener('dragstart', e => {
+    const tile = e.target.closest && e.target.closest('[data-pick]');
+    if (!tile) return;
+    e.dataTransfer.setData('text/plain', JSON.stringify({ name: tile.dataset.pick, from: tile.dataset.from || null }));
+    e.dataTransfer.effectAllowed = 'move';
+    tile.classList.add('dragging');
+    PICK = null;     // dragging supersedes a click-selection
+    DRAGGING = true; // and suppresses the hover tooltip
+    hideTip();
+  });
+  document.addEventListener('dragend', e => {
+    DRAGGING = false;
+    const tile = e.target.closest && e.target.closest('[data-pick]');
+    if (tile) tile.classList.remove('dragging');
+  });
+  document.addEventListener('dragover', e => {
+    if ((e.target.closest && (e.target.closest('[data-drop-equip]') || e.target.closest('#eq-pool')))) {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    }
+  });
+  document.addEventListener('drop', e => {
+    DRAGGING = false;   // re-render below may detach the source before dragend fires
+    let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (_) { return; }
+    if (!payload || !payload.name) return;
+    const drop = e.target.closest && e.target.closest('[data-drop-equip]');
+    if (drop) { e.preventDefault(); if (doAssign(payload.name, payload.from || null, drop.dataset.dropEquip)) renderBuild(); return; }
+    if (e.target.closest && e.target.closest('#eq-pool') && payload.from) {  // drop onto pool → unassign
+      e.preventDefault();
+      const arr = ASSIGN[payload.from]; const i = arr ? arr.indexOf(payload.name) : -1;
+      if (i >= 0) { arr.splice(i, 1); saveAssign(); renderBuild(); }
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -867,7 +1108,7 @@ function loadInv() {
 function saveInv() {
   try { localStorage.setItem(INV_KEY, JSON.stringify(INVENTORY)); } catch (e) {}
 }
-function invRefresh() { renderInventory(); renderComponents(); renderWishlist(); renderEquipment(); }
+function invRefresh() { renderInventory(); renderComponents(); renderBuild(); renderEquipment(); }
 function invChange(name, d) {
   const n = (INVENTORY[name] || 0) + d;
   if (n <= 0) delete INVENTORY[name]; else INVENTORY[name] = n;
@@ -920,29 +1161,11 @@ function renderInventory() {
       cp.innerHTML = `<div class="inv-head"><span class="inv-title">My components <span class="wl-badge">${count}</span></span><button class="btn-ghost inv-clear">Clear</button></div>
         <div class="inv-chips">${chips}</div>
         <div class="inv-essences"><span class="inv-ess-label">Essence pool:</span> ${essences || '—'}</div>
-        <div class="inv-tip">On the <a class="tablink" data-goto="equipment">Equipment</a> tab, toggle <b>Craftable only</b> to see what these can make.</div>`;
+        <div class="inv-tip"><a class="tablink" data-find-craftable href="#">Find craftable equipment →</a></div>`;
     }
   }
-
-  // Compact read-only readout on the Equipment tab
-  const eq = $('#eq-inv');
-  if (eq) {
-    if (!has) { eq.classList.add('hidden'); eq.innerHTML = ''; }
-    else {
-      eq.classList.remove('hidden');
-      const essTotal = Object.values(inventoryEssences()).reduce((a, b) => a + b, 0);
-      const comps = Object.keys(INVENTORY)
-        .sort((a, b) => { const ca = CP_BY_NAME[a], cb = CP_BY_NAME[b]; return (ca && cb ? (ca.tier - cb.tier || a.localeCompare(b)) : a.localeCompare(b)); })
-        .map(name => {
-          const c = CP_BY_NAME[name];
-          const ic = c ? `<img src="icons/components/${esc(c.icon)}${IV}" onerror="this.remove()">` : '';
-          return `<span class="eq-comp" title="${esc(name)}">${ic}<span class="eq-comp-n">${esc(name)}</span><span class="eq-comp-q">×${INVENTORY[name]}</span></span>`;
-        }).join('');
-      eq.innerHTML = `<span class="eq-inv-label">My components</span><div class="eq-inv-comps">${comps}</div>`
-        + `<span class="eq-inv-label">${essTotal} essence${essTotal !== 1 ? 's' : ''}</span><div class="eq-inv-ess">${essences || '—'}</div>`
-        + `<a class="tablink eq-inv-edit" data-goto="components">edit</a>`;
-    }
-  }
+  // The Equipment tab's component pool (renderPool) now reflects the inventory,
+  // so the old compact read-only readout is gone.
 }
 function wireInventory() {
   document.addEventListener('click', e => {
@@ -954,6 +1177,13 @@ function wireInventory() {
     if (add) { invChange(add.dataset.addcomp, 1); return; }
     const cl = e.target.closest && e.target.closest('.inv-clear');
     if (cl) { invClear(); return; }
+    const fc = e.target.closest && e.target.closest('[data-find-craftable]');
+    if (fc) {
+      e.preventDefault();
+      switchTab('equipment');
+      if (!EQ.craftableOnly) { EQ.craftableOnly = true; const b = $('#eq-craftable'); if (b) b.classList.add('active'); renderEquipment(); }
+      return;
+    }
     const go = e.target.closest && e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); switchTab(go.dataset.goto); return; }
   });
@@ -1098,8 +1328,9 @@ async function init() {
   for (const s of DATA.spells) SPELL_BY_NAME[s.name] = s;
   loadWishFromUrl();
   loadInv();
+  loadAssign();
   wireTooltips();
-  wireWishlist();
+  wireBuild();
   wireInventory();
 
   // tabs
@@ -1163,7 +1394,7 @@ async function init() {
   $('#mon-sort').addEventListener('change', e => { MON.sort = e.target.value; renderMonsters(); });
 
   // render all
-  renderWishlist();
+  renderBuild();
   renderInventory();
   renderEquipment(); renderComponents(); renderSpells(); renderMonsters();
 

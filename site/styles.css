@@ -174,19 +174,6 @@ select{
 .toggle.active{background:#13391f;color:#7ee0a0;border-color:#2f6b45}
 .toggle.active::before{content:"✓ "}
 
-/* Compact inventory readout on the Equipment tab */
-.eq-inv{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:10px;
-  background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:7px 11px}
-.eq-inv.hidden{display:none}
-.eq-inv-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:800}
-.eq-inv-comps{display:flex;flex-wrap:wrap;gap:5px}
-.eq-inv-ess{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.eq-inv-ess .req{font-size:11px;padding:1px 6px}
-.eq-comp{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#cdd6e6}
-.eq-comp img{width:18px;height:18px;image-rendering:pixelated;object-fit:contain}
-.eq-comp-q{color:var(--accent);font-variant-numeric:tabular-nums}
-.eq-inv-edit{font-size:11px;margin-left:auto}
-
 /* Component inventory ("I have 2 Chaos Seeds…") */
 .inventory{background:linear-gradient(180deg,#16212b,#121a24);border:1px solid #2f5a4a;
   border-radius:11px;padding:10px 12px;margin-bottom:10px}
@@ -208,35 +195,106 @@ select{
 .inv-essences{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:12px}
 .inv-ess-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
 
-/* Wishlist / build */
-.wishlist{
+/* Build workspace (Equipment tab) ---------------------------------------- */
+.build{
   background:linear-gradient(180deg,#1a2233,#141a26);
-  border:1px solid var(--accent);border-radius:11px;padding:10px 12px;margin-bottom:10px;
-  position:sticky;top:78px;z-index:20;box-shadow:var(--shadow);
+  border:1px solid var(--accent);border-radius:11px;padding:10px 12px;margin-bottom:12px;
+  box-shadow:var(--shadow);
 }
-.wishlist.hidden{display:none}
-.wl-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.build.hidden{display:none}
+.build-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .wl-title{font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .wl-badge{background:var(--accent);color:#0c0e14;border-radius:999px;font-size:11px;font-weight:800;padding:1px 8px}
-.wl-totals{display:flex;flex-wrap:wrap;gap:5px;align-items:center;flex:1;min-width:200px}
-.wl-total-label{color:var(--muted);font-size:11.5px;font-weight:700;margin-left:4px}
-.wl-actions{display:flex;gap:6px;margin-left:auto}
-.wl-items{display:flex;flex-direction:column;gap:4px;margin-top:9px;border-top:1px solid var(--border);padding-top:9px;max-height:34vh;overflow:auto}
-.wl-item{display:flex;align-items:center;gap:8px;font-size:13px}
-.wl-ic{width:30px;height:30px;flex:0 0 30px;border-radius:6px;background:var(--bg);border:1px solid var(--border);image-rendering:pixelated;object-fit:contain;padding:1px}
-.wl-ic.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
-.wl-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.wl-row1{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.wl-name{font-weight:700;cursor:help}
-.wl-name:hover,.wl-name:focus{color:#fff;text-decoration:underline dotted;outline:none}
-.wl-cost{color:var(--muted);font-size:11.5px;font-weight:700}
-.wl-recipe{display:flex;flex-wrap:wrap;gap:4px}
-.wl-recipe .req{font-size:11px;padding:1px 6px}
-.wl-remove{width:22px;height:22px;flex:0 0 22px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);
-  color:var(--muted);font-size:12px;cursor:pointer;line-height:1}
+.build-summary{display:flex;flex-wrap:wrap;gap:9px;align-items:center;flex:1;min-width:90px}
+.bs-craft{font-size:12.5px;font-weight:800;color:#e7c66b}
+.bs-craft.all{color:#7ee0a0}
+.bs-waste{font-size:11.5px;font-weight:700;color:#e79a6b}
+.wl-actions{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.wl-actions .btn-ghost{font-size:12px;padding:5px 9px}
+.wl-actions .btn-ghost:disabled{opacity:.4;cursor:not-allowed}
+#wl-auto{color:var(--accent2);border-color:#3a2f5a}
+#wl-clearbuilt:not(:disabled){color:#7ee0a0;border-color:#2f6b45}
+
+.build-body{display:flex;flex-direction:column;gap:10px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+
+/* Component pool — standalone panel on the Equipment tab (always visible when
+   you own components, independent of the build). */
+.eq-pool{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:9px 11px;margin-bottom:10px}
+.eq-pool.hidden{display:none}
+.eq-pool.picking{border-color:var(--accent2);box-shadow:0 0 0 1px rgba(154,107,255,.35)}
+.pool-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-bottom:7px}
+.pool-title{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:800}
+.pool-edit{font-size:10px;margin-left:4px}
+.pool-hint{font-size:11.5px;color:var(--muted)}
+.pick-hint{font-size:11.5px;color:#dfe6f3}
+.pool-empty{font-size:12.5px;color:var(--muted);padding:6px 2px}
+.pool-tiles{display:flex;flex-wrap:wrap;gap:7px;min-height:8px}
+
+/* Component tile (pool + assigned): name on top, then a bigger icon paired
+   with its essence letters below. */
+.comp-tile{
+  position:relative;width:108px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:9px;padding:6px;cursor:pointer;user-select:none;display:flex;flex-direction:column;gap:5px;
+}
+.comp-tile:hover{border-color:var(--accent)}
+.comp-tile.picked{border-color:var(--accent);box-shadow:0 0 0 2px rgba(90,169,255,.55);background:#1d2940}
+.comp-tile.dragging{opacity:.4}
+.comp-tile.oncraft{border-color:#6b5a2f;background:linear-gradient(180deg,#2b2616,#1d1d28)}
+.comp-tile.oncraft:hover{border-color:#e7c66b}
+.ct-name{font-size:11px;font-weight:700;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ct-bottom{display:flex;align-items:center;gap:6px;min-width:0}
+.ct-ic{width:34px;height:34px;flex:0 0 34px;border-radius:6px;background:var(--bg);border:1px solid var(--border);image-rendering:pixelated;object-fit:contain;padding:2px}
+.ct-ic.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px}
+.ct-ess{display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-width:0}
+.ess{font-size:10px;font-weight:800;line-height:1;height:18px;min-width:17px;padding:0 4px;border-radius:4px;
+  display:inline-flex;align-items:center;justify-content:center;align-self:center;flex:0 0 auto;
+  color:var(--ec,var(--muted));border:1px solid var(--ec,var(--border));background:color-mix(in srgb, var(--ec, #888) 15%, transparent);
+  font-variant-numeric:tabular-nums}
+.ess.wasted{opacity:.4;text-decoration:line-through;border-style:dashed}
+.ess-none{font-size:9.5px;color:var(--muted)}
+.ct-count{position:absolute;top:-6px;right:-6px;background:var(--accent);color:#0c0e14;font-size:10px;font-weight:800;border-radius:999px;padding:1px 6px;box-shadow:var(--shadow)}
+.ct-rm{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;border:1px solid var(--border);
+  background:var(--panel);color:var(--muted);font-size:10px;line-height:1;cursor:pointer;z-index:2}
+.ct-rm:hover{background:#a33;color:#fff;border-color:#a33}
+
+/* Build items — one per row: info + recipe slots on the left, assigned
+   components on the right. Compact and fixed so the layout never bloats. */
+.build-items{display:flex;flex-direction:column;gap:7px}
+.build-item{display:flex;flex-wrap:wrap;align-items:center;gap:7px 12px;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);
+  border-radius:10px;padding:7px 9px}
+.build-item.is-ok{border-color:#2f6b45;background:linear-gradient(180deg,#17241d,#131e18)}
+.build-item.droppable{outline:1px dashed var(--accent2);outline-offset:2px}
+/* Fixed-width left block so every row's components start at the same column. */
+.bi-left{display:flex;gap:8px;align-items:center;flex:0 0 320px;max-width:100%;min-width:0}
+.bi-ic{width:34px;height:34px;flex:0 0 34px;border-radius:7px;background:var(--bg);border:1px solid var(--border);image-rendering:pixelated;object-fit:contain;padding:2px}
+.bi-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.bi-row1{display:flex;align-items:center;gap:6px;min-width:0}
+.bi-name{font-weight:700;font-size:13.5px;cursor:help;flex:0 1 auto;min-width:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bi-name:hover,.bi-name:focus{color:#fff;text-decoration:underline dotted;outline:none}
+.bi-waste{font-size:11px;font-weight:800;color:#e79a6b;white-space:nowrap}
+.wl-built{font-size:12px;font-weight:800;color:#7ee0a0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wl-miss{font-size:11.5px;font-weight:800;color:#e79a6b;font-variant-numeric:tabular-nums}
+.build-item>.wl-remove{flex:0 0 20px;order:-1}
+.wl-remove{width:20px;height:20px;flex:0 0 20px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);
+  color:var(--muted);font-size:11px;cursor:pointer;line-height:1}
 .wl-remove:hover{border-color:#a33;color:#ff8585}
 
-.recipe-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:2px}
+/* Recipe slots: one-letter ✓ filled / ? missing chips.
+   Fixed height + align-self:center so they never stretch to the row's height. */
+.bi-slots{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.eslot{font-size:11px;font-weight:800;line-height:1;height:21px;min-width:22px;padding:0 5px;border-radius:5px;
+  display:inline-flex;align-items:center;justify-content:center;align-self:center;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.eslot.filled{color:var(--ec);border:1px solid var(--ec);background:color-mix(in srgb,var(--ec) 18%,transparent)}
+.eslot.miss{color:var(--ec,var(--muted));border:1px dashed var(--ec,var(--border));opacity:.9}
+.eslot.any{--ec:var(--muted);color:var(--muted);border-color:var(--border)}
+.eslot.any.filled{border-style:solid;background:color-mix(in srgb,var(--muted) 16%,transparent)}
+
+/* Assigned components: left-aligned, starting at the same column on every row */
+.bi-comps{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start;align-items:center;flex:1 1 200px;min-width:0}
+.build-item.droppable .bi-comps{outline:1px dashed rgba(154,107,255,.4);outline-offset:3px;border-radius:8px}
+.bi-drop-hint{font-size:11px;color:var(--muted);padding:4px 2px}
+
 .add-build{
   background:var(--bg2);border:1px solid var(--border);color:var(--accent);
   font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;
@@ -245,23 +303,6 @@ select{
 .add-build:hover{border-color:var(--accent);color:#fff;background:#1d2940}
 .add-build.in{color:#7ee0a0;border-color:#2f6b45;background:#13391f}
 
-/* Build planner: craft satisfaction */
-.wl-craftcount{font-size:11.5px;font-weight:600;color:#e7c66b;margin-left:4px}
-.wl-craftcount.all{color:#7ee0a0}
-.wl-ok{font-size:10.5px;font-weight:800;color:#7ee0a0;text-transform:uppercase;letter-spacing:.4px}
-.wl-miss{font-size:10.5px;font-weight:800;color:#e79a6b;text-transform:uppercase;letter-spacing:.4px}
-.wl-item.is-ok{}
-.wl-item.is-miss{opacity:.92}
-.wl-recipe .req.rok{}
-.wl-recipe .req.rmiss{color:var(--muted)!important;border-style:dashed;opacity:.75}
-.wl-uses{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:1px}
-.wl-uses-label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:800}
-.comp-mini{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
-  background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1px 6px 1px 3px;color:#cdd6e6}
-.comp-mini img{width:16px;height:16px;image-rendering:pixelated;object-fit:contain}
-.wl-leftover{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:9px;
-  border-top:1px dashed var(--border);padding-top:8px}
-.wl-leftover.hidden{display:none}
 .inv-tip{font-size:11px;color:var(--muted);margin-top:8px}
 
 /* Animated unit sprites (pure CSS idle loop via background-position) */
@@ -338,7 +379,13 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:18px 20px;b
 
 .empty{color:var(--muted);padding:30px;text-align:center;grid-column:1/-1}
 
-@media (max-width:820px){
-  .craft-layout{grid-template-columns:1fr}
-  .craft-pool{position:static;top:auto}
+@media (max-width:560px){
+  main{padding:8px}
+  .build{padding:9px 9px}
+  .wl-actions{width:100%;margin-left:0}
+  .wl-actions .btn-ghost{flex:1 1 auto;text-align:center}
+  .bi-left{flex:1 1 100%}
+  .bi-comps{flex:1 1 100%}
+  .comp-tile{width:calc(50% - 4px)}
+  .pool-tiles{gap:8px}
 }

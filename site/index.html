@@ -24,19 +24,22 @@
 <main>
   <!-- EQUIPMENT -->
   <section id="tab-equipment" class="tab-panel active">
-    <div class="wishlist hidden" id="wishlist">
-      <div class="wl-head">
+    <div class="eq-pool hidden" id="eq-pool"></div>
+    <div class="build hidden" id="build">
+      <div class="build-head">
         <span class="wl-title">Build <span class="wl-badge" id="wl-count">0</span></span>
-        <div class="wl-totals" id="wl-totals"></div>
+        <div class="build-summary" id="build-summary"></div>
         <div class="wl-actions">
+          <button id="wl-auto" class="btn-ghost" title="Automatically assign your components to build items">✨ Auto assign</button>
+          <button id="wl-clearbuilt" class="btn-ghost" title="Remove finished items and consume the components used to craft them">✓ Clear built</button>
           <button id="wl-share" class="btn-ghost" title="Copy a shareable link to this build">🔗 Copy link</button>
           <button id="wl-clear" class="btn-ghost">Clear</button>
         </div>
       </div>
-      <div class="wl-items" id="wl-items"></div>
-      <div class="wl-leftover hidden" id="wl-leftover"></div>
+      <div class="build-body">
+        <div class="build-items" id="build-items"></div>
+      </div>
     </div>
-    <div class="eq-inv hidden" id="eq-inv"></div>
     <div class="controls">
       <input type="search" id="eq-search" class="search" placeholder="Search equipment by name or effect…">
       <div class="control-group">
