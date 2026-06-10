@@ -707,7 +707,7 @@ function compTileHtml(name, opts) {
 function slotCell(s) {
   const mark = s.filled ? '✓' : '?';
   if (s.req === 'Any') {
-    return `<span class="eslot any ${s.filled ? 'filled' : 'miss'}" title="Any essence${s.filled ? ` — filled by ${esc(s.essence)}` : ''}">∗ ${mark}</span>`;
+    return `<span class="eslot any ${s.filled ? 'filled' : 'miss'}" title="Any essence${s.filled ? `, filled by ${esc(s.essence)}` : ''}">∗ ${mark}</span>`;
   }
   const col = TAGCOLOR[s.req] || 'var(--muted)';
   return `<span class="eslot ${s.filled ? 'filled' : 'miss'}" style="--ec:${col}" title="${esc(s.req)}${s.filled ? '' : ' (missing)'}">${esc(tagAbbr(s.req))} ${mark}</span>`;
@@ -724,7 +724,7 @@ function buildItemHtml(name, ev) {
   // Denominator is the recipe cost, so don't repeat it. Built items show the
   // cost in green; unbuilt show filled/cost.
   const status = ev.ok
-    ? `<span class="wl-built" title="Built — recipe cost ${ev.total}">✓ ${ev.total}</span>`
+    ? `<span class="wl-built" title="Built (recipe cost ${ev.total})">✓ ${ev.total}</span>`
     : `<span class="wl-miss" title="${ev.filled} of ${ev.total} essences filled (recipe cost ${ev.total})">${ev.filled}/${ev.total}</span>`;
   const wasteBadge = ev.wasted ? `<span class="bi-waste" title="${ev.wasted} committed essence${ev.wasted !== 1 ? 's' : ''} wasted">⊘ ${ev.wasted}</span>` : '';
   return `<div class="build-item${ev.ok ? ' is-ok' : ''}${PICK ? ' droppable' : ''}" data-drop-equip="${esc(name)}">
@@ -737,7 +737,7 @@ function buildItemHtml(name, ev) {
           <span class="badge slot">${esc(e.slot)}</span>
           ${status}${wasteBadge}
         </div>
-        <div class="bi-slots" title="Recipe — ✓ filled, ? missing">${slotsHtml}</div>
+        <div class="bi-slots" title="Recipe: ✓ filled, ? missing">${slotsHtml}</div>
       </div>
     </div>
     <div class="bi-comps" data-drop-equip="${esc(name)}">${tiles}</div>
@@ -761,7 +761,7 @@ function renderPool() {
   if (!entries.length) body = `<div class="pool-empty">Every component is assigned. Drag or click one out of an item to free it.</div>`;
   else body = entries.map(([name, cnt]) => compTileHtml(name, { mode: 'pool', count: cnt })).join('');
   const hint = PICK
-    ? `<span class="pick-hint">Holding <b>${esc(PICK.name)}</b> — click a build item to place it${PICK.from ? ', or click here to unassign' : ''}.</span>`
+    ? `<span class="pick-hint">Click equipment to assign <b>${esc(PICK.name)}</b>${PICK.from ? ', or click here to unassign' : ''}</span>`
     : (entries.length && WISH.size
       ? `<span class="pool-hint">Drag components onto build equipment to assign them.</span>`
       : '');
