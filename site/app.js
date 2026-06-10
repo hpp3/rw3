@@ -460,7 +460,7 @@ function renderEquipment() {
   grid.innerHTML = '';
   if (!list.length) {
     const msg = (EQ.craftableOnly && Object.keys(INVENTORY).length === 0)
-      ? 'Add components on the Components tab to see what you can craft.'
+      ? 'Add components on the <a class="tablink" data-goto="components">Components tab</a> to see what you can craft.'
       : 'No equipment matches those filters.';
     grid.appendChild(el('div', 'empty', msg));
   }
@@ -718,9 +718,12 @@ function buildItemHtml(name, ev) {
   const assigned = ASSIGN[name] || [];
   const ic = `<img class="bi-ic" loading="lazy" src="icons/equipment/${esc(e.icon)}${IV}" onerror="this.style.visibility='hidden'">`;
   const slotsHtml = ev.slots.map(slotCell).join('');
+  const emptyHint = Object.keys(INVENTORY).length
+    ? 'drop components here'
+    : 'add some <a class="tablink" data-goto="components">components</a> to build this';
   const tiles = assigned.length
     ? assigned.map((cn, idx) => compTileHtml(cn, { mode: 'assigned', equip: name, usedFlags: ev.comps[idx].used })).join('')
-    : '<span class="bi-drop-hint">drop components here</span>';
+    : `<span class="bi-drop-hint">${emptyHint}</span>`;
   // Denominator is the recipe cost, so don't repeat it. Built items show the
   // cost in green; unbuilt show filled/cost.
   const status = ev.ok
@@ -874,10 +877,10 @@ function componentCard(c) {
           ${c.tags.map(tagPill).join('')}
         </div>
       </div>
+      <button class="add-build${INVENTORY[c.name] ? ' in' : ''}" data-addcomp="${esc(c.name)}">${INVENTORY[c.name] ? `✓ In pool ×${INVENTORY[c.name]}` : '＋ Add to pool'}</button>
     </div>
     <div class="desc">${linkify(renderMarkup(c.desc), c.refs)}</div>
-    ${summonRow(c.summons)}
-    <div class="recipe"><button class="add-build${INVENTORY[c.name] ? ' in' : ''}" data-addcomp="${esc(c.name)}">${INVENTORY[c.name] ? `✓ In pool ×${INVENTORY[c.name]}` : '＋ Add to pool'}</button></div>`;
+    ${summonRow(c.summons)}`;
   return card;
 }
 
