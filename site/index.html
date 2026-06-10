@@ -32,7 +32,9 @@
         <div class="wl-actions">
           <button id="wl-auto" class="btn-ghost" title="Automatically assign your components to build items">✨ Auto assign</button>
           <button id="wl-clearbuilt" class="btn-ghost" title="Remove finished items and consume the components used to craft them">✓ Clear built</button>
-          <button id="wl-share" class="btn-ghost" title="Copy a shareable link to this build">🔗 Copy link</button>
+          <!-- Build-sharing is deferred until builds also cover spells & upgrades; the
+               stable-ID + URL plumbing stays, but the Copy-link affordance is hidden. -->
+          <button id="wl-share" class="btn-ghost" title="Copy a shareable link to this build" hidden>🔗 Copy link</button>
           <button id="wl-clear" class="btn-ghost">Clear</button>
         </div>
       </div>
