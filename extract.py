@@ -10,6 +10,8 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3 Demo"
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+import ids as ids_mod  # stable append-only id assignment (HERE-relative; safe before chdir)
 OUT_DIR = os.path.join(HERE, "site")
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -621,6 +623,14 @@ def main():
     for e in equipment: e['refs'] = prune(e['refs'])
     for c in components: c['refs'] = prune(c['refs'])
     for sheet in UNITS.values(): sheet['refs'] = prune(sheet['refs'])
+    # Stable integer ids for shareable build URLs (append-only; see ids.py).
+    # Mutates ids.json on disk — it MUST be committed alongside data.json.
+    idmap = ids_mod.load_ids()
+    ids_mod.assign(idmap, "equipment", [e["name"] for e in equipment])
+    ids_mod.assign(idmap, "spell", [s["name"] for s in spells])
+    ids_mod.save_ids(idmap)
+    for e in equipment: e["id"] = idmap["equipment"][e["name"]]
+    for s in spells: s["id"] = idmap["spell"][s["name"]]
     data = {
         "spells": spells,
         "equipment": equipment,

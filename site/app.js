@@ -450,20 +450,60 @@ function renderEquipment() {
 // ---------------------------------------------------------------------------
 let WISH = new Set();     // set of equipment names (each is unique → no quantities)
 let EQ_BY_NAME = {};      // name -> equipment object
-const WISH_KEY = 'rw3_wishlist';
+let EQ_ID_BY_NAME = {};   // name -> stable integer id (from data.json)
+let EQ_NAME_BY_ID = {};   // stable integer id -> name
 
-function loadWish() {
-  try {
-    const a = JSON.parse(localStorage.getItem(WISH_KEY));
-    WISH = new Set(Array.isArray(a) ? a : (a ? Object.keys(a) : []));
-  } catch (e) { WISH = new Set(); }
+// --- Build state lives in the URL, not localStorage --------------------------
+// The build is encoded in the `?b=` query param as a sorted list of stable
+// equipment ids in base36, joined by '.'  (e.g. ?b=0.2x.9p). This makes builds
+// shareable as plain links, lets two tabs hold different builds, and keeps the
+// URL the single source of truth. Tab selection stays in the hash; component
+// inventory and scroll position remain local-only.
+const BUILD_PARAM = 'b';
+function encodeBuild() {
+  const ids = [...WISH].map(n => EQ_ID_BY_NAME[n]).filter(v => v != null).sort((a, b) => a - b);
+  return ids.map(i => i.toString(36)).join('.');
 }
-function saveWish() {
-  try { localStorage.setItem(WISH_KEY, JSON.stringify([...WISH])); } catch (e) {}
+function loadWishFromUrl() {
+  WISH = new Set();
+  const b = new URL(location.href).searchParams.get(BUILD_PARAM);
+  if (!b) return;
+  for (const tok of b.split('.')) {
+    const id = parseInt(tok, 36);
+    const name = EQ_NAME_BY_ID[id];
+    if (name) WISH.add(name);   // unknown/removed ids are silently dropped
+  }
+}
+function updateUrl() {
+  const b = encodeBuild();
+  const url = new URL(location.href);
+  if (b) url.searchParams.set(BUILD_PARAM, b); else url.searchParams.delete(BUILD_PARAM);
+  // replaceState (not push): toggling items shouldn't flood the back button.
+  history.replaceState(null, '', url);
+}
+function shareBuild(e) {
+  updateUrl();   // make sure the URL reflects the current build before copying
+  const url = location.href;
+  const btn = e && e.currentTarget;
+  const done = ok => {
+    if (!btn) return;
+    const orig = btn.innerHTML;
+    btn.innerHTML = ok ? '✓ Copied!' : '⚠ Copy failed';
+    setTimeout(() => { btn.innerHTML = orig; }, 1600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
+  } else {
+    // Fallback for non-secure contexts without the async clipboard API.
+    const ta = el('textarea'); ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (_) {}
+    ta.remove(); done(ok);
+  }
 }
 function wishToggle(name) {
   if (WISH.has(name)) WISH.delete(name); else WISH.add(name);
-  saveWish();
+  updateUrl();
   renderWishlist();
   renderEquipment();   // refresh button states
 }
@@ -571,7 +611,10 @@ function wireWishlist() {
     const rm = e.target.closest && e.target.closest('.wl-remove');
     if (rm) { wishToggle(rm.dataset.wishRemove); return; }
   });
-  $('#wl-clear').addEventListener('click', () => { WISH = new Set(); saveWish(); renderWishlist(); renderEquipment(); });
+  $('#wl-clear').addEventListener('click', () => { WISH = new Set(); updateUrl(); renderWishlist(); renderEquipment(); });
+  $('#wl-share').addEventListener('click', shareBuild);
+  // Back/forward (or any external URL change) re-derives the build from the URL.
+  window.addEventListener('popstate', () => { loadWishFromUrl(); renderWishlist(); renderEquipment(); });
 }
 
 // ---------------------------------------------------------------------------
@@ -1047,10 +1090,13 @@ async function init() {
   STAT_META = DATA.stat_meta || {};
   if (DATA.generated) $('#last-updated').textContent = DATA.generated;
   injectSpriteKeyframes();
-  for (const e of DATA.equipment) EQ_BY_NAME[e.name] = e;
+  for (const e of DATA.equipment) {
+    EQ_BY_NAME[e.name] = e;
+    if (e.id != null) { EQ_ID_BY_NAME[e.name] = e.id; EQ_NAME_BY_ID[e.id] = e.name; }
+  }
   for (const c of DATA.components) CP_BY_NAME[c.name] = c;
   for (const s of DATA.spells) SPELL_BY_NAME[s.name] = s;
-  loadWish();
+  loadWishFromUrl();
   loadInv();
   wireTooltips();
   wireWishlist();

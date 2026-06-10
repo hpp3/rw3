@@ -3,6 +3,10 @@
 A searchable, filterable browser resource for **Rift Wizard 3** spells, equipment, and
 crafting components.
 
+> Working on the code? Read **[ARCHITECTURE.md](ARCHITECTURE.md)** first — it covers the
+> non-obvious build/runtime decisions (extracting from the live game, AST cross-references,
+> the crafting model, CSS sprite animation, caching) that aren't apparent from the code alone.
+
 ## What it does
 
 The static site (`site/`) lets you:
