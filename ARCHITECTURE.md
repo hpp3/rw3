@@ -71,11 +71,11 @@ example.
 
 ---
 
-## 3. Almost everything keys off the **display name**; builds use stable integer IDs.
+## 3. Almost everything keys off the **display name**; Guides use stable integer IDs.
 
-The frontend keys cross-reference links and card DOM ids (`s-<slug>`, `e-<slug>`, `u-<slug>`), plus
-the component inventory (`localStorage`), all off the **display name**. The **one** thing that does
-*not* is the shareable build, which uses stable integer ids (§13).
+The frontend keys cross-reference links and card DOM ids (`s-<slug>`, `e-<slug>`, `u-<slug>`), the
+component inventory, and the equipment build (`localStorage`), all off the **display name**. The
+**one** thing that does *not* is the shareable **Guide**, whose URL uses stable integer ids (§13, §15).
 
 Facts a future agent should know:
 - Display names are currently **unique across all 350 equipment and 186 spells** (the game's own
@@ -262,27 +262,33 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
 
 ---
 
-## 13. Stable IDs & shareable build URLs
+## 13. Stable IDs (and where state lives)
 
-Builds are shareable as plain links with **no server/db**: the URL is the single source of truth for
-the build (component inventory, scroll, and active tab stay local — tab is in the `#hash`).
+Stable integer ids exist so **shareable Guides** (§15) survive content additions with **no server/db**.
+The URL is owned solely by the Guide (`?g=`); everything else is local: the equipment **build**,
+component inventory, component→item assignments, scroll, and active tab (`#hash`).
 
 - **`ids.json`** (committed, repo root) maps `display name → small int`, per category (`equipment`,
-  `spell`), and is the source of truth for ids. **`ids.py`** maintains it **append-only**: an existing
-  name never changes id, a removed name keeps its id reserved (never reused), a new name gets
-  `max+1`. `extract.py` calls into `ids.py` on every full build and emits the resolved `id` onto each
-  equipment/spell entry in `data.json` (the frontend never fetches `ids.json`). `python ids.py`
-  re-applies ids to an existing `site/data.json` without a game rebuild (how it was bootstrapped).
+  `spell`, and `sp` — see §15), and is the source of truth for ids. **`ids.py`** maintains it
+  **append-only**: an existing name never changes id, a removed name keeps its id reserved (never
+  reused), a new name gets `max+1`. `extract.py` calls into `ids.py` on every full build and emits the
+  resolved `id` onto each equipment/spell entry in `data.json` (the frontend never fetches `ids.json`).
+  `python ids.py` re-applies ids to an existing `site/data.json` without a game rebuild (how it was
+  bootstrapped — and how the `sp` category was added without re-running the game).
 - **Why integers, not class names:** compact URLs, and class names aren't unique for the 62 factory
   items (§3). The stable *key* behind the map is the display name (game-unique; addition-stable).
-- **URL encoding** (`app.js`): the build is the `?b=` query param — sorted equipment ids in **base36**
-  joined by `.` (e.g. `?b=0.2x.9p`). `encodeBuild`/`loadWishFromUrl` round-trip it; unknown ids
-  (removed content / a newer link) are silently dropped. `updateUrl` uses `history.replaceState` so
-  toggling items doesn't flood the back button; a `popstate` handler re-derives the build on
-  back/forward. **No more `localStorage` for the build** — two tabs can hold different builds, and the
-  🔗 Copy-link button just copies `location.href`.
-- **Spells get ids too** even though the build UI is equipment-only today — reserved so a future
-  spell/loadout sharing feature can extend `?b=` without renumbering.
+- **The equipment Wishlist is `localStorage`, not the URL.** `WISH` (a Set of equipment *names*; the
+  UI labels it "Wishlist") persists under `rw3_build` via `loadBuild`/`saveBuild`; explicit actions
+  (toggle, clear, clear-built) save. It deliberately does **not** touch the URL, which is reserved for
+  the Guide, so the two features never fight over query params. (An earlier iteration put it in `?b=`;
+  reverted once the Guide became the sharing surface. Equipment `id`s are now used only by the Guide's
+  equipment track, not the Wishlist.)
+- **Guide → Wishlist is an explicit, one-way action.** A guide never silently mutates the reader's
+  Wishlist: the Guide's view-mode **"Send to Wishlist"** button (`sendGuideEquipToWishlist`) unions its
+  equipment into `WISH` and saves. (Edit mode has the reverse: **"Import from Wishlist"** copies the
+  Wishlist into the guide's Core via `importBuildEquipment`.)
+- The legacy `spell` category (0–185) is kept but **unused** — the Guide uses the combined `sp`
+  category instead. Harmless to keep (append-only) and reserved.
 
 ---
 
@@ -292,3 +298,66 @@ the build (component inventory, scroll, and active tab stay local — tab is in 
 - **Optimal build allocation** (§7) — greedy is good enough; exact bin-packing wasn't worth it.
 - **Monsters' own "summons" chips** — monster cards rely on AST `refs` inline links rather than a
   separate chip row; fine because their spawn behavior is in prose/passives.
+- **Guide freeform notes** (§15) — deliberately omitted (a single ≤40-char title is the only free
+  text); prose would blow up the URL. The SP track is also a flat per-section sequence, *not* a fully
+  interleaved cross-spell SP timeline — both are possible future `VER` bumps.
+
+---
+
+## 15. Guides — shareable build guides (`?g=`)
+
+The **Guide tab** lets a user author a strategy guide (an SP plan of spells & upgrades + an equipment
+plan) and share it as a plain link. Same serverless rule as §13: **the URL is the only store.** It is
+VIEW mode when the URL carries a `?g=`, and EDIT mode otherwise (or after clicking Edit). A reader
+copies the guide's equipment into their own Wishlist explicitly via the **Send to Wishlist** button
+(§13) — opening a guide never auto-mutates the Wishlist.
+
+- **Two independent "supersections", because they're separate currencies:** the **SP track** (spells
+  & upgrades, in priority/spend order — an upgrade is its *own* line item, not attached to its spell)
+  and the **Equipment track**. Each is an ordered list of labeled **sections**; each section holds
+  ordered **items**; each item is an **OR-group** of ids (alternatives, "A or B").
+- **Stable `sp` ids** (`ids.py: assign_sp`): one combined namespace for spells *and* upgrades, keyed
+  `"Spell"` for a spell and `"Spell::Upgrade"` for an upgrade (the `::` makes the two key-spaces never
+  collide). `extract.py` emits `sp_id` onto each spell and each upgrade dict. Combined (vs. a separate
+  upgrade category) is deliberate: the SP stream stays pure ids with **no per-token type marker** —
+  `SP_BY_ID` disambiguates spell vs. upgrade at render time.
+- **Encoding** (`encodeGuide`): `?g = VER _ <equipment> _ <sp> _ <title?>` (top-level sep is `_`, one
+  of the few chars `URLSearchParams` leaves un-percent-encoded, so the shared URL stays clean). A
+  track is sections run together; an **uppercase heading letter** both starts and labels each section
+  (`C`Core `E`Early `T`Late `L`Luxury `U`Utility `D`Defensive `A`AoE `N`Not-Recommended). Within a section, items
+  are `.`-separated and OR-alternatives `-`-separated; ids are **base36 (lowercase)**, which is *why*
+  uppercase is free for headings. Title is the trailing field left **raw** (don't `encodeURIComponent`
+  — `URLSearchParams` already encodes the whole value; `slice(3).join(SEP)` on decode lets a title even
+  contain `_`), ≤40 chars — the one allowed free text. The heading set and `VER` are **append-only**
+  like ids — a new heading takes an unused letter, and `VER` lets a future format change branch without
+  breaking old links.
+- **No id ceiling:** ids are variable-length and self-delimiting (a run of `[0-9a-z]` between the
+  uppercase / `.` / `-` markers), so when `sp` grows past 36² it just spends one more char on those
+  ids. Nothing migrates; unknown ids drop on decode (§13).
+- **The one hard rule** (`sanitizeUpgrades`, enforced on decode *and* every edit): an upgrade is only
+  legal if its parent spell appears in a **strictly earlier** SP item — you can't upgrade a spell you
+  haven't learned. The editor also: only offers upgrades of present spells, cascade-removes a spell's
+  upgrades, and rejects a drag that would orphan an upgrade. **Core is mandatory** (one per track,
+  heading-locked); other sections are add/remove/reorder-able. Drag moves items within a supersection
+  only — never across the SP↔Equipment line.
+
+---
+
+## 16. Essence tags have **canonical one-letter codes** (not first-initial)
+
+Components carry essence tags (`Fire`, `Dark`, `Holy`, …). Everywhere the crafting UI shows an essence
+compactly — the colored code chips on component tiles and recipe slots (`essenceCell`, `slotCell`), and
+the **"Total"** readout at the bottom of the Equipment-tab components drawer (`essenceSummaryHtml` over
+the *unassigned* pool, rendered as one chip per essence held — 4× Fire = `FFFF`, not "F 4") — it uses a
+**single canonical letter**, the same one the game's crafting tag-filter hotkeys use
+(`RiftWizard3.KEY_BIND_DEFS`).
+
+- **These are NOT first letters.** Four pairs clash on first initial, so the game assigns distinct
+  letters: **Eye=Y, Dragon=R, Chaos=K, Slime=Z, Ritual=U** (and **Any=∗**). The remaining 15 happen to
+  be their first letter (`Fire`=F, `Dark`=D, `Holy`=H, …). Using a naive `tag[0]` would collide
+  Chaos/Conjuration, Dark/Dragon, Enchantment/Eye, Slime/Sorcery — **don't do that.**
+- **Source of truth is the game**, mirrored in two places that must stay in sync: `extract.py`'s
+  `tag_abbr` (bakes `abbr` onto each tag in `data.json`) and `app.js`'s `TAG_ABBR` fallback. `tagAbbr(t)`
+  prefers `DATA.tags.all[t].abbr`, then `TAG_ABBR`, then first-letter as a last resort.
+- **If the game adds an essence tag**, add its canonical letter to *both* maps. If you only rely on the
+  first-letter fallback it may silently clash with an existing code.

@@ -643,6 +643,7 @@ def main():
     idmap = ids_mod.load_ids()
     ids_mod.assign(idmap, "equipment", [e["name"] for e in equipment])
     ids_mod.assign(idmap, "spell", [s["name"] for s in spells])
+    ids_mod.assign_sp(idmap, spells)   # combined spell+upgrade ids (Guide SP track)
     ids_mod.save_ids(idmap)
     for e in equipment: e["id"] = idmap["equipment"][e["name"]]
     for s in spells: s["id"] = idmap["spell"][s["name"]]

@@ -18,6 +18,7 @@
     <button data-tab="components">Components</button>
     <button data-tab="spells">Spells</button>
     <button data-tab="monsters">Monsters</button>
+    <button data-tab="guide">Guide</button>
   </nav>
 </header>
 
@@ -27,14 +28,13 @@
     <div class="eq-pool hidden" id="eq-pool"></div>
     <div class="build hidden" id="build">
       <div class="build-head">
-        <span class="wl-title">Build <span class="wl-badge" id="wl-count">0</span></span>
+        <span class="wl-title">Wishlist <span class="wl-badge" id="wl-count">0</span></span>
         <div class="build-summary" id="build-summary"></div>
         <div class="wl-actions">
           <button id="wl-auto" class="btn-ghost" title="Automatically assign your components to build items">✨ Auto assign</button>
-          <button id="wl-clearbuilt" class="btn-ghost" title="Remove finished items and consume the components used to craft them">✓ Clear built</button>
-          <!-- Build-sharing is deferred until builds also cover spells & upgrades; the
-               stable-ID + URL plumbing stays, but the Copy-link affordance is hidden. -->
-          <button id="wl-share" class="btn-ghost" title="Copy a shareable link to this build" hidden>🔗 Copy link</button>
+          <button id="wl-clearbuilt" class="btn-primary" title="Craft the finished items, consuming the components used to make them">Craft</button>
+          <!-- Build sharing now lives in the Guide tab; the equipment build itself
+               persists locally (localStorage), so there's no per-build link here. -->
           <button id="wl-clear" class="btn-ghost">Clear</button>
         </div>
       </div>
@@ -98,7 +98,7 @@
     <div class="controls">
       <input type="search" id="sp-search" class="search" placeholder="Search spells by name or effect…">
       <div class="control-group">
-        <label>Level</label>
+        <label>SP cost</label>
         <div class="chips" id="sp-levels"></div>
       </div>
       <div class="control-group">
@@ -138,6 +138,11 @@
     </div>
     <div class="count" id="mon-count"></div>
     <div class="grid" id="mon-grid"></div>
+  </section>
+
+  <!-- GUIDE -->
+  <section id="tab-guide" class="tab-panel">
+    <div id="guide-root" class="guide-root"></div>
   </section>
 </main>
 

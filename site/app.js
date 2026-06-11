@@ -245,7 +245,7 @@ function renderSpellSheet(name) {
       <img class="uicon" src="icons/spells/${esc(s.icon)}${IV}" onerror="this.style.visibility='hidden'">
       <div class="uhmeta">
         <div class="uname">${esc(s.name)}</div>
-        <div class="card-meta"><span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">Lv ${s.level}</span>${s.tags.map(tagPill).join('')}</div>
+        <div class="card-meta"><span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">${s.level} SP</span>${s.tags.map(tagPill).join('')}</div>
       </div>
     </div>
     ${s.desc ? `<div class="udesc">${renderMarkup(s.desc)}</div>` : ''}
@@ -421,7 +421,7 @@ function equipmentCard(e) {
           ${e.tags.map(tagPill).join('')}
         </div>
       </div>
-      <button class="add-build${WISH.has(e.name) ? ' in' : ''}" data-add="${esc(e.name)}">${WISH.has(e.name) ? '✓ In build' : '＋ Build'}</button>
+      <button class="add-build${WISH.has(e.name) ? ' in' : ''}" data-add="${esc(e.name)}">${WISH.has(e.name) ? '✓ Added' : '＋ Wishlist'}</button>
     </div>
     ${desc}${bonuses}
     ${summonRow(e.summons)}
@@ -477,58 +477,27 @@ let EQ_BY_NAME = {};      // name -> equipment object
 let EQ_ID_BY_NAME = {};   // name -> stable integer id (from data.json)
 let EQ_NAME_BY_ID = {};   // stable integer id -> name
 
-// --- Build state lives in the URL, not localStorage --------------------------
-// The build is encoded in the `?b=` query param as a sorted list of stable
-// equipment ids in base36, joined by '.'  (e.g. ?b=0.2x.9p). This makes builds
-// shareable as plain links, lets two tabs hold different builds, and keeps the
-// URL the single source of truth. Tab selection stays in the hash; component
-// inventory and scroll position remain local-only.
-const BUILD_PARAM = 'b';
-function encodeBuild() {
-  const ids = [...WISH].map(n => EQ_ID_BY_NAME[n]).filter(v => v != null).sort((a, b) => a - b);
-  return ids.map(i => i.toString(36)).join('.');
-}
-function loadWishFromUrl() {
+// --- Build state persists in localStorage; the URL belongs to the Guide ------
+// WISH (the equipment build) is a Set of names saved under `rw3_build`. The Guide
+// (`?g=`) is the sole owner of the URL — keeping the two features from fighting
+// over query params. Opening a guide overlays its equipment onto the in-memory
+// build (syncGuideEquipmentToBuild) for display; that overlay is only persisted
+// if the user then makes an explicit build edit.
+const BUILD_KEY = 'rw3_build';
+function loadBuild() {
   WISH = new Set();
-  const b = new URL(location.href).searchParams.get(BUILD_PARAM);
-  if (!b) return;
-  for (const tok of b.split('.')) {
-    const id = parseInt(tok, 36);
-    const name = EQ_NAME_BY_ID[id];
-    if (name) WISH.add(name);   // unknown/removed ids are silently dropped
-  }
+  try {
+    const arr = JSON.parse(localStorage.getItem(BUILD_KEY));
+    if (Array.isArray(arr)) for (const n of arr) if (EQ_BY_NAME[n]) WISH.add(n);  // drop removed/renamed
+  } catch (e) {}
 }
-function updateUrl() {
-  const b = encodeBuild();
-  const url = new URL(location.href);
-  if (b) url.searchParams.set(BUILD_PARAM, b); else url.searchParams.delete(BUILD_PARAM);
-  // replaceState (not push): toggling items shouldn't flood the back button.
-  history.replaceState(null, '', url);
-}
-function shareBuild(e) {
-  updateUrl();   // make sure the URL reflects the current build before copying
-  const url = location.href;
-  const btn = e && e.currentTarget;
-  const done = ok => {
-    if (!btn) return;
-    const orig = btn.innerHTML;
-    btn.innerHTML = ok ? '✓ Copied!' : '⚠ Copy failed';
-    setTimeout(() => { btn.innerHTML = orig; }, 1600);
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
-  } else {
-    // Fallback for non-secure contexts without the async clipboard API.
-    const ta = el('textarea'); ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    let ok = false; try { ok = document.execCommand('copy'); } catch (_) {}
-    ta.remove(); done(ok);
-  }
+function saveBuild() {
+  try { localStorage.setItem(BUILD_KEY, JSON.stringify([...WISH])); } catch (e) {}
 }
 function wishToggle(name) {
   if (WISH.has(name)) WISH.delete(name); else WISH.add(name);
   if (!WISH.has(name)) delete ASSIGN[name];   // dropping an item frees its components
-  updateUrl();
+  saveBuild();
   saveAssign();
   renderBuild();
   renderEquipment();   // refresh button states
@@ -661,7 +630,7 @@ function clearBuilt() {       // remove finished items + the components they con
     WISH.delete(name);
   }
   PICK = null;
-  saveInv(); saveAssign(); updateUrl();
+  saveInv(); saveAssign(); saveBuild();
   invRefresh();
 }
 
@@ -749,6 +718,21 @@ function buildItemHtml(name, ev) {
 // The component pool is its own panel on the Equipment tab — shown whenever you
 // own components, independent of whether a build is selected, so the inventory
 // (and the "Craftable only" flow) is always visible.
+// Total essences contributed by the *unused* (unassigned) components in the pool,
+// summarised with the canonical one-letter codes (tagAbbr, see §16).
+function poolEssenceTotals() {
+  const tot = {};
+  for (const [name, cnt] of Object.entries(poolCounts()))
+    for (const t of compEssences(name)) tot[t] = (tot[t] || 0) + cnt;
+  return tot;
+}
+function essenceSummaryHtml(tot) {
+  // One code chip per essence held (4× Fire renders as FFFF, not "F 4"), grouped
+  // per tag (tight within a run, spaced between runs), most-plentiful first.
+  return Object.entries(tot).sort((a, b) => b[1] - a[1] || tagAbbr(a[0]).localeCompare(tagAbbr(b[0])))
+    .map(([t, n]) => `<span class="ess-run">${essenceCell(t).repeat(n)}</span>`)
+    .join('');
+}
 function renderPool() {
   const pool = $('#eq-pool');
   const ownsAny = Object.keys(INVENTORY).length > 0;
@@ -768,8 +752,10 @@ function renderPool() {
     : (entries.length && WISH.size
       ? `<span class="pool-hint">Drag components onto build equipment to assign them.</span>`
       : '');
+  const essSum = essenceSummaryHtml(poolEssenceTotals());
   pool.innerHTML = `<div class="pool-head"><span class="pool-title">My components <span class="wl-badge">${total}</span> <a class="tablink pool-edit" data-goto="components">edit</a></span>${hint}</div>
-    <div class="pool-tiles">${body}</div>`;
+    <div class="pool-tiles">${body}</div>
+    ${essSum ? `<div class="pool-essences"><span class="pe-label">Total</span>${essSum}</div>` : ''}`;
   pool.classList.toggle('picking', !!PICK);
 }
 function renderBuild() {
@@ -820,11 +806,9 @@ function wireBuild() {
       return;
     }
   });
-  $('#wl-clear').addEventListener('click', () => { WISH = new Set(); ASSIGN = {}; PICK = null; updateUrl(); saveAssign(); renderBuild(); renderEquipment(); });
-  $('#wl-share').addEventListener('click', shareBuild);
+  $('#wl-clear').addEventListener('click', () => { WISH = new Set(); ASSIGN = {}; PICK = null; saveBuild(); saveAssign(); renderBuild(); renderEquipment(); });
   $('#wl-auto').addEventListener('click', autoAssign);
   $('#wl-clearbuilt').addEventListener('click', clearBuilt);
-  window.addEventListener('popstate', () => { loadWishFromUrl(); PICK = null; renderBuild(); renderEquipment(); });
 
   // Drag and drop (enhancement; click-to-place is the primary, mobile-friendly path)
   document.addEventListener('dragstart', e => {
@@ -924,7 +908,7 @@ function spellCard(s) {
   const dt = s.damage_type.length ? `<div class="card-meta">${s.damage_type.map(tagPill).join('')}</div>` : '';
   const upg = s.upgrades.length ? `
     <details class="upgrades"><summary>${s.upgrades.length} upgrade${s.upgrades.length > 1 ? 's' : ''}</summary>
-      ${s.upgrades.map(u => `<div class="upg"><span class="uh">${esc(u.name)}</span><span class="ul">Lv ${u.level}</span><div class="desc">${linkify(renderMarkup(u.desc), s.refs)}</div></div>`).join('')}
+      ${s.upgrades.map(u => `<div class="upg"><span class="uh">${esc(u.name)}</span><span class="ul">${u.level} SP</span><div class="desc">${linkify(renderMarkup(u.desc), s.refs)}</div></div>`).join('')}
     </details>` : '';
   card.innerHTML = `
     <div class="card-head">
@@ -932,7 +916,7 @@ function spellCard(s) {
       <div class="card-title">
         <div class="name">${esc(s.name)}</div>
         <div class="card-meta">
-          <span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">Lv ${s.level}</span>
+          <span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">${s.level} SP</span>
           ${s.tags.map(tagPill).join('')}
           ${s.quick_cast ? '<span class="badge">quick cast</span>' : ''}
           ${s.melee ? '<span class="badge">melee</span>' : ''}
@@ -1297,6 +1281,459 @@ function planBuild() {
 }
 
 // ---------------------------------------------------------------------------
+// GUIDE — shareable build guides (Spells/upgrades + Equipment), URL-encoded
+// ---------------------------------------------------------------------------
+// A guide has two ordered "supersections" — SP (spells & upgrades, the points
+// you spend leveling) and EQUIPMENT (a separately-earned currency). Each is a
+// list of labeled sections (heading from a fixed vocab); each section holds
+// ordered items; each item is an OR-group of ids (alternatives, e.g. "A or B").
+// The whole thing lives in the URL `?g=` (see encodeGuide). The Guide tab is in
+// VIEW mode when the URL carries a `?g=`, and EDIT mode otherwise.
+const GUIDE_PARAM = 'g';
+const GUIDE_VER = '1';
+const GUIDE_TITLE_MAX = 40;
+const CORE = 'C';
+// Top-level field separator. `_` is one of the few chars URLSearchParams leaves
+// un-percent-encoded (along with `.-*`), so share URLs stay clean (no `%7E`).
+const GUIDE_SEP = '_';
+// Heading letter -> display label. The letter is ALSO the section delimiter in
+// the URL: it's uppercase, so it never collides with the lowercase base36 ids.
+// APPEND-ONLY — a new heading must take an unused letter or old links re-map.
+const GUIDE_HEADINGS = [
+  ['C', 'Core'], ['E', 'Early'], ['T', 'Late'], ['L', 'Luxury'],
+  ['U', 'Utility'], ['D', 'Defensive'], ['A', 'AoE'], ['N', 'Not Recommended'],
+];
+const HEADING_LABEL = Object.fromEntries(GUIDE_HEADINGS);
+
+// id lookups for the SP track (spells + upgrades share one `sp_id` space)
+let SP_BY_ID = {};   // sp_id -> {kind:'spell'|'upgrade', name, spell, level, icon, has_icon}
+function buildSpLookup() {
+  SP_BY_ID = {};
+  for (const s of DATA.spells) {
+    if (s.sp_id == null) continue;
+    SP_BY_ID[s.sp_id] = { kind: 'spell', name: s.name, spell: s.name, level: s.level, icon: s.icon, has_icon: s.has_icon };
+    for (const u of s.upgrades || []) {
+      if (u.sp_id == null) continue;
+      SP_BY_ID[u.sp_id] = { kind: 'upgrade', name: u.name, spell: s.name, level: u.level, icon: s.icon, has_icon: s.has_icon };
+    }
+  }
+}
+
+// --- Guide state ---
+// GUIDE = { title, sp:[section], eq:[section] }; section = { h, items }; item = [id,…]
+let GUIDE = null;
+let GUIDE_MODE = 'view';   // 'view' | 'edit'
+
+function emptyGuide() { return { title: '', sp: [{ h: CORE, items: [] }], eq: [{ h: CORE, items: [] }] }; }
+function ensureCore(track) { if (!track.some(s => s.h === CORE)) track.unshift({ h: CORE, items: [] }); }
+function trackOf(superKey) { return superKey === 'eq' ? GUIDE.eq : GUIDE.sp; }
+function flattenIds(secs) { const out = []; for (const s of secs) for (const it of s.items) out.push(...it); return out; }
+
+// An upgrade is only legal if its parent spell appears in a STRICTLY EARLIER
+// item (you can't upgrade a spell you haven't learned). Enforced on decode and
+// after every edit, so both shared and authored guides stay valid.
+function sanitizeUpgrades(secs) {
+  const learned = new Set();
+  for (const sec of secs) {
+    const kept = [];
+    for (const item of sec.items) {
+      const ok = item.filter(id => {
+        const e = SP_BY_ID[id];
+        if (!e) return false;
+        return !(e.kind === 'upgrade' && !learned.has(e.spell));
+      });
+      if (ok.length) kept.push(ok);
+      for (const id of ok) { const e = SP_BY_ID[id]; if (e && e.kind === 'spell') learned.add(e.name); }
+    }
+    sec.items = kept;
+  }
+}
+
+// --- URL encoding ----------------------------------------------------------
+// g = VER _ <equipment> _ <sp> _ <title?>   ('_' = GUIDE_SEP, see above)
+//   track   = section*          (sections run together; an uppercase HEADING
+//                                letter starts each one)
+//   section = HEADING item ('.' item)*
+//   item    = id ('-' id)*      ('-' joins OR-alternatives; ids are base36)
+// Ids are variable-length and self-delimiting (a run of [0-9a-z] between the
+// uppercase / '.' / '-' markers), so there's no id ceiling — a large id just
+// takes one more char. Unknown ids (removed or newer content) drop on decode.
+function encTrack(secs) {
+  return secs.filter(s => s.items.length).map(sec =>
+    sec.h + sec.items.map(it => it.map(id => id.toString(36)).join('-')).join('.')
+  ).join('');
+}
+function encodeGuide(g) {
+  // Title is left raw and kept LAST: URLSearchParams.set encodes the whole `g`
+  // value (so don't double-encode here), and slice(3).join(SEP) on decode lets a
+  // title even contain the separator char.
+  return [GUIDE_VER, encTrack(g.eq), encTrack(g.sp), g.title || ''].join(GUIDE_SEP);
+}
+function parseTrack(str, valid) {
+  const secs = [];
+  let cur = null, item = null, tok = '';
+  const flushTok = () => { if (tok) { const id = parseInt(tok, 36); if (item && valid(id)) item.push(id); tok = ''; } };
+  const flushItem = () => { flushTok(); if (cur && item && item.length) cur.items.push(item); item = null; };
+  for (const ch of str) {
+    if (ch >= 'A' && ch <= 'Z') { flushItem(); cur = { h: HEADING_LABEL[ch] ? ch : CORE, items: [] }; secs.push(cur); item = []; }
+    else if (ch === '.') { flushItem(); item = []; }
+    else if (ch === '-') { flushTok(); }
+    else if (cur) { tok += ch; }
+  }
+  flushItem();
+  return secs.filter(s => s.items.length);
+}
+function decodeGuide(str) {
+  const parts = String(str).split(GUIDE_SEP);
+  const eq = parseTrack(parts[1] || '', id => EQ_NAME_BY_ID[id] != null);
+  const sp = parseTrack(parts[2] || '', id => SP_BY_ID[id] != null);
+  const title = parts.slice(3).join(GUIDE_SEP);   // already decoded by URLSearchParams.get
+  const g = { title: title.slice(0, GUIDE_TITLE_MAX), sp, eq };
+  ensureCore(g.sp); ensureCore(g.eq);
+  sanitizeUpgrades(g.sp);
+  return g;
+}
+
+function guideInUrl() { return new URL(location.href).searchParams.get(GUIDE_PARAM); }
+function loadGuideFromUrl() { const g = guideInUrl(); GUIDE = g ? decodeGuide(g) : null; }
+function guideHasContent() { return GUIDE && (GUIDE.title || flattenIds(GUIDE.sp).length || flattenIds(GUIDE.eq).length); }
+function updateGuideUrl() {
+  const url = new URL(location.href);
+  if (guideHasContent()) url.searchParams.set(GUIDE_PARAM, encodeGuide(GUIDE));
+  else url.searchParams.delete(GUIDE_PARAM);
+  history.replaceState(null, '', url);
+}
+// Explicit one-way transfer: copy this guide's equipment into the Wishlist
+// (the localStorage build) and persist. Triggered by the view-mode button so a
+// guide never silently mutates the reader's Wishlist.
+function sendGuideEquipToWishlist(btn) {
+  let added = 0;
+  for (const id of flattenIds(GUIDE.eq)) { const n = EQ_NAME_BY_ID[id]; if (n && !WISH.has(n)) { WISH.add(n); added++; } }
+  saveBuild(); renderBuild(); renderEquipment();
+  if (!btn) return;
+  const orig = btn.innerHTML;
+  btn.innerHTML = added ? `✓ Added ${added} to Wishlist` : '✓ Already in Wishlist';
+  setTimeout(() => { btn.innerHTML = orig; }, 1800);
+}
+
+// --- Rendering -------------------------------------------------------------
+function renderGuide() {
+  const root = $('#guide-root'); if (!root) return;
+  if (!GUIDE) GUIDE = emptyGuide();
+  const editing = GUIDE_MODE === 'edit';
+  root.classList.toggle('editing', editing);
+  const has = guideHasContent();
+  root.innerHTML =
+    guideHeadHtml(editing, has) +
+    (editing ? `<div class="g-instr">Build a shareable guide. Add spells/upgrades and equipment to sections, drag to set priority order, and group alternatives with <b>+or</b>. The link updates live as you edit, so just copy it to share.</div>` : '') +
+    superHtml('sp', 'Spells &amp; Upgrades', GUIDE.sp, editing) +
+    superHtml('eq', 'Equipment', GUIDE.eq, editing) +
+    (!editing && !has ? `<div class="g-empty">This guide is empty.</div>` : '');
+}
+function guideHeadHtml(editing, has) {
+  const title = editing
+    ? `<input id="guide-title-input" class="g-title-input" maxlength="${GUIDE_TITLE_MAX}" placeholder="Untitled build" value="${esc(GUIDE.title)}">`
+    : `<h2 class="g-title">${esc(GUIDE.title || 'Untitled build')}</h2>`;
+  const actions = editing
+    ? `${has ? `<button class="btn-ghost" data-guide-mode="view">✓ Done</button>` : ''}<button class="btn-ghost" data-guide-copy>🔗 Copy link</button>`
+    : `<button class="btn-ghost" data-guide-mode="edit">✎ Edit</button><button class="btn-ghost" data-guide-copy>🔗 Copy link</button>`;
+  return `<div class="g-head">${title}<div class="g-head-actions">${actions}</div></div>`;
+}
+function superHtml(superKey, label, secs, editing) {
+  // In view mode, hide empty sections (and the whole supersection if it's empty)
+  // so a reader never sees a bare heading. Edit mode shows everything.
+  const list = editing ? secs : secs.filter(s => s.items.length);
+  if (!editing && !list.length) return '';
+  let action = '';
+  if (superKey === 'eq') {
+    action = editing
+      ? `<button class="btn-ghost g-import" data-import-eq title="Copy the equipment from your Wishlist into the Core section">⇣ Import from Wishlist</button>`
+      : `<button class="btn-ghost" data-send-wishlist title="Add this guide's equipment to your Wishlist on the Equipment tab">← Send to Wishlist</button>`;
+  }
+  const body = list.map((sec, si) => sectionHtml(superKey, sec, si, list.length, editing)).join('');
+  return `<section class="g-super" data-super="${superKey}">
+    <div class="g-super-head"><h3>${label}</h3>${action}</div>
+    <div class="g-sections">${body}</div>
+    ${editing ? `<div class="g-super-foot"><button class="btn-ghost" data-add-section="${superKey}">+ Add section</button></div>` : ''}
+  </section>`;
+}
+function sectionHtml(superKey, sec, si, total, editing) {
+  let head;
+  if (editing) {
+    const isCore = sec.h === CORE;
+    const sel = isCore
+      ? `<span class="g-sec-label h-C">Core</span>`
+      : `<select class="g-sec-select h-${sec.h}" data-heading data-super="${superKey}" data-sec="${si}">` +
+        GUIDE_HEADINGS.filter(([l]) => l !== CORE).map(([l, lab]) => `<option value="${l}"${l === sec.h ? ' selected' : ''}>${lab}</option>`).join('') + `</select>`;
+    head = `<div class="g-sec-head editing">${sel}<span class="g-sec-tools">
+      <button class="g-iconbtn" data-sec-move="up" data-super="${superKey}" data-sec="${si}" title="Move up"${si === 0 ? ' disabled' : ''}>↑</button>
+      <button class="g-iconbtn" data-sec-move="down" data-super="${superKey}" data-sec="${si}" title="Move down"${si === total - 1 ? ' disabled' : ''}>↓</button>
+      ${isCore ? '' : `<button class="g-iconbtn danger" data-sec-remove data-super="${superKey}" data-sec="${si}" title="Remove section">✕</button>`}
+    </span></div>`;
+  } else {
+    head = `<div class="g-sec-head"><span class="g-sec-label h-${sec.h}">${esc((HEADING_LABEL[sec.h] || 'Core').toUpperCase())}</span></div>`;
+  }
+  const items = sec.items.map((it, ii) => itemHtml(superKey, it, si, ii, editing)).join('');
+  const add = editing ? `<button class="g-add-item" data-add-item data-super="${superKey}" data-sec="${si}">+ ${superKey === 'eq' ? 'equipment' : 'spell / upgrade'}</button>` : '';
+  return `<div class="g-section" data-super="${superKey}" data-sec="${si}">${head}<div class="g-items">${items}${add}</div></div>`;
+}
+function itemHtml(superKey, item, si, ii, editing) {
+  const alts = item.map((id, ai) => altHtml(superKey, id, si, ii, ai, editing)).join('<span class="g-or">or</span>');
+  if (!alts) return '';
+  return `<div class="g-item" data-super="${superKey}" data-sec="${si}" data-item="${ii}"${editing ? ' draggable="true"' : ''}>${alts}${editing ? `<button class="g-or-add" data-or-add data-super="${superKey}" data-sec="${si}" data-item="${ii}" title="Add an OR alternative">+or</button>` : ''}</div>`;
+}
+function altHtml(superKey, id, si, ii, ai, editing) {
+  let icon, name, sub = '', lv = '', cls, k;
+  if (superKey === 'eq') {
+    const e = EQ_BY_NAME[EQ_NAME_BY_ID[id]]; if (!e) return '';
+    icon = iconImg('equipment', e); name = e.name; sub = e.slot || ''; cls = 'eq'; k = 'equipment';
+  } else {
+    const e = SP_BY_ID[id]; if (!e) return '';
+    icon = iconImg('spells', e); name = e.name; cls = e.kind; lv = e.level; k = 'spell';
+    if (e.kind === 'upgrade') { sub = e.spell + ' upgrade'; name = e.name; }
+  }
+  const navName = editing
+    ? `<span class="g-alt-name">${esc(name)}</span>`
+    : `<span class="g-alt-name xref" data-k="${k}" data-n="${esc(superKey === 'sp' && SP_BY_ID[id].kind === 'upgrade' ? SP_BY_ID[id].spell : name)}">${esc(name)}</span>`;
+  // Everything in the SP track shows its SP cost (a spell's level is its SP cost
+  // to learn; an upgrade's level is its SP cost to buy).
+  const badge = superKey === 'sp' ? `<span class="g-lv" title="SP cost">${lv} SP</span>` : '';
+  const rm = editing ? `<button class="g-alt-x" data-alt-remove data-super="${superKey}" data-sec="${si}" data-item="${ii}" data-alt="${ai}" title="Remove">✕</button>` : '';
+  return `<span class="g-alt ${cls}">${icon}<span class="g-alt-text">${navName}${sub ? `<span class="g-alt-sub">${esc(sub)}</span>` : ''}</span>${badge}${rm}</span>`;
+}
+
+// --- Add/remove/reorder edits ---------------------------------------------
+function afterGuideEdit() { sanitizeUpgrades(GUIDE.sp); updateGuideUrl(); renderGuide(); }
+function gSection(superKey, si) { return trackOf(superKey)[si]; }
+function addGuideItem(superKey, si, id) {
+  const sec = gSection(superKey, si); if (!sec) return;
+  const before = flattenIds(GUIDE.sp).length;
+  sec.items.push([id]);
+  sanitizeUpgrades(GUIDE.sp);
+  if (superKey === 'sp' && flattenIds(GUIDE.sp).length === before) gFlash('Add the spell before its upgrade.');
+  updateGuideUrl(); renderGuide();
+}
+function addGuideAlt(superKey, si, ii, id) {
+  const sec = gSection(superKey, si); if (!sec || !sec.items[ii]) return;
+  if (!sec.items[ii].includes(id)) sec.items[ii].push(id);
+  afterGuideEdit();
+}
+function removeGuideAlt(superKey, si, ii, ai) {
+  const sec = gSection(superKey, si); if (!sec || !sec.items[ii]) return;
+  sec.items[ii].splice(ai, 1);
+  if (!sec.items[ii].length) sec.items.splice(ii, 1);
+  afterGuideEdit();
+}
+function addGuideSection(superKey) {
+  const track = trackOf(superKey);
+  const used = new Set(track.map(s => s.h));
+  const next = GUIDE_HEADINGS.find(([l]) => l !== CORE && !used.has(l)) || GUIDE_HEADINGS.find(([l]) => l !== CORE);
+  track.push({ h: next[0], items: [] });
+  afterGuideEdit();
+}
+function removeGuideSection(superKey, si) {
+  const track = trackOf(superKey);
+  if (track[si] && track[si].h === CORE) return;   // Core is mandatory
+  track.splice(si, 1);
+  afterGuideEdit();
+}
+function moveGuideSection(superKey, si, dir) {
+  const track = trackOf(superKey);
+  const j = si + (dir === 'up' ? -1 : 1);
+  if (j < 0 || j >= track.length) return;
+  [track[si], track[j]] = [track[j], track[si]];
+  afterGuideEdit();
+}
+function setSectionHeading(superKey, si, h) {
+  const sec = gSection(superKey, si); if (sec && sec.h !== CORE) { sec.h = h; afterGuideEdit(); }
+}
+function importBuildEquipment() {
+  const core = GUIDE.eq.find(s => s.h === CORE) || GUIDE.eq[0];
+  const present = new Set(flattenIds(GUIDE.eq));
+  let added = 0;
+  for (const name of WISH) {
+    const id = EQ_ID_BY_NAME[name];
+    if (id != null && !present.has(id)) { core.items.push([id]); present.add(id); added++; }
+  }
+  if (!added) { gFlash(WISH.size ? 'That equipment is already in the guide.' : 'Your Wishlist is empty.'); return; }
+  afterGuideEdit();
+}
+
+// Move an item to another position (within the same supersection only). Revert
+// if it would orphan an upgrade (upgrade before its parent spell).
+function moveGuideItem(superKey, fromSec, fromItem, toSec, toItem) {
+  const track = trackOf(superKey);
+  if (!track[fromSec] || !track[toSec]) return;
+  const snapshot = JSON.stringify(GUIDE.sp);
+  const [moved] = track[fromSec].items.splice(fromItem, 1);
+  if (!moved) return;
+  let idx = toItem;
+  if (fromSec === toSec && fromItem < toItem) idx--;   // account for the removal
+  if (idx < 0) idx = 0;
+  track[toSec].items.splice(idx, 0, moved);
+  if (superKey === 'sp') {
+    const before = flattenIds(GUIDE.sp).length;
+    const clone = JSON.parse(JSON.stringify(GUIDE.sp));
+    sanitizeUpgrades(clone);
+    if (flattenIds(clone).length !== before) { GUIDE.sp = JSON.parse(snapshot); gFlash('An upgrade must stay after its spell.'); renderGuide(); return; }
+  }
+  updateGuideUrl(); renderGuide();
+}
+
+let gFlashTimer = null;
+function gFlash(msg) {
+  let f = $('#g-flash');
+  if (!f) { f = el('div'); f.id = 'g-flash'; f.className = 'g-flash'; document.body.appendChild(f); }
+  f.textContent = msg; f.classList.add('show');
+  clearTimeout(gFlashTimer); gFlashTimer = setTimeout(() => f.classList.remove('show'), 2200);
+}
+
+// --- Item picker (search-to-add dropdown) ---------------------------------
+let gPicker = null;
+function closePicker() { if (gPicker) { gPicker.remove(); gPicker = null; document.removeEventListener('mousedown', pickerOutside, true); } }
+function pickerOutside(e) { if (gPicker && !gPicker.contains(e.target)) closePicker(); }
+function pickerCandidates(superKey) {
+  if (superKey === 'eq') return DATA.equipment.filter(e => e.id != null)
+    .map(e => ({ id: e.id, name: e.name, sub: e.slot || '', cls: 'eq', tag: 'EQ', search: (e.name + ' ' + (e.slot || '')).toLowerCase() }));
+  const present = new Set();
+  for (const id of flattenIds(GUIDE.sp)) { const e = SP_BY_ID[id]; if (e && e.kind === 'spell') present.add(e.name); }
+  // Upgrades of already-present spells float to the top (they're the only ones
+  // addable, and would otherwise be buried under all 186 spells), then spells.
+  const upgrades = [], spells = [];
+  for (const s of DATA.spells) {
+    if (s.sp_id != null) spells.push({ id: s.sp_id, name: s.name, sub: s.level + ' SP', cls: 'spell', tag: 'SPELL', search: s.name.toLowerCase() });
+    if (present.has(s.name)) for (const u of s.upgrades || []) if (u.sp_id != null)
+      upgrades.push({ id: u.sp_id, name: u.name, sub: s.name + ' • ' + u.level + ' SP', cls: 'upg', tag: 'UPG', search: (u.name + ' ' + s.name).toLowerCase() });
+  }
+  return [...upgrades, ...spells];
+}
+function openPicker(anchor, superKey, onPick) {
+  closePicker();
+  gPicker = el('div', 'g-picker');
+  gPicker.innerHTML = `<input class="g-pick-search" placeholder="Search ${superKey === 'eq' ? 'equipment' : 'spells & upgrades'}…"><div class="g-pick-list"></div>`;
+  document.body.appendChild(gPicker);
+  const r = anchor.getBoundingClientRect();
+  gPicker.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 320)) + 'px';
+  gPicker.style.top = (r.bottom + 4) + 'px';
+  const input = $('.g-pick-search', gPicker), list = $('.g-pick-list', gPicker);
+  const cands = pickerCandidates(superKey);
+  const draw = () => {
+    const q = input.value.trim().toLowerCase();
+    const res = cands.filter(c => !q || c.search.includes(q)).slice(0, 40);
+    list.innerHTML = res.map(c => `<div class="g-pick-opt" data-id="${c.id}"><span class="g-pick-tag ${c.cls}">${c.tag}</span><b>${esc(c.name)}</b>${c.sub ? `<span class="g-pick-sub">${esc(c.sub)}</span>` : ''}</div>`).join('') || `<div class="g-pick-empty">No matches</div>`;
+  };
+  input.addEventListener('input', draw);
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closePicker(); } });
+  list.addEventListener('click', e => { const o = e.target.closest('[data-id]'); if (!o) return; onPick(parseInt(o.dataset.id, 10)); closePicker(); });
+  draw(); input.focus();
+  setTimeout(() => document.addEventListener('mousedown', pickerOutside, true), 0);
+}
+
+// --- Wiring ----------------------------------------------------------------
+function showGuideTab() {
+  if (guideInUrl()) {
+    if (!GUIDE) loadGuideFromUrl();
+    if (GUIDE_MODE !== 'edit') GUIDE_MODE = 'view';
+  } else {
+    if (!GUIDE) GUIDE = emptyGuide();
+    GUIDE_MODE = 'edit';
+  }
+  renderGuide();
+}
+function wireGuide() {
+  const root = $('#guide-root'); if (!root) return;
+  root.addEventListener('click', e => {
+    const t = e.target;
+    const mode = t.closest('[data-guide-mode]'); if (mode) { GUIDE_MODE = mode.dataset.guideMode; renderGuide(); return; }
+    if (t.closest('[data-guide-copy]')) { guideCopyLink(t.closest('[data-guide-copy]')); return; }
+    if (t.closest('[data-import-eq]')) { importBuildEquipment(); return; }
+    const send = t.closest('[data-send-wishlist]'); if (send) { sendGuideEquipToWishlist(send); return; }
+    const addSec = t.closest('[data-add-section]'); if (addSec) { addGuideSection(addSec.dataset.addSection); return; }
+    const rmSec = t.closest('[data-sec-remove]'); if (rmSec) { removeGuideSection(rmSec.dataset.super, +rmSec.dataset.sec); return; }
+    const mv = t.closest('[data-sec-move]'); if (mv) { moveGuideSection(mv.dataset.super, +mv.dataset.sec, mv.dataset.secMove); return; }
+    const rmAlt = t.closest('[data-alt-remove]'); if (rmAlt) { removeGuideAlt(rmAlt.dataset.super, +rmAlt.dataset.sec, +rmAlt.dataset.item, +rmAlt.dataset.alt); return; }
+    const addItem = t.closest('[data-add-item]'); if (addItem) { openPicker(addItem, addItem.dataset.super, id => addGuideItem(addItem.dataset.super, +addItem.dataset.sec, id)); return; }
+    const orAdd = t.closest('[data-or-add]'); if (orAdd) { openPicker(orAdd, orAdd.dataset.super, id => addGuideAlt(orAdd.dataset.super, +orAdd.dataset.sec, +orAdd.dataset.item, id)); return; }
+  });
+  root.addEventListener('change', e => {
+    const sel = e.target.closest('[data-heading]'); if (sel) setSectionHeading(sel.dataset.super, +sel.dataset.sec, e.target.value);
+  });
+  // Back/forward changes the `?g=` guide. Re-derive and re-render it. The
+  // Wishlist is independent localStorage now, so navigation never touches it.
+  window.addEventListener('popstate', () => {
+    loadGuideFromUrl();
+    if (guideInUrl()) GUIDE_MODE = 'view';
+    if (currentTab === 'guide') renderGuide();
+  });
+  root.addEventListener('input', e => {
+    if (e.target.id === 'guide-title-input') { GUIDE.title = e.target.value.slice(0, GUIDE_TITLE_MAX); updateGuideUrl(); }
+  });
+  // Drag to reorder items. The drop target is the GAP nearest the pointer (not
+  // "whatever item I released over"), shown live by an insertion marker — so
+  // releasing in the space before an item lands there, not at the section end.
+  // Stays within one supersection (never across the SP/EQ line).
+  root.addEventListener('dragstart', e => {
+    const it = e.target.closest('.g-item'); if (!it) return;
+    gDragFrom = { superKey: it.dataset.super, sec: +it.dataset.sec, item: +it.dataset.item };
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '1');   // some browsers need data set to start a drag
+    it.classList.add('dragging'); DRAGGING = true; hideTip();
+  });
+  root.addEventListener('dragend', () => { DRAGGING = false; gClearDrop(); gDragFrom = null; });
+  root.addEventListener('dragover', e => {
+    if (!gDragFrom) return;
+    // Resolve the section BEFORE detaching the marker — if the pointer is over
+    // the marker itself, clearing it first would orphan e.target (parentNode
+    // null) and closest() would miss the section, causing flicker.
+    const sec = e.target.closest('.g-section');
+    if (!sec || sec.dataset.super !== gDragFrom.superKey) { gClearDrop(); return; }
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    gClearDrop();                                   // detach before measuring (marker-free layout)
+    const pos = gDropIndex(sec, e.clientX, e.clientY);
+    gShowMarker(sec, pos);
+    gDropPos = { secIdx: +sec.dataset.sec, pos };
+  });
+  root.addEventListener('drop', e => {
+    DRAGGING = false;
+    const from = gDragFrom, to = gDropPos;
+    gClearDrop(); gDragFrom = null;
+    if (!from || !to) return;
+    e.preventDefault();
+    moveGuideItem(from.superKey, from.sec, from.item, to.secIdx, to.pos);
+  });
+}
+// Insertion-marker drag helpers ---------------------------------------------
+let gDragFrom = null;     // {superKey, sec, item} of the item being dragged
+let gDropMarker = null;   // the live insertion indicator element
+let gDropPos = null;      // {secIdx, pos} the marker currently represents
+function gMarker() { if (!gDropMarker) gDropMarker = el('div', 'g-drop-marker'); return gDropMarker; }
+function gClearDrop() { if (gDropMarker && gDropMarker.parentNode) gDropMarker.parentNode.removeChild(gDropMarker); gDropPos = null; }
+// Which gap (0..n) in this section's item row is nearest the pointer. Items wrap,
+// so: the first item whose row is below the pointer, or — on the pointer's row —
+// the first item whose horizontal midpoint is past the pointer; else the end.
+function gDropIndex(sec, x, y) {
+  const items = [...sec.querySelectorAll('.g-item')];
+  for (let i = 0; i < items.length; i++) {
+    const r = items[i].getBoundingClientRect();
+    if (y < r.top) return i;
+    if (y <= r.bottom && x < r.left + r.width / 2) return i;
+  }
+  return items.length;
+}
+function gShowMarker(sec, pos) {
+  const itemsEl = sec.querySelector('.g-items');
+  const items = [...itemsEl.querySelectorAll('.g-item')];
+  itemsEl.insertBefore(gMarker(), items[pos] || itemsEl.querySelector('.g-add-item'));
+}
+function guideCopyLink(btn) {
+  updateGuideUrl();
+  const url = location.href;
+  const done = ok => { const o = btn.innerHTML; btn.innerHTML = ok ? '✓ Copied!' : '⚠ Failed'; setTimeout(() => { btn.innerHTML = o; }, 1600); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
+  else { const ta = el('textarea'); ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} ta.remove(); done(ok); }
+}
+
+// ---------------------------------------------------------------------------
 // Tabs
 // ---------------------------------------------------------------------------
 const TAB_SCROLL = {};
@@ -1308,6 +1745,7 @@ function switchTab(name) {
   $$('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   currentTab = name;
   location.hash = name;
+  if (name === 'guide') showGuideTab();
   window.scrollTo(0, TAB_SCROLL[name] || 0); // restore this tab's last position
 }
 
@@ -1329,11 +1767,14 @@ async function init() {
   }
   for (const c of DATA.components) CP_BY_NAME[c.name] = c;
   for (const s of DATA.spells) SPELL_BY_NAME[s.name] = s;
-  loadWishFromUrl();
+  buildSpLookup();
+  loadBuild();
+  loadGuideFromUrl();
   loadInv();
   loadAssign();
   wireTooltips();
   wireBuild();
+  wireGuide();
   wireInventory();
 
   // tabs
@@ -1370,7 +1811,7 @@ async function init() {
 
   // --- Spells controls ---
   const levels = [...new Set(DATA.spells.map(s => s.level))].sort((a, b) => a - b).map(String);
-  SP.levels = buildChips($('#sp-levels'), levels, { label: l => 'Lv ' + l, onChange: renderSpells, activeColor: () => '#fff' });
+  SP.levels = buildChips($('#sp-levels'), levels, { label: l => l + ' SP', onChange: renderSpells, activeColor: () => '#fff' });
   const spellTags = [...new Set(DATA.spells.flatMap(s => s.tags))].sort();
   SP.tags = buildChips($('#sp-tags'), spellTags, {
     dot: t => TAGCOLOR[t] || 'var(--muted)',
@@ -1401,9 +1842,12 @@ async function init() {
   renderInventory();
   renderEquipment(); renderComponents(); renderSpells(); renderMonsters();
 
-  // initial tab from hash
+  renderGuide();
+
+  // initial tab from hash (a `?g=` link, or a #guide hash, opens the Guide tab)
   const hash = location.hash.slice(1);
-  if (['equipment', 'components', 'spells', 'monsters'].includes(hash)) switchTab(hash);
+  if (guideInUrl() || hash === 'guide') switchTab('guide');
+  else if (['equipment', 'components', 'spells', 'monsters'].includes(hash)) switchTab(hash);
 }
 
 init();

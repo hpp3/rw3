@@ -50,6 +50,32 @@ def assign(idmap, category, names):
     return m
 
 
+def sp_key(spell_name, upgrade_name=None):
+    """Stable key for the combined spell+upgrade `sp` namespace. A spell is keyed
+    by its (game-unique) name; an upgrade by "Spell::Upgrade". The "::" guarantees
+    the two key spaces never collide, so spells and upgrades share one compact id
+    space (used by the Guide feature's SP track — see ARCHITECTURE.md §15)."""
+    return spell_name if upgrade_name is None else f"{spell_name}::{upgrade_name}"
+
+
+def assign_sp(idmap, spells):
+    """Assign + attach combined `sp` ids for every spell AND every upgrade.
+    Mutates `spells` (adds `sp_id` to each spell and to each upgrade dict) and
+    `idmap`. Append-only like `assign`. Returns the `sp` category dict."""
+    keys = []
+    for s in spells:
+        keys.append(sp_key(s["name"]))
+        for u in s.get("upgrades", []):
+            keys.append(sp_key(s["name"], u["name"]))
+    assign(idmap, "sp", keys)
+    m = idmap["sp"]
+    for s in spells:
+        s["sp_id"] = m[sp_key(s["name"])]
+        for u in s.get("upgrades", []):
+            u["sp_id"] = m[sp_key(s["name"], u["name"])]
+    return m
+
+
 def save_ids(idmap, path=IDS_PATH):
     # Stable on disk: categories alphabetical, entries ordered by id, so diffs
     # only ever show appended lines.
@@ -68,6 +94,9 @@ def apply_to_data(data, idmap):
         m = idmap[category]
         for e in entries:
             e["id"] = m[e["name"]]
+    # Combined spell+upgrade ids for the Guide SP track (attaches sp_id to each
+    # spell and to each upgrade dict in place).
+    assign_sp(idmap, data.get("spells", []))
     return idmap
 
 
