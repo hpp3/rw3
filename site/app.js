@@ -1737,14 +1737,17 @@ function guideCopyLink(btn) {
 // Tabs
 // ---------------------------------------------------------------------------
 const TAB_SCROLL = {};
+const TAB_NAMES = ['equipment', 'components', 'spells', 'monsters', 'guide'];
 let currentTab = 'equipment';
-function switchTab(name) {
+function switchTab(name, fromHash) {
   if (name === currentTab) return;
   TAB_SCROLL[currentTab] = window.scrollY;   // remember where we were
   $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   $$('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   currentTab = name;
-  location.hash = name;
+  // Don't rewrite the hash when we're reacting to a hashchange (back/forward) —
+  // re-writing it there would clobber the forward-history stack.
+  if (!fromHash) location.hash = name;
   if (name === 'guide') showGuideTab();
   window.scrollTo(0, TAB_SCROLL[name] || 0); // restore this tab's last position
 }
@@ -1779,6 +1782,13 @@ async function init() {
 
   // tabs
   $$('#tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  // Tab switches push a hash entry (switchTab sets location.hash). Back/forward
+  // changes the hash, so sync the active tab to it (switchTab no-ops if already
+  // there, so this won't loop with switchTab's own location.hash write).
+  window.addEventListener('hashchange', () => {
+    const t = location.hash.slice(1) || 'equipment';   // empty hash = the default tab
+    if (TAB_NAMES.includes(t) && t !== currentTab) switchTab(t, true);
+  });
 
   // --- Equipment controls ---
   EQ.slots = buildChips($('#eq-slots'), DATA.slots, { onChange: renderEquipment, activeColor: () => '#fff' });
@@ -1847,7 +1857,7 @@ async function init() {
   // initial tab from hash (a `?g=` link, or a #guide hash, opens the Guide tab)
   const hash = location.hash.slice(1);
   if (guideInUrl() || hash === 'guide') switchTab('guide');
-  else if (['equipment', 'components', 'spells', 'monsters'].includes(hash)) switchTab(hash);
+  else if (TAB_NAMES.includes(hash)) switchTab(hash);
 }
 
 init();
