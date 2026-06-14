@@ -146,6 +146,63 @@ def render_bonus_lines(o):
             lines.append(rtext((text.RESIST_VAL, {"val": val, "tag_label": tag_label(tag)})))
     return [l for l in lines if l]
 
+# Mirror of RiftWizard3.tt_attrs (the UI module isn't importable in the build
+# env — no steamworks — same reason tooltip_colors are mirrored, §2). These are
+# the only new_attributes the examine panel surfaces as a text line.
+TT_ATTRS = {
+    'num_targets', 'damage', 'duration', 'radius', 'shields', 'shot_cooldown',
+    'strikechance', 'cooldown', 'max_channel', 'num_summons', 'minion_health',
+    'minion_damage', 'minion_duration', 'minion_range',
+}
+
+def upgrade_bonus_lines(u):
+    """Replicate the game's auto-generated upgrade tooltip lines — the stat
+    deltas the examine panel draws above an upgrade's prose. Pure-stat upgrades
+    (e.g. Relentless Cascade: +2 range/+3 charges) have NO prose at all, so
+    without these they render blank. Order mirrors RiftWizard3.draw_examine's
+    upgrade branch; the colored-vs-plain choice keys off tooltip_colors exactly
+    as the game does (attr names are never tag/status keys, so spell/global stat
+    lines come out plain — matching the game)."""
+    lines = []
+    def add(tmpl, **kw): lines.append(rtext((tmpl, kw)))
+    for tag, bonuses in u.tag_bonuses_pct.items():
+        for attr, val in bonuses.items():
+            add(text.TAG_PCT_BONUS, tag_label=tag_label(tag), tag_key=tag_key(tag),
+                val=int(val), attr_label=format_attr(attr), attr_key=attr_key(attr))
+    for tag, bonuses in u.tag_bonuses.items():
+        for attr, val in bonuses.items():
+            add(text.TAG_VAL_BONUS, tag_label=tag_label(tag), tag_key=tag_key(tag),
+                val=int(val), attr_label=format_attr(attr), attr_key=attr_key(attr))
+    # Per-spell bonuses: the game only shows attrs the target spell actually has.
+    for spell, bonuses in u.spell_bonuses_pct.items():
+        sp = spell()
+        for attr, val in bonuses.items():
+            if attr not in sp.stats: continue
+            tmpl = text.GAIN_PCT_COLORED if attr in tooltip_colors else text.GAIN_PCT_PLAIN
+            add(tmpl, name=sp.name, val=val, attr_label=format_attr(attr), attr_key=attr_key(attr))
+    for spell, bonuses in u.spell_bonuses.items():
+        sp = spell()
+        for attr, val in bonuses.items():
+            if attr not in sp.stats: continue
+            tmpl = text.GAIN_VAL_COLORED if attr in tooltip_colors else text.GAIN_VAL_PLAIN
+            add(tmpl, name=sp.name, val=val, attr_label=format_attr(attr), attr_key=attr_key(attr))
+    prereq = getattr(u, 'prereq', None)
+    if prereq is not None:
+        for attr, val in getattr(u, 'new_attributes', {}).items():
+            if attr in TT_ATTRS or attr == 'hp_cost':  # game always colors these
+                add(text.GAIN_VAL_COLORED, name=prereq.name, val=val,
+                    attr_label=format_attr(attr), attr_key=attr_key(attr))
+    for attr, val in u.global_bonuses_pct.items():
+        tmpl = text.ALL_GAIN_PCT if val >= 0 else text.ALL_LOSE_PCT
+        add(tmpl, val=int(val), attr_label=format_attr(attr), attr_key=attr_key(attr))
+    for attr, val in u.global_bonuses.items():
+        tmpl = text.ALL_GAIN_VAL if val >= 0 else text.ALL_LOSE_VAL
+        add(tmpl, val=int(val), attr_label=format_attr(attr), attr_key=attr_key(attr))
+    for tag, val in u.resists.items():
+        if val:
+            add(text.RESIST_VAL, val=val, tag_label=tag_label(tag))
+    return [l for l in lines if l]
+
 # ---------------------------------------------------------------------------
 # Stat tagging (which stats an item modifies vs. scales with)
 # ---------------------------------------------------------------------------
@@ -491,10 +548,14 @@ def extract_spells():
                 dtypes = [dt.name]
         upgrades = []
         for u in s.spell_upgrades:
+            # Game order: auto-generated stat lines first, then prose (some
+            # upgrades, e.g. Relentless Cascade, are pure stat with no prose).
+            prose = rtext(u.get_description() or "", fmt=u.fmt_dict())
+            parts = upgrade_bonus_lines(u) + ([prose] if prose else [])
             upgrades.append({
                 "name": u.name,
                 "level": getattr(u, 'level', 0),
-                "desc": rtext(u.get_description() or "", fmt=u.fmt_dict()),
+                "desc": "\n".join(parts),
             })
         mod_stats, use_stats = spell_stat_tags(s)
         out.append({
