@@ -146,14 +146,17 @@ def render_bonus_lines(o):
             lines.append(rtext((text.RESIST_VAL, {"val": val, "tag_label": tag_label(tag)})))
     return [l for l in lines if l]
 
-# Mirror of RiftWizard3.tt_attrs (the UI module isn't importable in the build
-# env — no steamworks — same reason tooltip_colors are mirrored, §2). These are
-# the only new_attributes the examine panel surfaces as a text line.
-TT_ATTRS = {
+# Mirror of RiftWizard3.tt_attrs, in the game's own order (the UI module isn't
+# importable in the build env — no steamworks — same reason tooltip_colors are
+# mirrored, §2). This is the game's canonical attribute list: it's what the
+# spell examine "Attributes:" section iterates, and the only new_attributes an
+# upgrade tooltip surfaces as a text line. Keep it a tuple (order matters for
+# spell stat-line display) — `in` membership checks still work.
+TT_ATTRS = (
     'num_targets', 'damage', 'duration', 'radius', 'shields', 'shot_cooldown',
     'strikechance', 'cooldown', 'max_channel', 'num_summons', 'minion_health',
     'minion_damage', 'minion_duration', 'minion_range',
-}
+)
 
 def upgrade_bonus_lines(u):
     """Replicate the game's auto-generated upgrade tooltip lines — the stat
@@ -524,9 +527,11 @@ def summons_of(obj):
 # ---------------------------------------------------------------------------
 # Spells
 # ---------------------------------------------------------------------------
-SPELL_STAT_KEYS = ['range', 'max_charges', 'damage', 'radius', 'duration',
-                   'minion_damage', 'minion_health', 'minion_duration', 'num_summons',
-                   'hp_cost', 'shields', 'num_targets']
+# Stat lines shown on a spell card. Mirrors the game's spell examine panel:
+# the dedicated range/charges/hp_cost lines it draws first, then every TT_ATTRS
+# attribute (the "Attributes:" section). Derived from TT_ATTRS so channel/minion
+# stats (e.g. max_channel) can't silently drop off again as the game evolves.
+SPELL_STAT_KEYS = ['range', 'max_charges', 'hp_cost'] + list(TT_ATTRS)
 
 def extract_spells():
     out = []

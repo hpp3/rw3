@@ -897,8 +897,10 @@ function renderComponents() {
 const STAT_LABEL = {
   range: 'Range', max_charges: 'Charges', damage: 'Damage', radius: 'Radius',
   duration: 'Duration', minion_damage: 'Minion dmg', minion_health: 'Minion HP',
-  minion_duration: 'Minion dur', num_summons: 'Summons', hp_cost: 'HP cost',
-  shields: 'Shields', num_targets: 'Targets'
+  minion_duration: 'Minion dur', minion_range: 'Minion rng', num_summons: 'Summons',
+  hp_cost: 'HP cost', shields: 'Shields', num_targets: 'Targets',
+  max_channel: 'Max channel', shot_cooldown: 'Shot CD', strikechance: 'Accuracy',
+  cooldown: 'Cooldown'
 };
 function spellCard(s) {
   const card = el('div', 'card');
@@ -920,6 +922,7 @@ function spellCard(s) {
           ${s.tags.map(tagPill).join('')}
           ${s.quick_cast ? '<span class="badge">quick cast</span>' : ''}
           ${s.melee ? '<span class="badge">melee</span>' : ''}
+          ${!s.melee && s.requires_los === false ? '<span class="badge">ignores LoS</span>' : ''}
         </div>
       </div>
     </div>
