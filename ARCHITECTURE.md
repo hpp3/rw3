@@ -324,13 +324,25 @@ copies the guide's equipment into their own Wishlist explicitly via the **Send t
 - **Encoding** (`encodeGuide`): `?g = VER _ <equipment> _ <sp> _ <title?>` (top-level sep is `_`, one
   of the few chars `URLSearchParams` leaves un-percent-encoded, so the shared URL stays clean). A
   track is sections run together; an **uppercase heading letter** both starts and labels each section
-  (`C`Core `E`Early `T`Late `L`Luxury `U`Utility `D`Defensive `A`AoE `N`Not-Recommended). Within a section, items
-  are `.`-separated and OR-alternatives `-`-separated; ids are **base36 (lowercase)**, which is *why*
-  uppercase is free for headings. Title is the trailing field left **raw** (don't `encodeURIComponent`
+  (`C`Core `E`Early `T`Late `L`Luxury `U`Utility `D`Defensive `A`AoE `N`Not-Recommended `M`Maybe `V`/`W`/`X`Variant 1/2/3).
+  Within a section, items are `.`-separated and OR-alternatives `-`-separated; ids are **base36 (lowercase)**,
+  which is *why* uppercase is free for headings. Title is the trailing field left **raw** (don't `encodeURIComponent`
   — `URLSearchParams` already encodes the whole value; `slice(3).join(SEP)` on decode lets a title even
   contain `_`), ≤40 chars — the one allowed free text. The heading set and `VER` are **append-only**
   like ids — a new heading takes an unused letter, and `VER` lets a future format change branch without
   breaking old links.
+- **Custom-titled sections** (`CUSTOM = 'Z'`): a section heading can be a free-text label instead of a
+  fixed vocab letter. On the wire it's `Z` + a **1-char base36 length** + that many label chars (e.g.
+  `Z9big-budget`). The **length prefix** (not a terminator) is load-bearing: it lets the parser *count*
+  the label region instead of scanning, so the label can contain `-` (the OR-separator) and spaces
+  without ambiguity — `parseTrack` is index-based for exactly this. The label alphabet is restricted to
+  **`[a-z0-9]` + space + hyphen + apostrophe** (`cleanCustom`): that keeps the shared URL clean (only
+  `'` ever percent-encodes; space rides as `+`) and structurally safe (no uppercase=section, `.`=item,
+  or `_`=field collisions). Encoding is **raw, not bit-packed** — a denser base-65 repack (~0.88
+  chars/symbol, ~3 chars saved on a 30-char label) was considered and rejected: the field is tiny and
+  raw keeps the section name human-readable in the link. Edit UI: a `Custom…` dropdown option swaps the
+  heading `<select>` for a text input (`data-sec-custom`); like the title input it updates model+URL on
+  `input` **without** re-rendering, so focus isn't stolen mid-type. Length ≤30 (`GUIDE_CUSTOM_MAX`).
 - **No id ceiling:** ids are variable-length and self-delimiting (a run of `[0-9a-z]` between the
   uppercase / `.` / `-` markers), so when `sp` grows past 36² it just spends one more char on those
   ids. Nothing migrates; unknown ids drop on decode (§13).

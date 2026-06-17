@@ -1305,8 +1305,26 @@ const GUIDE_SEP = '_';
 const GUIDE_HEADINGS = [
   ['C', 'Core'], ['E', 'Early'], ['T', 'Late'], ['L', 'Luxury'],
   ['U', 'Utility'], ['D', 'Defensive'], ['A', 'AoE'], ['N', 'Not Recommended'],
+  ['M', 'Maybe'], ['V', 'Variant 1'], ['W', 'Variant 2'], ['X', 'Variant 3'],
 ];
 const HEADING_LABEL = Object.fromEntries(GUIDE_HEADINGS);
+// A custom-titled section. Like a heading letter it both starts a section and is
+// uppercase (so it never collides with lowercase base36 ids), but it is followed
+// by a 1-char base36 LENGTH then that many label chars. Length-prefixing (vs. a
+// terminator) is what lets the label safely contain '-' (the OR-separator) and
+// spaces — the parser counts rather than scanning for a delimiter. APPEND-ONLY
+// like the headings: 'Z' is now reserved. The label alphabet is restricted to
+// [a-z0-9], space, hyphen and apostrophe: that keeps the shared URL clean (only
+// the apostrophe ever percent-encodes; space rides as '+') and dodges the chars
+// that carry structural meaning (uppercase = section, '.' = item, '_' = field).
+const CUSTOM = 'Z';
+const GUIDE_CUSTOM_MAX = 30;
+const cleanCustom = s => (s || '').toLowerCase().replace(/[^a-z0-9 '-]/g, '').slice(0, GUIDE_CUSTOM_MAX);
+// What to show for a section's label (handles fixed headings + custom + Core).
+function sectionLabel(sec) {
+  if (sec.h === CUSTOM) return sec.label || 'Custom';
+  return HEADING_LABEL[sec.h] || 'Core';
+}
 
 // id lookups for the SP track (spells + upgrades share one `sp_id` space)
 let SP_BY_ID = {};   // sp_id -> {kind:'spell'|'upgrade', name, spell, level, icon, has_icon}
@@ -1361,9 +1379,16 @@ function sanitizeUpgrades(secs) {
 // Ids are variable-length and self-delimiting (a run of [0-9a-z] between the
 // uppercase / '.' / '-' markers), so there's no id ceiling — a large id just
 // takes one more char. Unknown ids (removed or newer content) drop on decode.
+function encHead(sec) {
+  // Custom: marker + base36 length + raw label (see CUSTOM). Otherwise a single
+  // heading letter, which doubles as the section-start delimiter.
+  if (sec.h !== CUSTOM) return sec.h;
+  const label = cleanCustom(sec.label);
+  return CUSTOM + label.length.toString(36) + label;
+}
 function encTrack(secs) {
   return secs.filter(s => s.items.length).map(sec =>
-    sec.h + sec.items.map(it => it.map(id => id.toString(36)).join('-')).join('.')
+    encHead(sec) + sec.items.map(it => it.map(id => id.toString(36)).join('-')).join('.')
   ).join('');
 }
 function encodeGuide(g) {
@@ -1377,8 +1402,17 @@ function parseTrack(str, valid) {
   let cur = null, item = null, tok = '';
   const flushTok = () => { if (tok) { const id = parseInt(tok, 36); if (item && valid(id)) item.push(id); tok = ''; } };
   const flushItem = () => { flushTok(); if (cur && item && item.length) cur.items.push(item); item = null; };
-  for (const ch of str) {
-    if (ch >= 'A' && ch <= 'Z') { flushItem(); cur = { h: HEADING_LABEL[ch] ? ch : CORE, items: [] }; secs.push(cur); item = []; }
+  const startSec = sec => { flushItem(); cur = sec; secs.push(cur); item = []; };
+  // Index-based so the custom marker can consume a fixed run of label chars.
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (ch === CUSTOM) {
+      const len = parseInt(str[i + 1] || '0', 36) || 0;
+      const label = cleanCustom(str.slice(i + 2, i + 2 + len));
+      startSec({ h: CUSTOM, label, items: [] });
+      i += 1 + len;   // skip the length char + label (loop's i++ skips the marker)
+    }
+    else if (ch >= 'A' && ch <= 'Z') { startSec({ h: HEADING_LABEL[ch] ? ch : CORE, items: [] }); }
     else if (ch === '.') { flushItem(); item = []; }
     else if (ch === '-') { flushTok(); }
     else if (cur) { tok += ch; }
@@ -1464,17 +1498,25 @@ function sectionHtml(superKey, sec, si, total, editing) {
   let head;
   if (editing) {
     const isCore = sec.h === CORE;
-    const sel = isCore
-      ? `<span class="g-sec-label h-C">Core</span>`
-      : `<select class="g-sec-select h-${sec.h}" data-heading data-super="${superKey}" data-sec="${si}">` +
-        GUIDE_HEADINGS.filter(([l]) => l !== CORE).map(([l, lab]) => `<option value="${l}"${l === sec.h ? ' selected' : ''}>${lab}</option>`).join('') + `</select>`;
+    let sel;
+    if (isCore) {
+      sel = `<span class="g-sec-label h-C">Core</span>`;
+    } else {
+      const opts = GUIDE_HEADINGS.filter(([l]) => l !== CORE)
+        .map(([l, lab]) => `<option value="${l}"${l === sec.h ? ' selected' : ''}>${lab}</option>`).join('')
+        + `<option value="${CUSTOM}"${sec.h === CUSTOM ? ' selected' : ''}>Custom…</option>`;
+      sel = `<select class="g-sec-select h-${sec.h}" data-heading data-super="${superKey}" data-sec="${si}">${opts}</select>`
+        + (sec.h === CUSTOM
+          ? `<input class="g-sec-custom" data-sec-custom data-super="${superKey}" data-sec="${si}" maxlength="${GUIDE_CUSTOM_MAX}" placeholder="Section name" value="${esc(sec.label || '')}">`
+          : '');
+    }
     head = `<div class="g-sec-head editing">${sel}<span class="g-sec-tools">
       <button class="g-iconbtn" data-sec-move="up" data-super="${superKey}" data-sec="${si}" title="Move up"${si === 0 ? ' disabled' : ''}>↑</button>
       <button class="g-iconbtn" data-sec-move="down" data-super="${superKey}" data-sec="${si}" title="Move down"${si === total - 1 ? ' disabled' : ''}>↓</button>
       ${isCore ? '' : `<button class="g-iconbtn danger" data-sec-remove data-super="${superKey}" data-sec="${si}" title="Remove section">✕</button>`}
     </span></div>`;
   } else {
-    head = `<div class="g-sec-head"><span class="g-sec-label h-${sec.h}">${esc((HEADING_LABEL[sec.h] || 'Core').toUpperCase())}</span></div>`;
+    head = `<div class="g-sec-head"><span class="g-sec-label h-${sec.h}">${esc(sectionLabel(sec))}</span></div>`;
   }
   const items = sec.items.map((it, ii) => itemHtml(superKey, it, si, ii, editing)).join('');
   const add = editing ? `<button class="g-add-item" data-add-item data-super="${superKey}" data-sec="${si}">+ ${superKey === 'eq' ? 'equipment' : 'spell / upgrade'}</button>` : '';
@@ -1548,7 +1590,18 @@ function moveGuideSection(superKey, si, dir) {
   afterGuideEdit();
 }
 function setSectionHeading(superKey, si, h) {
-  const sec = gSection(superKey, si); if (sec && sec.h !== CORE) { sec.h = h; afterGuideEdit(); }
+  const sec = gSection(superKey, si); if (!sec || sec.h === CORE) return;
+  sec.h = h;
+  if (h === CUSTOM) { if (sec.label == null) sec.label = ''; }
+  else delete sec.label;   // leaving custom drops its label
+  afterGuideEdit();         // re-render so the text input appears/disappears
+}
+// Live label edits: update the model + URL but DON'T re-render (would steal focus
+// from the input mid-type) — same pattern as the guide title input.
+function setSectionCustomLabel(superKey, si, val) {
+  const sec = gSection(superKey, si); if (!sec || sec.h !== CUSTOM) return;
+  sec.label = cleanCustom(val);
+  updateGuideUrl();
 }
 function importBuildEquipment() {
   const core = GUIDE.eq.find(s => s.h === CORE) || GUIDE.eq[0];
@@ -1670,6 +1723,21 @@ function wireGuide() {
   });
   root.addEventListener('input', e => {
     if (e.target.id === 'guide-title-input') { GUIDE.title = e.target.value.slice(0, GUIDE_TITLE_MAX); updateGuideUrl(); }
+    const cust = e.target.closest('[data-sec-custom]');
+    if (cust) {
+      // Reject illegal chars live (covers paste too): rewrite the box to the
+      // cleaned value and restore the caret by the number of chars dropped, so
+      // editing mid-string doesn't jump to the end. Value stays lowercase (the
+      // encoding needs that); CSS text-transform shows it uppercase.
+      const el = e.target, start = el.selectionStart, cleaned = cleanCustom(el.value);
+      if (cleaned !== el.value) {
+        const dropped = el.value.length - cleaned.length;
+        el.value = cleaned;
+        const pos = Math.max(0, (start == null ? cleaned.length : start) - dropped);
+        el.setSelectionRange(pos, pos);
+      }
+      setSectionCustomLabel(cust.dataset.super, +cust.dataset.sec, cleaned);
+    }
   });
   // Drag to reorder items. The drop target is the GAP nearest the pointer (not
   // "whatever item I released over"), shown live by an insertion marker — so
