@@ -127,6 +127,10 @@ select{
 .badge.oncraft{color:#e7c66b;border-color:#6b5a2f;background:#2b2616}
 .badge.onpickup{color:#8fc4ff;border-color:#2f4a6b;background:#162232}
 .badge.level{color:#fff}
+.badge.level.forbidden{background:#3d3d3d;border-color:#5a5a5a;color:#fff;
+  text-transform:uppercase;letter-spacing:.5px}
+.granted-by{font-size:11.5px;color:var(--muted);margin-top:6px}
+.granted-by .xref{color:#fff}
 .tag-pill{
   font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;
   border:1px solid currentColor;

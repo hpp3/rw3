@@ -61,7 +61,10 @@ def sp_key(spell_name, upgrade_name=None):
 def assign_sp(idmap, spells):
     """Assign + attach combined `sp` ids for every spell AND every upgrade.
     Mutates `spells` (adds `sp_id` to each spell and to each upgrade dict) and
-    `idmap`. Append-only like `assign`. Returns the `sp` category dict."""
+    `idmap`. Append-only like `assign`. Returns the `sp` category dict.
+    Forbidden spells (equipment-granted, no SP cost) are skipped — they don't
+    belong in the Guide SP track."""
+    spells = [s for s in spells if not s.get("forbidden")]
     keys = []
     for s in spells:
         keys.append(sp_key(s["name"]))
@@ -90,6 +93,8 @@ def apply_to_data(data, idmap):
     """Assign+attach ids for every category present in `data` (mutates both)."""
     for data_key, category in CATEGORIES.items():
         entries = data.get(data_key, [])
+        if category == "spell":   # forbidden spells get no spell id (see assign_sp)
+            entries = [e for e in entries if not e.get("forbidden")]
         assign(idmap, category, [e["name"] for e in entries])
         m = idmap[category]
         for e in entries:

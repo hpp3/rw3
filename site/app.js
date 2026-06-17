@@ -245,7 +245,7 @@ function renderSpellSheet(name) {
       <img class="uicon" src="icons/spells/${esc(s.icon)}${IV}" onerror="this.style.visibility='hidden'">
       <div class="uhmeta">
         <div class="uname">${esc(s.name)}</div>
-        <div class="card-meta"><span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">${s.level} SP</span>${s.tags.map(tagPill).join('')}</div>
+        <div class="card-meta">${s.forbidden ? `<span class="badge level forbidden">Forbidden</span>` : `<span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">${s.level} SP</span>`}${s.tags.map(tagPill).join('')}</div>
       </div>
     </div>
     ${s.desc ? `<div class="udesc">${renderMarkup(s.desc)}</div>` : ''}
@@ -912,13 +912,19 @@ function spellCard(s) {
     <details class="upgrades"><summary>${s.upgrades.length} upgrade${s.upgrades.length > 1 ? 's' : ''}</summary>
       ${s.upgrades.map(u => `<div class="upg"><span class="uh">${esc(u.name)}</span><span class="ul">${u.level} SP</span><div class="desc">${linkify(renderMarkup(u.desc), s.refs)}</div></div>`).join('')}
     </details>` : '';
+  const levelBadge = s.forbidden
+    ? `<span class="badge level forbidden" title="Forbidden — granted by equipment, not bought with SP">Forbidden</span>`
+    : `<span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">${s.level} SP</span>`;
+  const granted = s.granted_by
+    ? `<div class="granted-by">Granted by <span class="xref" data-k="equipment" data-n="${esc(s.granted_by)}">${esc(s.granted_by)}</span></div>`
+    : '';
   card.innerHTML = `
     <div class="card-head">
       ${iconImg('spells', s)}
       <div class="card-title">
         <div class="name">${esc(s.name)}</div>
         <div class="card-meta">
-          <span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">${s.level} SP</span>
+          ${levelBadge}
           ${s.tags.map(tagPill).join('')}
           ${s.quick_cast ? '<span class="badge">quick cast</span>' : ''}
           ${s.melee ? '<span class="badge">melee</span>' : ''}
@@ -927,6 +933,7 @@ function spellCard(s) {
       </div>
     </div>
     <div class="desc">${linkify(renderMarkup(s.desc), s.refs)}</div>
+    ${granted}
     ${stats ? `<div class="stats">${stats}</div>` : ''}
     ${dt}${summonRow(s.summons)}${upg}`;
   return card;
@@ -936,7 +943,7 @@ const SP = { search: '', levels: null, tags: null };
 function renderSpells() {
   const q = SP.search.toLowerCase();
   let list = DATA.spells.filter(s => {
-    if (SP.levels.size && !SP.levels.has(String(s.level))) return false;
+    if (SP.levels.size && !SP.levels.has(s.forbidden ? 'Forbidden' : String(s.level))) return false;
     if (SP.statFilters && !passesStatFilters(s, SP.statFilters)) return false;
     if (SP.tags.size) { for (const t of SP.tags) if (!s.tags.includes(t)) return false; }
     if (q) {
@@ -1891,8 +1898,9 @@ async function init() {
   $('#cp-search').addEventListener('input', e => { CP.search = e.target.value; renderComponents(); });
 
   // --- Spells controls ---
-  const levels = [...new Set(DATA.spells.map(s => s.level))].sort((a, b) => a - b).map(String);
-  SP.levels = buildChips($('#sp-levels'), levels, { label: l => l + ' SP', onChange: renderSpells, activeColor: () => '#fff' });
+  const levels = [...new Set(DATA.spells.filter(s => !s.forbidden).map(s => s.level))].sort((a, b) => a - b).map(String);
+  if (DATA.spells.some(s => s.forbidden)) levels.push('Forbidden');
+  SP.levels = buildChips($('#sp-levels'), levels, { label: l => l === 'Forbidden' ? 'Forbidden' : l + ' SP', onChange: renderSpells, activeColor: () => '#fff' });
   const spellTags = [...new Set(DATA.spells.flatMap(s => s.tags))].sort();
   SP.tags = buildChips($('#sp-tags'), spellTags, {
     dot: t => TAGCOLOR[t] || 'var(--muted)',

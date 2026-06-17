@@ -24,7 +24,7 @@ import Spells
 import Components
 import text
 from Level import (resolve_text, Tags, attr_colors, format_attr, tag_key, attr_key,
-                   tag_label, Equipment as EquipmentBase, Component as ComponentBase,
+                   tag_label, Spell, Equipment as EquipmentBase, Component as ComponentBase,
                    Buff as BuffBase, stat_names)
 
 # ---------------------------------------------------------------------------
@@ -386,6 +386,11 @@ def build_ident_map(monster_factories):
     for cons in Spells.all_player_spell_constructors:
         try: _register_ident(cons.__name__, cons().name, 'spell')
         except Exception: pass
+    # Forbidden spells too, so equipment that grants one (its source references
+    # the spell class, e.g. BookOfChaos -> WordOfChaos) links to it.
+    for s, _eq in forbidden_granted().values():
+        try: _register_ident(type(s).__name__, s.name, 'spell')
+        except Exception: pass
     for entry in Equipment.all_equipment:
         if isinstance(entry, type):
             try: _register_ident(entry.__name__, entry().name, 'equipment')
@@ -533,54 +538,100 @@ def summons_of(obj):
 # stats (e.g. max_channel) can't silently drop off again as the game evolves.
 SPELL_STAT_KEYS = ['range', 'max_charges', 'hp_cost'] + list(TT_ATTRS)
 
-def extract_spells():
-    out = []
-    for cons in Spells.all_player_spell_constructors:
-        s = cons()
-        fmt = s.fmt_dict()
-        stats = {}
-        for k in SPELL_STAT_KEYS:
-            if hasattr(s, k):
-                v = s.get_stat(k)
-                if isinstance(v, (int, float)) and not isinstance(v, bool) and v:
-                    stats[k] = v
-        dtypes = []
-        dt = getattr(s, 'damage_type', None)
-        if dt:
-            if isinstance(dt, list):
-                dtypes = [t.name for t in dt]
-            else:
-                dtypes = [dt.name]
-        upgrades = []
-        for u in s.spell_upgrades:
-            # Game order: auto-generated stat lines first, then prose (some
-            # upgrades, e.g. Relentless Cascade, are pure stat with no prose).
-            prose = rtext(u.get_description() or "", fmt=u.fmt_dict())
-            parts = upgrade_bonus_lines(u) + ([prose] if prose else [])
-            upgrades.append({
-                "name": u.name,
-                "level": getattr(u, 'level', 0),
-                "desc": "\n".join(parts),
-            })
-        mod_stats, use_stats = spell_stat_tags(s)
-        out.append({
-            "name": s.name,
-            "level": s.level,
-            "tags": [t.name for t in s.tags],
-            "damage_type": dtypes,
-            "stats": stats,
-            "requires_los": bool(getattr(s, 'requires_los', True)),
-            "melee": bool(getattr(s, 'melee', False)),
-            "quick_cast": bool(getattr(s, 'quick_cast', False)),
-            "desc": rtext(s.get_description() or "", fmt=fmt),
-            "upgrades": upgrades,
-            "summons": summons_of(s),
-            "refs": refs_for(s, cons, s.name),
-            "mod_stats": mod_stats,
-            "use_stats": use_stats,
-            "icon": asset_filename(s.get_asset()),
+def _spell_entry(s, cons, forbidden=False, granted_by=None):
+    fmt = s.fmt_dict()
+    stats = {}
+    for k in SPELL_STAT_KEYS:
+        if hasattr(s, k):
+            v = s.get_stat(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and v:
+                stats[k] = v
+    dtypes = []
+    dt = getattr(s, 'damage_type', None)
+    if dt:
+        if isinstance(dt, list):
+            dtypes = [t.name for t in dt]
+        else:
+            dtypes = [dt.name]
+    upgrades = []
+    for u in s.spell_upgrades:
+        # Game order: auto-generated stat lines first, then prose (some
+        # upgrades, e.g. Relentless Cascade, are pure stat with no prose).
+        prose = rtext(u.get_description() or "", fmt=u.fmt_dict())
+        parts = upgrade_bonus_lines(u) + ([prose] if prose else [])
+        upgrades.append({
+            "name": u.name,
+            "level": getattr(u, 'level', 0),
+            "desc": "\n".join(parts),
         })
-    out.sort(key=lambda d: (d["level"], d["name"]))
+    mod_stats, use_stats = spell_stat_tags(s)
+    entry = {
+        "name": s.name,
+        "level": s.level,
+        "tags": [t.name for t in s.tags],
+        "damage_type": dtypes,
+        "stats": stats,
+        "requires_los": bool(getattr(s, 'requires_los', True)),
+        "melee": bool(getattr(s, 'melee', False)),
+        "quick_cast": bool(getattr(s, 'quick_cast', False)),
+        "desc": rtext(s.get_description() or "", fmt=fmt),
+        "upgrades": upgrades,
+        "summons": summons_of(s),
+        "refs": refs_for(s, cons, s.name),
+        "mod_stats": mod_stats,
+        "use_stats": use_stats,
+        "icon": asset_filename(s.get_asset()),
+    }
+    if forbidden:
+        # Forbidden spells aren't bought with SP — they come with a SpellBook.
+        # The frontend shows "Forbidden" instead of an SP cost and links the
+        # granting equipment. They're excluded from Guide SP ids (see main()).
+        entry["forbidden"] = True
+        if granted_by:
+            entry["granted_by"] = granted_by
+            entry["refs"] = sorted(set(map(tuple, entry["refs"])) | {(granted_by, "equipment")})
+    return entry
+
+_FORBIDDEN = None
+def forbidden_granted():
+    """Map forbidden-spell name -> (spell instance, granting equipment name).
+    Forbidden spells can't be learned with SP — they're granted only by SpellBook
+    equipment (e.g. Word of Chaos from Book of Chaos). Detected as equipment-
+    granted spells whose name isn't in the normal player roster, so staves that
+    re-grant a *normal* spell don't produce duplicates. Cached (instantiates
+    every equipment once); also feeds build_ident_map so the book's description
+    can link the spell."""
+    global _FORBIDDEN
+    if _FORBIDDEN is None:
+        player_names = {cons().name for cons in Spells.all_player_spell_constructors}
+        found = {}
+        for cons in Equipment.all_equipment:
+            try:
+                e = cons()
+            except Exception:
+                continue
+            granted = []
+            sp = getattr(e, 'spell', None)
+            if isinstance(sp, Spell):
+                granted.append(sp)
+            try:
+                for t in (e.get_extra_examine_tooltips() or []):
+                    if isinstance(t, Spell):
+                        granted.append(t)
+            except Exception:
+                pass
+            for s in granted:
+                if s.name not in player_names and s.name not in found:
+                    found[s.name] = (s, e.name)
+        _FORBIDDEN = found
+    return _FORBIDDEN
+
+def extract_spells():
+    out = [_spell_entry(cons(), cons) for cons in Spells.all_player_spell_constructors]
+    out += [_spell_entry(s, type(s), forbidden=True, granted_by=eq)
+            for s, eq in forbidden_granted().values()]
+    # Forbidden spells sort to the end (they're a distinct, SP-less category).
+    out.sort(key=lambda d: (bool(d.get("forbidden")), d["level"], d["name"]))
     return out
 
 # ---------------------------------------------------------------------------
@@ -600,6 +651,14 @@ def extract_equipment():
         desc = rtext(e.get_description() or "", fmt=e.fmt_dict())
         bonus_lines = render_bonus_lines(e)
         mod_stats, use_stats = equipment_stat_tags(e)
+        # A SpellBook/staff delegates its examine tooltips to the spell it grants,
+        # so summons_of(e) picks up the SPELL's summons (e.g. Word of Chaos's
+        # Chaos Spirit) and misattributes them to the book. Those belong to the
+        # spell's card; subtract them so the equipment lists only what it itself
+        # summons directly.
+        gs = getattr(e, 'spell', None)
+        granted_units = set(summons_of(gs)) if isinstance(gs, Spell) else set()
+        summons = [n for n in summons_of(e) if n not in granted_units]
         out.append({
             "name": e.name,
             "slot": SLOT_NAMES.get(getattr(e, 'slot', 0), "Trinket"),
@@ -608,7 +667,7 @@ def extract_equipment():
             "recipe_cost": sum(a for _, a in recipe),
             "desc": desc,
             "bonuses": bonus_lines,
-            "summons": summons_of(e),
+            "summons": summons,
             "refs": refs_for(e, cons, e.name),
             "mod_stats": mod_stats,
             "use_stats": use_stats,
@@ -707,12 +766,15 @@ def main():
     # Stable integer ids for shareable build URLs (append-only; see ids.py).
     # Mutates ids.json on disk — it MUST be committed alongside data.json.
     idmap = ids_mod.load_ids()
+    # Forbidden spells are equipment-granted (no SP cost), so they get no spell
+    # id and don't enter the Guide SP track (assign_sp skips them internally).
+    learnable = [s for s in spells if not s.get("forbidden")]
     ids_mod.assign(idmap, "equipment", [e["name"] for e in equipment])
-    ids_mod.assign(idmap, "spell", [s["name"] for s in spells])
+    ids_mod.assign(idmap, "spell", [s["name"] for s in learnable])
     ids_mod.assign_sp(idmap, spells)   # combined spell+upgrade ids (Guide SP track)
     ids_mod.save_ids(idmap)
     for e in equipment: e["id"] = idmap["equipment"][e["name"]]
-    for s in spells: s["id"] = idmap["spell"][s["name"]]
+    for s in learnable: s["id"] = idmap["spell"][s["name"]]
     data = {
         "spells": spells,
         "equipment": equipment,
