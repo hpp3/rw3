@@ -330,6 +330,16 @@ def register_unit(u):
     name = u.name
     if name in UNITS:
         return name
+    # Apply tag-derived default resists (Undead -> Holy -100/Dark 100/Ice 50,
+    # non-living -> Poison 100, Demon/Metallic/Glass, etc.). The game does this
+    # lazily when a unit enters a level or is shown in the examine panel
+    # (RiftWizard3.set_default_resistances), so a freshly-constructed unit's
+    # `resists` is incomplete until we run it. Idempotent (guarded by
+    # `resists_applied`) and self-contained (no level needed).
+    try:
+        u.set_default_resistances()
+    except Exception:
+        pass
     sheet = {
         "name": name,
         "hp": u.max_hp,

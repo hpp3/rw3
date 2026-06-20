@@ -152,6 +152,16 @@ buffs. So `_unit_passives` intentionally includes *every* buff that yields toolt
 by `BUFF_TYPE_PASSIVE` (the original bug) silently dropped Brain Tree's "spawn a Brain Sapling",
 Troll's regen, etc.
 
+**A second, identical-shaped gotcha — tag-derived resists (`set_default_resistances`):** a unit's
+constructor only sets its *bespoke* resists (Vampire just sets `Fire -100`). The bulk of a creature's
+resists are **tag defaults** applied lazily by `Unit.set_default_resistances()` — `Undead` →
+`Holy -100`/`Dark 100`/`Ice 50`, non-living → `Poison 100`, plus `Demon`/`Metallic`/`Glass` tables.
+The game runs this when a unit enters a level **and in the examine panel itself**
+(`RiftWizard3.py`), so a freshly-constructed unit's `resists` dict is **incomplete** until you call it.
+`register_unit` calls `u.set_default_resistances()` before reading `resists` (it's idempotent via
+`resists_applied` and needs no level). Skipping it (the original bug) showed Vampire as only
+`Fire -100`, hiding its Holy vulnerability — and was wrong for **214 of 412** units.
+
 ---
 
 ## 7. Crafting: whole-component commitment, and why there are two algorithms
@@ -244,9 +254,19 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
 
 ## 11. Build & deploy
 
-- `python build.py` = `extract.py` → `copy_icons.py`. That's it — **no Pillow dependency** anymore.
-  `make_favicon.py` is a one-off (favicon is a committed static asset); run it manually only if the
-  source icon changes.
+- `python build.py` = `extract.py` → `copy_icons.py` → `tests.py` (a post-build gate). That's it —
+  **no Pillow dependency** anymore. `make_favicon.py` is a one-off (favicon is a committed static
+  asset); run it manually only if the source icon changes.
+- **Data-integrity tests (`tests.py`)** re-derive facts from the live game and assert `site/data.json`
+  matches what the game itself renders, so they need the game install and **can't run in CI** — they
+  run locally as the final step of `build.py` (a failing verifier fails the build). Current verifiers:
+  `verify_resists.py` rebuilds the bestiary roster, applies the game's `set_default_resistances` (§6),
+  renders resist lines through the game's own examine draw logic, and compares all 340 monsters;
+  `verify_descriptions.py` re-implements the game's `draw_examine_spell`/`draw_examine_upgrade` text
+  assembly and compares every spell (196) and upgrade (788) description. Both are independent of
+  `extract.py`'s assembly code (they only borrow the reconstructed `tooltip_colors`/`TT_ATTRS` color
+  tables, since the UI module isn't importable here). Add a verifier here when a new extracted field
+  has an authoritative game-render to check against.
 - Build venv deps: `tcod numpy pygame dill` (the game's runtime). Python 3.10 to match the game.
 - Deploy: `.github/workflows/deploy.yml` uploads `site/` to GitHub Pages on push to `main`. Pages had
   to be enabled once via API (`gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow`)
