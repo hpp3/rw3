@@ -2,7 +2,7 @@
 normalizing filenames to lowercase. Reads only from the game dir."""
 import os, json, shutil
 
-GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3 Demo"
+GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(HERE, "site")
 

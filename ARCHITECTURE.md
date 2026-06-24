@@ -18,7 +18,7 @@ design decisions worth knowing before you change things.
 
 ## 1. The build reads a live game install — this is load-bearing and fragile
 
-`extract.py` / `copy_icons.py` have a hardcoded `GAME = r"E:\SteamLibrary\...\Rift Wizard 3 Demo"`.
+`extract.py` / `copy_icons.py` have a hardcoded `GAME = r"E:\SteamLibrary\...\Rift Wizard 3"`.
 The build **imports the actual game modules and instantiates every spell/item/monster** to read
 their real attributes. There is no parallel "database" — the game source *is* the schema.
 
@@ -78,7 +78,7 @@ component inventory, and the equipment build (`localStorage`), all off the **dis
 **one** thing that does *not* is the shareable **Guide**, whose URL uses stable integer ids (§13, §15).
 
 Facts a future agent should know:
-- Display names are currently **unique across all 350 equipment and 186 spells** (the game's own
+- Display names are currently **unique across all 350 equipment and 196 spells** (the game's own
   tests enforce it). That uniqueness is what makes the name a safe key.
 - Python **class names are unique for spells** and for ~288/350 equipment, but **not** for the 62
   factory-built items (11 share `FreeCastStaff`, etc.) — which is *why* we key on display name, not
@@ -139,7 +139,7 @@ prose). Both feed the same `units` catalog.
 
 ## 6. The monster/unit catalog and the "passives = all buffs" subtlety
 
-`data.units` (412 entries) = the full bestiary (340 monsters: base spawns + evolutions + the rare
+`data.units` (421 entries) = the full bestiary (349 monsters: base spawns + evolutions + the rare
 rosters) **plus** ~72 summon-only minions, deduped by name. Each is a stat sheet built by
 `register_unit`. `is_monster` distinguishes bestiary vs summon-only; `depth` is the earliest spawn
 depth for base monsters. Final bosses (`FinalBosses.py`) are **not** included — no clean registry.
@@ -261,7 +261,7 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
   matches what the game itself renders, so they need the game install and **can't run in CI** — they
   run locally as the final step of `build.py` (a failing verifier fails the build). Current verifiers:
   `verify_resists.py` rebuilds the bestiary roster, applies the game's `set_default_resistances` (§6),
-  renders resist lines through the game's own examine draw logic, and compares all 340 monsters;
+  renders resist lines through the game's own examine draw logic, and compares all 349 monsters;
   `verify_descriptions.py` re-implements the game's `draw_examine_spell`/`draw_examine_upgrade` text
   assembly and compares every spell (196) and upgrade (788) description. Both are independent of
   `extract.py`'s assembly code (they only borrow the reconstructed `tooltip_colors`/`TT_ATTRS` color

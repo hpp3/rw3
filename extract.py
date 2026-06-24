@@ -8,7 +8,7 @@ import os, sys, json, ast, inspect, textwrap
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
-GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3 Demo"
+GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 import ids as ids_mod  # stable append-only id assignment (HERE-relative; safe before chdir)

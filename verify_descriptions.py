@@ -23,7 +23,7 @@ os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3 Demo"
+GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 sys.path.insert(0, GAME)
 os.chdir(GAME)
 

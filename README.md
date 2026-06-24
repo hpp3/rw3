@@ -37,8 +37,8 @@ The static site (`site/`) lets you:
   (mental model: *"I have 2 Chaos Seeds and 1 Blood Basin"*), shown as editable chips with the
   derived essence pool. The Equipment tab's *Craftable only* toggle and build planner both read
   from this inventory. Persists across reloads.
-- **Spells** — all 186 player spells with level, tags, stats, descriptions, and upgrades.
-- **Monsters** — the full bestiary (340 monsters across base spawns, evolutions, and the rare
+- **Spells** — all 196 player spells with level, tags, stats, descriptions, and upgrades.
+- **Monsters** — the full bestiary (349 monsters across base spawns, evolutions, and the rare
   rosters) plus all summonable minions, as cards with art, HP/shields/resists, movement, tags,
   depth, and every ability and passive. Filter by tag/element, monster vs. summonable, and text.
 - **Cross-reference links** — when a spell, item, or monster references another spell, item, or
@@ -72,7 +72,7 @@ python -m venv .venv
 ```
 
 The build reads **only** from the game install dir
-(`E:\SteamLibrary\steamapps\common\Rift Wizard 3 Demo`, set at the top of `extract.py` /
+(`E:\SteamLibrary\steamapps\common\Rift Wizard 3`, set at the top of `extract.py` /
 `copy_icons.py`) and writes only into `site/`. Update that path if your install differs.
 
 ### Scripts

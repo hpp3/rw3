@@ -11,7 +11,7 @@ import os, sys, json
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
-GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3 Demo"
+GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, GAME)
 os.chdir(GAME)
