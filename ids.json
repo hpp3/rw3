@@ -1283,7 +1283,9 @@
     "Wyrm Eggs::Incubation Exposure": 928,
     "Wyrm Eggs::Magic Eggs": 929,
     "Wyrm Eggs::Radiant Eggs": 930,
-    "Wyrm Eggs::Scale Harvest": 931
+    "Wyrm Eggs::Scale Harvest": 931,
+    "Immolate::Cursed Flames": 932,
+    "Mystic Vision::Superior Sight": 933
   },
   "spell": {
     "Amalgamate Slime": 0,
