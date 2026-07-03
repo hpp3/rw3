@@ -38,9 +38,10 @@ The static site (`site/`) lets you:
   derived essence pool. The Equipment tab's *Craftable only* toggle and build planner both read
   from this inventory. Persists across reloads.
 - **Spells** — all 196 player spells with level, tags, stats, descriptions, and upgrades.
-- **Monsters** — the full bestiary (349 monsters across base spawns, evolutions, and the rare
-  rosters) plus all summonable minions, as cards with art, HP/shields/resists, movement, tags,
-  depth, and every ability and passive. Filter by tag/element, monster vs. summonable, and text.
+- **Monsters** — the full bestiary (351 monsters across base spawns, evolutions, and the rare
+  rosters), all summonable minions, and the 13 Tavern **companions**, as cards with art,
+  HP/shields/resists, movement, tags, depth, and every ability and passive. Filter by
+  tag/element, type (monster / summonable / companion), and text.
 - **Cross-reference links** — when a spell, item, or monster references another spell, item, or
   unit, the name is a link: clicking it switches to the right tab, scrolls the entry into view,
   and flashes it. References are found **programmatically** by static-analysing each class's
@@ -48,9 +49,14 @@ The static site (`site/`) lets you:
   contains `SealFate`, so it links to *Seal Fate*. This avoids the false positives of matching
   names in prose (the word "Death" in "Death Bounty" is never mistaken for the Death unit).
   Summoned-unit references additionally come from the structured summon data.
+- **Buff glossary tooltips** — named status effects that have no card of their own (e.g. an
+  Alchemist's *Brewed Concoctions*) are surfaced as hover-only tooltips showing the buff's
+  description. Buff references are found by the same AST analysis (a card's code must actually
+  reference the buff class), so no prose false positives; buff terms get a dashed underline to
+  distinguish them from navigable links.
 - **Summon stat sheets** — any spell, item, or component that summons a unit shows the
   unit(s) as chips; hovering one pops a floating stat sheet (HP, tags, resistances,
-  movement, abilities with damage/range/cooldown, and passives) for all 191 summonable units.
+  movement, abilities with damage/range/cooldown, and passives) for every summonable unit.
 
 All text is rendered with the game's own tag/stat coloring.
 

@@ -92,9 +92,10 @@ Facts a future agent should know:
 ## 4. Cross-references are found by **AST analysis of source**, not text matching
 
 When a spell/item/monster references another, the name links to it (`gotoEntry` → switch tab,
-scroll to top, flash). The `refs` array (`[[displayName, kind], …]`, kind ∈ spell|equipment|unit)
+scroll to top, flash). The `refs` array (`[[displayName, kind], …]`, kind ∈ spell|equipment|unit|buff)
 drives this. `linkify(html, refs)` only wraps names that are *confirmed references*, located by
-position in the rendered text — so there are **no false positives**.
+position in the rendered text — so there are **no false positives**. `buff` refs are the exception
+to "links navigate": buffs have no card, so they render as hover-only glossary tooltips (see §6).
 
 How `refs` is computed (`refs_for` in extract.py) and **why it's done this way** — we tried three
 approaches:
@@ -116,6 +117,11 @@ Supporting machinery:
   to `None` and are dropped.
 - `UNIT_FACTORY`: name → factory, so a unit's *own* refs can be computed from its factory source
   (a summon-only unit isn't in the monster roster loop, so its refs are filled in `main()`).
+- `BUFF_IDENT`: buff class identifier → display name, built by `build_buff_map` by walking the
+  `Buff` subclass tree (`_all_subclasses`, not any module's `__dict__` — so it's import-order
+  independent and the shipped buff set is stable across rebuilds). Kept **separate** from
+  `IDENT_MAP` on purpose: a buff class sharing a name with a real spell/unit must never neutralize
+  that identifier via the collision rule. `refs_for` consults it as a fallback after `IDENT_MAP`.
 - **Ref pruning**: in `main()`, refs whose target isn't actually in the output (units with no card)
   are dropped, so every link resolves. There should always be **0 broken refs**.
 
@@ -139,10 +145,21 @@ prose). Both feed the same `units` catalog.
 
 ## 6. The monster/unit catalog and the "passives = all buffs" subtlety
 
-`data.units` (421 entries) = the full bestiary (349 monsters: base spawns + evolutions + the rare
-rosters) **plus** ~72 summon-only minions, deduped by name. Each is a stat sheet built by
-`register_unit`. `is_monster` distinguishes bestiary vs summon-only; `depth` is the earliest spawn
-depth for base monsters. Final bosses (`FinalBosses.py`) are **not** included — no clean registry.
+`data.units` (437 entries) = the full bestiary (351 monsters: base spawns + evolutions + the rare
+rosters) **plus** summon-only minions and the 13 Tavern companions, deduped by name. Each is a stat
+sheet built by `register_unit`. `is_monster` distinguishes bestiary vs summon-only; `is_companion`
+flags the companions; `depth` is the earliest spawn depth for base monsters. Final bosses
+(`FinalBosses.py`) are **not** included — no clean registry.
+
+**Companions (`extract_companions`):** the 13 Tavern allies live in `Equipment.all_companions`, a
+list *separate* from `all_equipment` — each is a `Companion` equipment whose examine tooltip is the
+(buffed) unit it summons. Because they're neither craftable nor in the bestiary, their units are
+otherwise absent, so we pull them in via `summons_of` (which yields the in-game buffed stats — the
+companion's `minion_*` bonuses applied by `make_minion`). Only the companion itself is flagged
+`is_companion`; units *it* in turn summons (the Engineer's Auto Cannon, the Ranger's Giant Bear)
+stay plain summonables. Registering each companion's `unit_fn` into `UNIT_FACTORY`/`IDENT_MAP`
+enables its AST cross-refs and name links, same as any monster. The Monsters-tab type filter is
+`monster` / `summon` / `companion`, derived companion-first.
 
 **The non-obvious bit (`_unit_passives`):** a unit's innate behaviors (regeneration, spawn
 generators, "chance to become") live in `unit.buffs`, but most are `BUFF_TYPE_BLESS`, not
@@ -161,6 +178,16 @@ The game runs this when a unit enters a level **and in the examine panel itself*
 `register_unit` calls `u.set_default_resistances()` before reading `resists` (it's idempotent via
 `resists_applied` and needs no level). Skipping it (the original bug) showed Vampire as only
 `Fire -100`, hiding its Holy vulnerability — and was wrong for **214 of 412** units.
+
+**Buff glossary (`data.buffs`, `BUFFS`/`build_buff_map`):** many abilities name a buff that has no
+card and is never explained — e.g. Brew Concoctions says "gain a stack of *Brewed Concoctions*"
+without saying what that does. `build_buff_map` instantiates every `Buff` subclass, keeps the ones
+with a usable name + description (`get_description` → `get_tooltip`, rendered through the game's own
+`resolve_text`), and records `{name, desc, color}`. A card links a buff only when its **source code
+references the buff class** (the `BUFF_IDENT` fallback in `refs_for`) — same AST rigor as every other
+ref, so no prose false positives. Only buffs actually referenced by some card are shipped (~127 of
+~400 buildable), and the frontend renders them as hover-only tooltips (`renderBuffSheet`), styled
+with a dashed underline + help cursor so they read as glossary terms, not navigable links.
 
 ---
 
@@ -261,7 +288,7 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
   matches what the game itself renders, so they need the game install and **can't run in CI** — they
   run locally as the final step of `build.py` (a failing verifier fails the build). Current verifiers:
   `verify_resists.py` rebuilds the bestiary roster, applies the game's `set_default_resistances` (§6),
-  renders resist lines through the game's own examine draw logic, and compares all 349 monsters;
+  renders resist lines through the game's own examine draw logic, and compares all 351 monsters;
   `verify_descriptions.py` re-implements the game's `draw_examine_spell`/`draw_examine_upgrade` text
   assembly and compares every spell (196) and upgrade (788) description. Both are independent of
   `extract.py`'s assembly code (they only borrow the reconstructed `tooltip_colors`/`TT_ATTRS` color

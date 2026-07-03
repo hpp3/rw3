@@ -453,6 +453,66 @@ def _getsource(o):
             _SRC_CACHE[key] = None
     return _SRC_CACHE[key]
 
+# --- Buffs (named status effects with no card of their own) -----------------
+# A unit ability like "gain a stack of Brewed Concoctions" names a Buff that's
+# never explained on-screen. We surface each such buff's description as a
+# hover-only glossary tooltip. Buff class identifiers live in their OWN map
+# (not IDENT_MAP) so that a buff class sharing a name with a real spell/unit
+# can never neutralize that identifier (see _register_ident's collision rule).
+# A buff ref is only ever emitted when an entity's source *code* references the
+# buff class — same AST rigor as the cross-references above, so no prose matches.
+BUFF_IDENT = {}    # class identifier -> buff display name  (None == ambiguous)
+BUFFS = {}         # display name -> {name, desc, color}
+
+def _buff_text(b):
+    for meth in ('get_description', 'get_tooltip'):
+        f = getattr(b, meth, None)
+        if not f:
+            continue
+        try:
+            fmt = b.fmt_dict() if hasattr(b, 'fmt_dict') else {}
+            txt = f()
+            if txt:
+                return rtext(txt, fmt=fmt)
+        except Exception:
+            continue
+    return ""
+
+def _all_subclasses(cls):
+    seen, stack = set(), [cls]
+    while stack:
+        for sub in stack.pop().__subclasses__():
+            if sub not in seen:
+                seen.add(sub)
+                stack.append(sub)
+    return seen
+
+def build_buff_map():
+    # Import the content modules that define buffs, then walk the Buff class tree
+    # directly (not any module's __dict__). This is order-independent and complete,
+    # so the shipped buff set is stable across rebuilds regardless of import quirks.
+    import CommonContent, Level  # noqa: F401  (ensure their buffs are loaded)
+    from Level import Buff
+    for cls in sorted(_all_subclasses(Buff), key=lambda c: c.__name__):
+        ident = cls.__name__
+        b = _safe_call(cls)
+        if b is None:
+            continue
+        name = getattr(b, 'name', None)
+        if not name or name == 'Unnamed buff':
+            continue
+        desc = _buff_text(b)
+        if not desc:
+            continue
+        if ident in BUFF_IDENT and BUFF_IDENT[ident] != name:
+            BUFF_IDENT[ident] = None                    # same ident -> >1 buff: unusable
+        elif ident not in BUFF_IDENT:
+            BUFF_IDENT[ident] = name
+        if name not in BUFFS:
+            col = getattr(b, 'color', None)
+            BUFFS[name] = {"name": name, "desc": desc,
+                           "color": to_tup(col) if isinstance(col, Color) else None}
+
 def refs_for(instance, entry, self_name):
     """Return [[display_name, kind], …] this entity references in its code."""
     srcs = [_getsource(entry)]                   # the registry entry (class / factory / lambda)
@@ -465,9 +525,13 @@ def refs_for(instance, entry, self_name):
     out, seen = [], set()
     for ident in _collect_idents(srcs):
         m = IDENT_MAP.get(ident)
-        if not m:
-            continue
-        name, kind = m
+        if m:
+            name, kind = m
+        else:
+            name = BUFF_IDENT.get(ident)         # falls back to the buff glossary
+            if not name:
+                continue
+            kind = 'buff'
         if name == self_name or name in seen:
             continue
         seen.add(name)
@@ -512,6 +576,35 @@ def extract_monsters(factories):
         if depth is not None:
             cur = MONSTER_DEPTH.get(u.name)
             MONSTER_DEPTH[u.name] = depth if cur is None else min(cur, depth)
+
+# ---------------------------------------------------------------------------
+# Companions: permanent allies bought at the Tavern (Equipment.all_companions).
+# The companion is an Equipment whose examine tooltip is the (buffed) unit it
+# summons, but it's neither craftable (not in all_equipment) nor part of the
+# bestiary — so its unit is otherwise absent. Extract those units and flag them
+# as their own Monsters-tab category ("Companion"). The buffed stats match what
+# you see in-game (make_minion applies the companion's minion_* bonuses).
+# ---------------------------------------------------------------------------
+COMPANION_NAMES = set()
+
+def extract_companions():
+    for cons in getattr(Equipment, 'all_companions', []):
+        e = _safe_call(cons)
+        if e is None:
+            continue
+        fac = getattr(e, 'unit_fn', None)          # zero-arg factory for the base unit
+        if fac:                                    # enable AST cross-refs + name links
+            u = _safe_call(fac)
+            if isinstance(u, Unit) and u.name:
+                _register_ident(getattr(fac, '__name__', None), u.name, 'unit')
+                _register_factory(u.name, fac)
+        # summons_of registers the companion unit AND any units it in turn
+        # summons (e.g. the Engineer's Auto Cannon, the Ranger's Giant Bear).
+        # Only the companion itself is a "Companion"; its summons stay plain
+        # summonables. Companion.name == the summoned unit's name (unit_ex.name).
+        registered = set(summons_of(e))
+        if e.name in registered:
+            COMPANION_NAMES.add(e.name)
 
 def summons_of(obj):
     """Return list of distinct unit names this spell/equipment/component can summon."""
@@ -748,31 +841,52 @@ def extract_tags():
 def main():
     monster_factories = collect_monster_factories()
     build_ident_map(monster_factories.keys())   # must precede any refs_for() call
+    build_buff_map()                            # buff glossary; also feeds refs_for()
     spells = extract_spells()
     equipment = extract_equipment()
     components = extract_components()            # these populate UNITS via summons_of()
     extract_monsters(monster_factories)         # full bestiary into UNITS
+    extract_companions()                         # Tavern companions into UNITS
     # annotate units with monster-roster metadata + factory-derived refs
     for name, sheet in UNITS.items():
         sheet["is_monster"] = name in MONSTER_NAMES
+        sheet["is_companion"] = name in COMPANION_NAMES
         if name in MONSTER_DEPTH:
             sheet["depth"] = MONSTER_DEPTH[name]
         fac = UNIT_FACTORY.get(name)
         if fac:
             inst = _safe_call(fac)
             if inst is not None:
-                sheet["refs"] = refs_for(inst, fac, name)
+                refs = refs_for(inst, fac, name)
+                # A unit's own permanent buffs are already shown in full under
+                # Passives; don't also linkify their names on the card. Without
+                # this, the Vampire Hunter's "Silvered Weapons" passive got a
+                # redundant self-link on the word "Silvered" (SilveredBuff.name).
+                # Buffs a unit merely grants or applies conditionally aren't in
+                # u.buffs (e.g. the Alchemist's Brewed Concoctions), so they stay.
+                own_buffs = {getattr(b, 'name', None) for b in getattr(inst, 'buffs', [])}
+                sheet["refs"] = [r for r in refs if not (r[1] == 'buff' and r[0] in own_buffs)]
     # Prune cross-refs whose target has no card (e.g. units that are never
     # surfaced), so every link resolves to a real entry.
     valid = {'spell': {s['name'] for s in spells},
              'equipment': {e['name'] for e in equipment},
-             'unit': set(UNITS.keys())}
+             'unit': set(UNITS.keys()),
+             'buff': set(BUFFS.keys())}
     def prune(refs):
         return [r for r in refs if r[0] in valid.get(r[1], ())]
     for s in spells: s['refs'] = prune(s['refs'])
     for e in equipment: e['refs'] = prune(e['refs'])
     for c in components: c['refs'] = prune(c['refs'])
     for sheet in UNITS.values(): sheet['refs'] = prune(sheet['refs'])
+    # Ship only the buffs actually referenced by some card (keeps data.json lean;
+    # BUFFS holds all ~400 buildable buffs, but most are never named on a card).
+    referenced_buffs = set()
+    for coll in (spells, equipment, components):
+        for it in coll:
+            referenced_buffs.update(r[0] for r in it['refs'] if r[1] == 'buff')
+    for sheet in UNITS.values():
+        referenced_buffs.update(r[0] for r in sheet['refs'] if r[1] == 'buff')
+    buffs_out = {n: BUFFS[n] for n in referenced_buffs}
     # Stable integer ids for shareable build URLs (append-only; see ids.py).
     # Mutates ids.json on disk — it MUST be committed alongside data.json.
     idmap = ids_mod.load_ids()
@@ -790,6 +904,7 @@ def main():
         "equipment": equipment,
         "components": components,
         "units": UNITS,
+        "buffs": buffs_out,
         "tags": extract_tags(),
         "colors": tooltip_colors,
         "slots": list(SLOT_NAMES.values()),
@@ -800,10 +915,12 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
     monsters = sum(1 for s in UNITS.values() if s.get("is_monster"))
+    companions = sum(1 for s in UNITS.values() if s.get("is_companion"))
     print("Wrote", out_path)
     print("spells:", len(data["spells"]), "equipment:", len(data["equipment"]),
           "components:", len(data["components"]), "units:", len(data["units"]),
-          "(monsters:", monsters, ")")
+          "(monsters:", monsters, "companions:", companions, ")",
+          "buffs:", len(buffs_out))
 
 if __name__ == "__main__":
     main()

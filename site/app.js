@@ -165,6 +165,7 @@ function tipHtml(node) {
     if (k === 'spell') return renderSpellSheet(n);
     if (k === 'equipment') return renderEquipSheet(n);
     if (k === 'unit') return renderUnitSheet(n);
+    if (k === 'buff') return renderBuffSheet(n);
   }
   return null;
 }
@@ -182,7 +183,16 @@ function wireTooltips() {
   // touch / keyboard / navigation
   document.addEventListener('click', e => {
     const xr = e.target.closest && e.target.closest('.xref');
-    if (xr) { e.preventDefault(); hideTip(); gotoEntry(xr.dataset.k, xr.dataset.n); return; }
+    if (xr) {
+      e.preventDefault();
+      // Buffs have no card to navigate to — toggle their glossary tooltip instead.
+      if (xr.dataset.k === 'buff') {
+        if (unitTip && unitTip.style.display === 'block') hideTip();
+        else { const r = xr.getBoundingClientRect(); showTip(renderBuffSheet(xr.dataset.n), e.clientX || r.left + 20, e.clientY || r.bottom); }
+        return;
+      }
+      hideTip(); gotoEntry(xr.dataset.k, xr.dataset.n); return;
+    }
     const c = tipTrigger(e.target);
     if (c) {
       // component tile → let the build handler assign/pick; hover already showed the effect
@@ -250,6 +260,23 @@ function renderSpellSheet(name) {
     </div>
     ${s.desc ? `<div class="udesc">${renderMarkup(s.desc)}</div>` : ''}
     ${stats ? `<div class="stats" style="margin-top:6px">${stats}</div>` : ''}
+  </div>`;
+}
+
+// Buffs are named status effects with no card of their own — hover-only glossary.
+let BUFFS_BY_NAME = {};
+function renderBuffSheet(name) {
+  const b = BUFFS_BY_NAME[name];
+  if (!b) return `<div class="unit-sheet"><div class="uname">${esc(name)}</div></div>`;
+  const col = b.color ? rgb(b.color) : 'var(--fg)';
+  return `<div class="unit-sheet buff-sheet">
+    <div class="uhead">
+      <div class="uhmeta">
+        <div class="uname" style="color:${col}">${esc(b.name)}</div>
+        <div class="card-meta"><span class="badge">buff</span></div>
+      </div>
+    </div>
+    ${b.desc ? `<div class="udesc">${renderMarkup(b.desc)}</div>` : ''}
   </div>`;
 }
 
@@ -1043,7 +1070,8 @@ function monsterCard(u) {
   const abilities = u.abilities.map(a => renderAbility(a, u.refs)).join('');
   const passives = u.passives.map(p => `<div class="upass">${linkify(renderMarkup(p), u.refs)}</div>`).join('');
   const depthBadge = u.depth ? `<span class="badge">Depth ${u.depth}</span>` : '';
-  const typeBadge = u.is_monster ? '' : '<span class="badge">summon</span>';
+  const typeBadge = u.is_companion ? '<span class="badge">companion</span>'
+    : u.is_monster ? '' : '<span class="badge">summon</span>';
   const hp = u.hp ? `${u.hp} HP` : 'HP varies';
   card.innerHTML = `
     <div class="card-head">
@@ -1066,7 +1094,7 @@ function renderMonsters() {
   const q = MON.search.toLowerCase();
   let list = Object.values(DATA.units).filter(u => {
     if (MON.types.size) {
-      const ty = u.is_monster ? 'monster' : 'summon';
+      const ty = u.is_companion ? 'companion' : u.is_monster ? 'monster' : 'summon';
       if (!MON.types.has(ty)) return false;
     }
     if (MON.moves.size) { for (const mv of MON.moves) if (!u[MOVE_FLAG[mv]]) return false; }
@@ -1837,6 +1865,7 @@ async function init() {
   DATA = await fetch('data.json').then(r => r.json());
   COLORS = DATA.colors;
   UNITS = DATA.units || {};
+  BUFFS_BY_NAME = DATA.buffs || {};
   for (const [name, info] of Object.entries(DATA.tags.all)) TAGCOLOR[name] = rgb(info.color);
   COMPONENT_TAGS = DATA.tags.component_tags.filter(t => t !== 'Any').sort();
   STAT_META = DATA.stat_meta || {};
@@ -1910,8 +1939,8 @@ async function init() {
   makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: () => DATA.spells, render: renderSpells });
 
   // --- Monsters controls ---
-  MON.types = buildChips($('#mon-types'), ['monster', 'summon'], {
-    label: t => t === 'monster' ? 'Monster' : 'Summonable',
+  MON.types = buildChips($('#mon-types'), ['monster', 'summon', 'companion'], {
+    label: t => ({ monster: 'Monster', summon: 'Summonable', companion: 'Companion' }[t]),
     onChange: renderMonsters, activeColor: () => '#fff'
   });
   MON.moves = buildChips($('#mon-moves'), ['Flying', 'Immobile', 'Burrowing'], {

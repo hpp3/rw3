@@ -351,6 +351,9 @@ select{
 /* Cross-reference links + highlight on navigate */
 .xref{color:#9cc7ff;cursor:pointer;border-bottom:1px dotted #5c7aa8;font-weight:600}
 .xref:hover{color:#fff;border-bottom-color:#fff}
+/* Buffs are glossary terms, not navigable cards: dashed underline + help cursor. */
+.xref[data-k="buff"]{color:#d9c7f0;border-bottom-style:dashed;border-bottom-color:#7a6a9c;cursor:help}
+.xref[data-k="buff"]:hover{color:#fff;border-bottom-color:#fff}
 @keyframes cardflash{
   0%{box-shadow:0 0 0 2px var(--accent),0 0 24px 6px rgba(90,169,255,.75)}
   60%{box-shadow:0 0 0 2px var(--accent),0 0 22px 5px rgba(90,169,255,.6)}
