@@ -493,13 +493,22 @@ def build_buff_map():
     # so the shipped buff set is stable across rebuilds regardless of import quirks.
     import CommonContent, Level  # noqa: F401  (ensure their buffs are loaded)
     from Level import Buff
+    # Names/identifiers that clash with a damage-type/element Tag are unusable: in
+    # text "Poison" almost always means the [Poison] damage type, not the Poison
+    # DoT buff, and `Tags.Poison` attribute access even collects the identifier
+    # "Poison" from unrelated code. The game already colors these words, so we skip
+    # them entirely rather than risk a false-positive link (see the Lamasu's
+    # "3 [Dark] or [Poison] damage" aura). Prefer no link over a wrong one.
+    tag_names = {t.name for t in Tags}
     for cls in sorted(_all_subclasses(Buff), key=lambda c: c.__name__):
         ident = cls.__name__
+        if ident in tag_names:
+            continue
         b = _safe_call(cls)
         if b is None:
             continue
         name = getattr(b, 'name', None)
-        if not name or name == 'Unnamed buff':
+        if not name or name == 'Unnamed buff' or name in tag_names:
             continue
         desc = _buff_text(b)
         if not desc:
