@@ -185,9 +185,23 @@ without saying what that does. `build_buff_map` instantiates every `Buff` subcla
 with a usable name + description (`get_description` → `get_tooltip`, rendered through the game's own
 `resolve_text`), and records `{name, desc, color}`. A card links a buff only when its **source code
 references the buff class** (the `BUFF_IDENT` fallback in `refs_for`) — same AST rigor as every other
-ref, so no prose false positives. Only buffs actually referenced by some card are shipped (~127 of
+ref, so no prose false positives. Only buffs actually referenced by some card are shipped (~70 of
 ~400 buildable), and the frontend renders them as hover-only tooltips (`renderBuffSheet`), styled
 with a dashed underline + help cursor so they read as glossary terms, not navigable links.
+
+*Disambiguating a buff from a same-named damage type ("Poison" the status vs. `[Poison]` the
+element)* uses three independent signals, so we never fall back to a blanket exclusion:
+1. **Bare name vs. attribute (`_collect_idents` → `refs_for`).** A buff class is referenced by bare
+   name (`Poison`, `NecrosisBuff`); `Tags.Poison` is an *attribute* access. Buffs resolve from bare
+   names only, so the Corrupted Lamasu's `Tags.Poison` aura never gets a spurious Poison-buff ref,
+   while the Witch Doctor's literal `Poison` hex does.
+2. **Markup token vs. prose (`renderMarkup` `class="mk"` → `linkify`).** `renderMarkup` tags every
+   `[…]` token's output with `class="mk"`; `linkify` refuses to link a buff name inside such a span.
+   So "3 [Dark] or [Poison] damage" stays colored-but-unlinked, while a bare-prose "Necrosis,
+   Poison, or Bleed" links each status.
+3. **Own-name words (`prune`).** A buff whose name is a whole word of the entity's *own* name is
+   dropped from its refs — otherwise "Poison Sting gains …" would self-link "Poison" on the Poison
+   Sting card (the same shape as the Vampire Hunter's "Silvered Weapons" own-buff exclusion above).
 
 ---
 

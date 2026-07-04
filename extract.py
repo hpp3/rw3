@@ -3,7 +3,7 @@ Extract Rift Wizard 3 spell / equipment / component data into a JSON file
 for the static browser resource. Reads ONLY from the game install dir;
 writes only into this project's site/ folder.
 """
-import os, sys, json, ast, inspect, textwrap
+import os, sys, json, ast, inspect, textwrap, re
 
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
@@ -428,7 +428,11 @@ def _safe_call(fac):
         return None
 
 def _collect_idents(srcs):
-    idents = set()
+    """Return (names, attrs): bare-name identifiers vs attribute accesses.
+    The split matters for buffs: a buff class is referenced by bare name
+    (`Poison`, `NecrosisBuff`), whereas `Tags.Poison` is an attribute — same
+    word, different meaning (the damage type). Buff resolution uses names only."""
+    names, attrs = set(), set()
     for src in srcs:
         if not src:
             continue
@@ -438,10 +442,10 @@ def _collect_idents(srcs):
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.Name):
-                idents.add(node.id)
+                names.add(node.id)
             elif isinstance(node, ast.Attribute):
-                idents.add(node.attr)
-    return idents
+                attrs.add(node.attr)
+    return names, attrs
 
 _SRC_CACHE = {}
 def _getsource(o):
@@ -493,22 +497,17 @@ def build_buff_map():
     # so the shipped buff set is stable across rebuilds regardless of import quirks.
     import CommonContent, Level  # noqa: F401  (ensure their buffs are loaded)
     from Level import Buff
-    # Names/identifiers that clash with a damage-type/element Tag are unusable: in
-    # text "Poison" almost always means the [Poison] damage type, not the Poison
-    # DoT buff, and `Tags.Poison` attribute access even collects the identifier
-    # "Poison" from unrelated code. The game already colors these words, so we skip
-    # them entirely rather than risk a false-positive link (see the Lamasu's
-    # "3 [Dark] or [Poison] damage" aura). Prefer no link over a wrong one.
-    tag_names = {t.name for t in Tags}
+    # A buff whose name collides with a damage-type Tag (e.g. "Poison") is still
+    # registered — disambiguation happens at reference time: `refs_for` links it
+    # only from a bare-name class reference (not `Tags.Poison`), and the frontend
+    # never linkifies a buff name inside a [markup] token (the damage type).
     for cls in sorted(_all_subclasses(Buff), key=lambda c: c.__name__):
         ident = cls.__name__
-        if ident in tag_names:
-            continue
         b = _safe_call(cls)
         if b is None:
             continue
         name = getattr(b, 'name', None)
-        if not name or name == 'Unnamed buff' or name in tag_names:
+        if not name or name == 'Unnamed buff':
             continue
         desc = _buff_text(b)
         if not desc:
@@ -531,16 +530,20 @@ def refs_for(instance, entry, self_name):
             if base is object or base.__name__ in FRAMEWORK_BASES:
                 continue
             srcs.append(_getsource(base))
+    names, attrs = _collect_idents(srcs)
     out, seen = [], set()
-    for ident in _collect_idents(srcs):
+    for ident in names | attrs:
         m = IDENT_MAP.get(ident)
         if m:
             name, kind = m
+        elif ident in names and BUFF_IDENT.get(ident):
+            # Buffs fall back to the glossary, but only from a bare-name class
+            # reference — never an attribute. So `Tags.Poison` (the damage type)
+            # can't masquerade as the Poison status buff, while a literal `Poison`
+            # reference (e.g. the Witch Doctor's hex) still links.
+            name, kind = BUFF_IDENT[ident], 'buff'
         else:
-            name = BUFF_IDENT.get(ident)         # falls back to the buff glossary
-            if not name:
-                continue
-            kind = 'buff'
+            continue
         if name == self_name or name in seen:
             continue
         seen.add(name)
@@ -881,12 +884,17 @@ def main():
              'equipment': {e['name'] for e in equipment},
              'unit': set(UNITS.keys()),
              'buff': set(BUFFS.keys())}
-    def prune(refs):
-        return [r for r in refs if r[0] in valid.get(r[1], ())]
-    for s in spells: s['refs'] = prune(s['refs'])
-    for e in equipment: e['refs'] = prune(e['refs'])
-    for c in components: c['refs'] = prune(c['refs'])
-    for sheet in UNITS.values(): sheet['refs'] = prune(sheet['refs'])
+    def prune(entity_name, refs):
+        refs = [r for r in refs if r[0] in valid.get(r[1], ())]
+        # Drop a buff ref whose name is a whole word of the entity's OWN name:
+        # its name recurs throughout its own text (e.g. "Poison Sting gains ...")
+        # and would self-link the shared word "Poison" onto the Poison buff.
+        return [r for r in refs if not (r[1] == 'buff'
+                and re.search(r'(?<![A-Za-z])' + re.escape(r[0]) + r'(?![A-Za-z])', entity_name))]
+    for s in spells: s['refs'] = prune(s['name'], s['refs'])
+    for e in equipment: e['refs'] = prune(e['name'], e['refs'])
+    for c in components: c['refs'] = prune(c['name'], c['refs'])
+    for name, sheet in UNITS.items(): sheet['refs'] = prune(name, sheet['refs'])
     # Ship only the buffs actually referenced by some card (keeps data.json lean;
     # BUFFS holds all ~400 buildable buffs, but most are never named on a card).
     referenced_buffs = set()

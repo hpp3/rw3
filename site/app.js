@@ -38,8 +38,10 @@ function renderMarkup(str) {
     const key = m[2] != null ? m[2] : name;
     const col = colorFor(key);
     const text = name.replace(/_/g, ' ');
-    if (col) out += `<span style="color:${col};font-weight:600">${esc(text)}</span>`;
-    else out += `<span style="font-weight:600">${esc(text)}</span>`;
+    // class="mk" marks text that came from a [markup] token (a damage type /
+    // keyword), so linkify can tell it apart from bare prose (see linkify).
+    if (col) out += `<span class="mk" style="color:${col};font-weight:600">${esc(text)}</span>`;
+    else out += `<span class="mk" style="font-weight:600">${esc(text)}</span>`;
   }
   out += esc(str.slice(last));
   return out.replace(/\n/g, '<br>');
@@ -291,9 +293,21 @@ function linkify(html, refs) {
   const names = refs.map(r => r[0]).sort((a, b) => b.length - a.length);
   const re = new RegExp('(?<![A-Za-z])(' + names.map(escapeRegex).join('|') + ')(?![A-Za-z])', 'g');
   // Only touch text between tags so we never corrupt existing markup/attributes.
+  // Track depth inside renderMarkup's class="mk" spans: a buff name there came
+  // from a [markup] token (e.g. the [Poison] damage type), not a prose mention of
+  // the status, so we don't linkify it. Other ref kinds are unaffected.
+  let mkDepth = 0;
   return html.split(/(<[^>]+>)/).map(seg => {
-    if (!seg || seg[0] === '<') return seg;
-    return seg.replace(re, m => `<span class="xref" data-k="${kindOf[m]}" data-n="${esc(m)}">${m}</span>`);
+    if (!seg) return seg;
+    if (seg[0] === '<') {
+      if (seg.startsWith('<span class="mk"')) mkDepth++;
+      else if (mkDepth && seg === '</span>') mkDepth--;
+      return seg;
+    }
+    const inMarkup = mkDepth > 0;
+    return seg.replace(re, m =>
+      (inMarkup && kindOf[m] === 'buff') ? m
+        : `<span class="xref" data-k="${kindOf[m]}" data-n="${esc(m)}">${m}</span>`);
   }).join('');
 }
 
