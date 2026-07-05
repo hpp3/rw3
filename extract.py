@@ -354,6 +354,7 @@ def register_unit(u):
         "abilities": [_unit_ability(sp) for sp in u.spells],
         "passives": _unit_passives(u),
         "refs": [],
+        "btips": {},
         "icon": asset_filename(u.get_asset()),
     }
     cols, rows = sheet_grid(sheet["icon"], getattr(u, 'radius', 0))
@@ -466,7 +467,63 @@ def _getsource(o):
 # A buff ref is only ever emitted when an entity's source *code* references the
 # buff class — same AST rigor as the cross-references above, so no prose matches.
 BUFF_IDENT = {}    # class identifier -> buff display name  (None == ambiguous)
-BUFFS = {}         # display name -> {name, desc, color}
+BUFF_CLASS = {}    # class identifier -> Buff subclass       (None == ambiguous)
+
+def _literal_args(call_args):
+    """Python values of an ast.Call's positional args, or None if any isn't a
+    literal (a variable / stat lookup we can't evaluate statically)."""
+    vals = []
+    for a in call_args:
+        if isinstance(a, ast.Constant):
+            vals.append(a.value)
+        elif (isinstance(a, ast.UnaryOp) and isinstance(a.op, ast.USub)
+              and isinstance(a.operand, ast.Constant)):
+            vals.append(-a.operand.value)
+        else:
+            return None
+    return tuple(vals)
+
+def _buff_call_args(srcs):
+    """ident -> the literal positional args the source constructs it with, so a
+    buff's tooltip reflects the value actually applied (RegenBuff's heal ranges
+    1..100 across the game). First all-literal call site wins; ties are rare."""
+    out = {}
+    for src in srcs:
+        if not src:
+            continue
+        try:
+            tree = ast.parse(textwrap.dedent(src))
+        except (SyntaxError, ValueError):
+            continue
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id in BUFF_CLASS and node.func.id not in out):
+                lits = _literal_args(node.args)
+                if lits is not None:
+                    out[node.func.id] = lits
+    return out
+
+def _resolve_buff(ident, args):
+    """Build a buff's {desc, color} from the class the source references and the
+    args it applies (falling back to filler args if the call wasn't literal)."""
+    cls = BUFF_CLASS.get(ident)
+    if cls is None:
+        return None
+    b = None
+    if args is not None:
+        try:
+            b = cls(*args)
+        except Exception:
+            b = None
+    if b is None:
+        b = _construct_buff(cls)
+    if b is None:
+        return None
+    desc = _buff_text(b)
+    if not desc:
+        return None
+    col = getattr(b, 'color', None)
+    return {"desc": desc, "color": to_tup(col) if isinstance(col, Color) else None}
 
 def _construct_buff(cls):
     """Instantiate a Buff for its name/description. Many buffs need constructor
@@ -520,6 +577,9 @@ def build_buff_map():
     # registered — disambiguation happens at reference time: `refs_for` links it
     # only from a bare-name class reference (not `Tags.Poison`), and the frontend
     # never linkifies a buff name inside a [markup] token (the damage type).
+    # Map class identifier -> (display name, class). The description itself is NOT
+    # finalized here — it's resolved per reference site from the actual args (see
+    # _resolve_buff), because e.g. RegenBuff's heal amount differs everywhere.
     for cls in sorted(_all_subclasses(Buff), key=lambda c: c.__name__):
         ident = cls.__name__
         b = _construct_buff(cls)
@@ -528,20 +588,18 @@ def build_buff_map():
         name = getattr(b, 'name', None)
         if not name or name == 'Unnamed buff':
             continue
-        desc = _buff_text(b)
-        if not desc:
-            continue
+        if not _buff_text(b):
+            continue    # no describable text even with filler args -> not a glossary buff
         if ident in BUFF_IDENT and BUFF_IDENT[ident] != name:
-            BUFF_IDENT[ident] = None                    # same ident -> >1 buff: unusable
+            BUFF_IDENT[ident] = BUFF_CLASS[ident] = None   # same ident -> >1 buff: unusable
         elif ident not in BUFF_IDENT:
             BUFF_IDENT[ident] = name
-        if name not in BUFFS:
-            col = getattr(b, 'color', None)
-            BUFFS[name] = {"name": name, "desc": desc,
-                           "color": to_tup(col) if isinstance(col, Color) else None}
+            BUFF_CLASS[ident] = cls
 
 def refs_for(instance, entry, self_name):
-    """Return [[display_name, kind], …] this entity references in its code."""
+    """Return (refs, btips): refs = [[display_name, kind], …] this entity
+    references in its code; btips = {buff_name: {desc, color}} resolved from the
+    actual class + args the source applies (so tooltips are exact, per site)."""
     srcs = [_getsource(entry)]                   # the registry entry (class / factory / lambda)
     cls = type(instance)
     if isinstance(cls, type):
@@ -550,7 +608,8 @@ def refs_for(instance, entry, self_name):
                 continue
             srcs.append(_getsource(base))
     names, attrs = _collect_idents(srcs)
-    out, seen = [], set()
+    call_args = _buff_call_args(srcs)
+    out, seen, btips = [], set(), {}
     for ident in names | attrs:
         m = IDENT_MAP.get(ident)
         if m:
@@ -565,10 +624,15 @@ def refs_for(instance, entry, self_name):
             continue
         if name == self_name or name in seen:
             continue
+        if kind == 'buff':
+            info = _resolve_buff(ident, call_args.get(ident))
+            if not info:                         # can't describe it -> don't link it
+                continue
+            btips[name] = info
         seen.add(name)
         out.append([name, kind])
     out.sort()
-    return out
+    return out, btips
 
 # ---------------------------------------------------------------------------
 # Full monster roster (bestiary): base spawns + evolutions + rare rosters
@@ -602,7 +666,8 @@ def extract_monsters(factories):
         if not isinstance(u, Unit):
             continue
         register_unit(u)
-        UNITS[u.name]["refs"] = refs_for(u, fac, u.name)   # factory is authoritative for monsters
+        # factory is authoritative for monsters
+        UNITS[u.name]["refs"], UNITS[u.name]["btips"] = refs_for(u, fac, u.name)
         MONSTER_NAMES.add(u.name)
         if depth is not None:
             cur = MONSTER_DEPTH.get(u.name)
@@ -699,6 +764,7 @@ def _spell_entry(s, cons, forbidden=False, granted_by=None):
             "desc": "\n".join(parts),
         })
     mod_stats, use_stats = spell_stat_tags(s)
+    refs, btips = refs_for(s, cons, s.name)
     entry = {
         "name": s.name,
         "level": s.level,
@@ -711,7 +777,8 @@ def _spell_entry(s, cons, forbidden=False, granted_by=None):
         "desc": rtext(s.get_description() or "", fmt=fmt),
         "upgrades": upgrades,
         "summons": summons_of(s),
-        "refs": refs_for(s, cons, s.name),
+        "refs": refs,
+        "btips": btips,
         "mod_stats": mod_stats,
         "use_stats": use_stats,
         "icon": asset_filename(s.get_asset()),
@@ -793,6 +860,7 @@ def extract_equipment():
         gs = getattr(e, 'spell', None)
         granted_units = set(summons_of(gs)) if isinstance(gs, Spell) else set()
         summons = [n for n in summons_of(e) if n not in granted_units]
+        refs, btips = refs_for(e, cons, e.name)
         out.append({
             "name": e.name,
             "slot": SLOT_NAMES.get(getattr(e, 'slot', 0), "Trinket"),
@@ -802,7 +870,8 @@ def extract_equipment():
             "desc": desc,
             "bonuses": bonus_lines,
             "summons": summons,
-            "refs": refs_for(e, cons, e.name),
+            "refs": refs,
+            "btips": btips,
             "mod_stats": mod_stats,
             "use_stats": use_stats,
             "icon": asset_filename(e.get_asset()),
@@ -827,6 +896,7 @@ def extract_components():
             tier = tier_of.get(cons, len(c.tags))
             has_craft = type(c).on_craft is not ComponentBase.on_craft
             has_pickup = type(c).on_pickup is not ComponentBase.on_pickup
+            refs, btips = refs_for(c, cons, c.name)
             out.append({
                 "name": c.name,
                 "tags": [t.name for t in c.tags],
@@ -837,7 +907,8 @@ def extract_components():
                 "on_pickup": has_pickup,
                 "desc": rtext(getattr(c, 'description', "") or "", fmt={}),
                 "summons": summons_of(c),
-                "refs": refs_for(c, cons, c.name),
+                "refs": refs,
+                "btips": btips,
                 "icon": asset_filename(c.get_asset()),
             })
     out.sort(key=lambda d: (d["tier"], d["name"]))
@@ -888,7 +959,7 @@ def main():
         if fac:
             inst = _safe_call(fac)
             if inst is not None:
-                refs = refs_for(inst, fac, name)
+                refs, btips = refs_for(inst, fac, name)
                 # A unit's own permanent buffs are already shown in full under
                 # Passives; don't also linkify their names on the card. Without
                 # this, the Vampire Hunter's "Silvered Weapons" passive got a
@@ -897,32 +968,31 @@ def main():
                 # u.buffs (e.g. the Alchemist's Brewed Concoctions), so they stay.
                 own_buffs = {getattr(b, 'name', None) for b in getattr(inst, 'buffs', [])}
                 sheet["refs"] = [r for r in refs if not (r[1] == 'buff' and r[0] in own_buffs)]
+                sheet["btips"] = btips
     # Prune cross-refs whose target has no card (e.g. units that are never
     # surfaced), so every link resolves to a real entry.
     valid = {'spell': {s['name'] for s in spells},
              'equipment': {e['name'] for e in equipment},
-             'unit': set(UNITS.keys()),
-             'buff': set(BUFFS.keys())}
-    def prune(entity_name, refs):
-        refs = [r for r in refs if r[0] in valid.get(r[1], ())]
-        # Drop a buff ref whose name is a whole word of the entity's OWN name:
-        # its name recurs throughout its own text (e.g. "Poison Sting gains ...")
-        # and would self-link the shared word "Poison" onto the Poison buff.
-        return [r for r in refs if not (r[1] == 'buff'
-                and re.search(r'(?<![A-Za-z])' + re.escape(r[0]) + r'(?![A-Za-z])', entity_name))]
-    for s in spells: s['refs'] = prune(s['name'], s['refs'])
-    for e in equipment: e['refs'] = prune(e['name'], e['refs'])
-    for c in components: c['refs'] = prune(c['name'], c['refs'])
-    for name, sheet in UNITS.items(): sheet['refs'] = prune(name, sheet['refs'])
-    # Ship only the buffs actually referenced by some card (keeps data.json lean;
-    # BUFFS holds all ~400 buildable buffs, but most are never named on a card).
-    referenced_buffs = set()
-    for coll in (spells, equipment, components):
-        for it in coll:
-            referenced_buffs.update(r[0] for r in it['refs'] if r[1] == 'buff')
-    for sheet in UNITS.values():
-        referenced_buffs.update(r[0] for r in sheet['refs'] if r[1] == 'buff')
-    buffs_out = {n: BUFFS[n] for n in referenced_buffs}
+             'unit': set(UNITS.keys())}
+    def finalize(entity_name, refs, btips):
+        kept = []
+        for r in refs:
+            if r[1] == 'buff':
+                # buff refs are pre-validated (only added when describable); drop a
+                # buff whose name is a whole word of the entity's OWN name, whose
+                # name recurs throughout its own text (e.g. "Poison Sting gains …")
+                # and would self-link the shared word "Poison" onto the Poison buff.
+                if r[0] in btips and not re.search(
+                        r'(?<![A-Za-z])' + re.escape(r[0]) + r'(?![A-Za-z])', entity_name):
+                    kept.append(r)
+            elif r[0] in valid.get(r[1], ()):
+                kept.append(r)
+        keep_buffs = {r[0] for r in kept if r[1] == 'buff'}
+        return kept, {n: v for n, v in btips.items() if n in keep_buffs}
+    for it in spells + equipment + components:
+        it['refs'], it['btips'] = finalize(it['name'], it['refs'], it.get('btips', {}))
+    for name, sheet in UNITS.items():
+        sheet['refs'], sheet['btips'] = finalize(name, sheet['refs'], sheet.get('btips', {}))
     # Stable integer ids for shareable build URLs (append-only; see ids.py).
     # Mutates ids.json on disk — it MUST be committed alongside data.json.
     idmap = ids_mod.load_ids()
@@ -940,7 +1010,6 @@ def main():
         "equipment": equipment,
         "components": components,
         "units": UNITS,
-        "buffs": buffs_out,
         "tags": extract_tags(),
         "colors": tooltip_colors,
         "slots": list(SLOT_NAMES.values()),
@@ -952,11 +1021,14 @@ def main():
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
     monsters = sum(1 for s in UNITS.values() if s.get("is_monster"))
     companions = sum(1 for s in UNITS.values() if s.get("is_companion"))
+    distinct_buffs = set()
+    for it in spells + equipment + components + list(UNITS.values()):
+        distinct_buffs.update(it.get("btips", {}))
     print("Wrote", out_path)
     print("spells:", len(data["spells"]), "equipment:", len(data["equipment"]),
           "components:", len(data["components"]), "units:", len(data["units"]),
           "(monsters:", monsters, "companions:", companions, ")",
-          "buffs:", len(buffs_out))
+          "distinct buffs linked:", len(distinct_buffs))
 
 if __name__ == "__main__":
     main()

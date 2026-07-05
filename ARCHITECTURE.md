@@ -117,11 +117,12 @@ Supporting machinery:
   to `None` and are dropped.
 - `UNIT_FACTORY`: name → factory, so a unit's *own* refs can be computed from its factory source
   (a summon-only unit isn't in the monster roster loop, so its refs are filled in `main()`).
-- `BUFF_IDENT`: buff class identifier → display name, built by `build_buff_map` by walking the
-  `Buff` subclass tree (`_all_subclasses`, not any module's `__dict__` — so it's import-order
-  independent and the shipped buff set is stable across rebuilds). Kept **separate** from
-  `IDENT_MAP` on purpose: a buff class sharing a name with a real spell/unit must never neutralize
-  that identifier via the collision rule. `refs_for` consults it as a fallback after `IDENT_MAP`.
+- `BUFF_IDENT` / `BUFF_CLASS`: buff class identifier → display name / class, built by `build_buff_map`
+  by walking the `Buff` subclass tree (`_all_subclasses`, not any module's `__dict__` — so it's
+  import-order independent and stable across rebuilds). Kept **separate** from `IDENT_MAP` on purpose:
+  a buff class sharing a name with a real spell/unit must never neutralize that identifier via the
+  collision rule. `refs_for` consults them as a fallback after `IDENT_MAP` and resolves each buff's
+  description per call site (see §6's buff-glossary note).
 - **Ref pruning**: in `main()`, refs whose target isn't actually in the output (units with no card)
   are dropped, so every link resolves. There should always be **0 broken refs**.
 
@@ -179,19 +180,24 @@ The game runs this when a unit enters a level **and in the examine panel itself*
 `resists_applied` and needs no level). Skipping it (the original bug) showed Vampire as only
 `Fire -100`, hiding its Holy vulnerability — and was wrong for **214 of 412** units.
 
-**Buff glossary (`data.buffs`, `BUFFS`/`build_buff_map`):** many abilities name a buff that has no
-card and is never explained — e.g. Brew Concoctions says "gain a stack of *Brewed Concoctions*"
-without saying what that does. `build_buff_map` instantiates every `Buff` subclass, keeps the ones
-with a usable name + description (`get_description` → `get_tooltip`, rendered through the game's own
-`resolve_text`), and records `{name, desc, color}`. Many buffs need constructor args
-(`RegenBuff(heal)`, `DamageAuraBuff(damage, …)`), so `_construct_buff` retries with filler positional
-args — a zero-arg-only attempt silently dropped ~40 referenced buffs (the Witch Doctor's
-Regeneration). A rendered description containing a standalone `None` is a filler artifact (e.g.
-`ChannelBuff`'s `{spell}`) and is discarded. A card links a buff only when its **source code
-references the buff class** (the `BUFF_IDENT` fallback in `refs_for`) — same AST rigor as every other
-ref, so no prose false positives. Only buffs actually referenced by some card are shipped (~110 of
-~400 buildable), and the frontend renders them as hover-only tooltips (`renderBuffSheet`), styled
-with a dashed underline + help cursor so they read as glossary terms, not navigable links.
+**Buff glossary (per-entity `btips`, `build_buff_map`/`refs_for`):** many abilities name a buff that
+has no card and is never explained — e.g. Brew Concoctions says "gain a stack of *Brewed
+Concoctions*" without saying what that does. `build_buff_map` walks every `Buff` subclass and records
+`BUFF_IDENT` (identifier → display name) and `BUFF_CLASS` (identifier → class); it does **not**
+finalize a description, because the same buff reads differently depending on the args the source
+applies — `RegenBuff(heal)` ranges from "Heals 1 HP" to "Heals 100 HP" across the game. Instead each
+reference is resolved **at its call site**: `refs_for` finds the `ast.Call` that constructs the buff,
+reads its literal args (`_literal_args`/`_buff_call_args`), constructs *that* class with *those* args,
+and renders the description (`_resolve_buff`). The result is attached to the referencing entity as
+`btips = {name: {desc, color}}` and embedded on each link in the frontend, so `RegenBuff(1)` and
+`RegenBuff(10)` show their own numbers, and a name shared by two classes (both display "Regeneration")
+resolves to whichever class *that* entity references. Args that aren't literals (a stat/variable)
+fall back to filler positional args; a description that still renders a standalone `None` (e.g.
+`ChannelBuff`'s `{spell}`) is treated as un-describable and the buff isn't linked. A card links a buff
+only when its **source code references the buff class** (the `BUFF_IDENT` fallback in `refs_for`) —
+same AST rigor as every other ref, so no prose false positives. The frontend renders them as
+hover-only tooltips (`renderBuffSheet` from the link's `data-desc`/`data-color`), styled with a dashed
+underline + help cursor so they read as glossary terms, not navigable links.
 
 *Disambiguating a buff from a same-named damage type ("Poison" the status vs. `[Poison]` the
 element)* uses three independent signals, so we never fall back to a blanket exclusion:

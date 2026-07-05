@@ -167,7 +167,7 @@ function tipHtml(node) {
     if (k === 'spell') return renderSpellSheet(n);
     if (k === 'equipment') return renderEquipSheet(n);
     if (k === 'unit') return renderUnitSheet(n);
-    if (k === 'buff') return renderBuffSheet(n);
+    if (k === 'buff') return buffSheetFromNode(node);
   }
   return null;
 }
@@ -190,7 +190,7 @@ function wireTooltips() {
       // Buffs have no card to navigate to — toggle their glossary tooltip instead.
       if (xr.dataset.k === 'buff') {
         if (unitTip && unitTip.style.display === 'block') hideTip();
-        else { const r = xr.getBoundingClientRect(); showTip(renderBuffSheet(xr.dataset.n), e.clientX || r.left + 20, e.clientY || r.bottom); }
+        else { const r = xr.getBoundingClientRect(); showTip(buffSheetFromNode(xr), e.clientX || r.left + 20, e.clientY || r.bottom); }
         return;
       }
       hideTip(); gotoEntry(xr.dataset.k, xr.dataset.n); return;
@@ -235,7 +235,7 @@ function renderComponentSheet(name) {
     + (c.on_craft ? '<span class="badge oncraft">On Craft</span>' : '')
     + (c.on_pickup && !c.on_craft ? '<span class="badge onpickup">On Pickup</span>' : '')
     + (c.rare ? '<span class="badge">rare</span>' : '');
-  const desc = c.desc ? `<div class="udesc">${linkify(renderMarkup(c.desc), c.refs)}</div>` : '';
+  const desc = c.desc ? `<div class="udesc">${linkify(renderMarkup(c.desc), c.refs, c.btips)}</div>` : '';
   return `<div class="unit-sheet">
     <div class="uhead">
       <img class="uicon" src="icons/components/${esc(c.icon)}${IV}" onerror="this.style.visibility='hidden'">
@@ -266,32 +266,45 @@ function renderSpellSheet(name) {
 }
 
 // Buffs are named status effects with no card of their own — hover-only glossary.
-let BUFFS_BY_NAME = {};
-function renderBuffSheet(name) {
-  const b = BUFFS_BY_NAME[name];
-  if (!b) return `<div class="unit-sheet"><div class="uname">${esc(name)}</div></div>`;
-  const col = b.color ? rgb(b.color) : 'var(--fg)';
+// The description + color are resolved per reference site (the actual class and
+// args the source applies) and embedded on each link, so RegenBuff(1) vs
+// RegenBuff(10) each show their own value. renderBuffSheet reads them off the node.
+function renderBuffSheet(name, desc, color) {
+  const col = color ? rgb(color) : 'var(--fg)';
   return `<div class="unit-sheet buff-sheet">
     <div class="uhead">
       <div class="uhmeta">
-        <div class="uname" style="color:${col}">${esc(b.name)}</div>
+        <div class="uname" style="color:${col}">${esc(name)}</div>
         <div class="card-meta"><span class="badge">buff</span></div>
       </div>
     </div>
-    ${b.desc ? `<div class="udesc">${renderMarkup(b.desc)}</div>` : ''}
+    ${desc ? `<div class="udesc">${renderMarkup(desc)}</div>` : ''}
   </div>`;
+}
+// Pull the embedded desc/color off a buff xref node (data-desc / data-color).
+function buffSheetFromNode(node) {
+  const color = node.dataset.color ? node.dataset.color.split(',').map(Number) : null;
+  return renderBuffSheet(node.dataset.n, node.dataset.desc || '', color);
 }
 
 // Cross-reference linking ---------------------------------------------------
 // refs = [[displayName, kind], …] this entity references (from AST analysis).
 // We only linkify names that are CONFIRMED references, located by position in
 // the rendered text — so no false positives from common words.
-function linkify(html, refs) {
+// btips = {buffName: {desc, color}} resolved per entity; embedded on buff links so
+// each tooltip reflects the value that entity actually applies.
+function linkify(html, refs, btips) {
   if (!html || !refs || !refs.length) return html;
   const kindOf = {};
   for (const [n, k] of refs) kindOf[n] = k;
   const names = refs.map(r => r[0]).sort((a, b) => b.length - a.length);
   const re = new RegExp('(?<![A-Za-z])(' + names.map(escapeRegex).join('|') + ')(?![A-Za-z])', 'g');
+  const buffSpan = m => {
+    const t = btips && btips[m];
+    const dd = t ? ` data-desc="${esc(t.desc)}"` : '';
+    const dc = t && t.color ? ` data-color="${esc(t.color.join(','))}"` : '';
+    return `<span class="xref" data-k="buff" data-n="${esc(m)}"${dd}${dc}>${m}</span>`;
+  };
   // Only touch text between tags so we never corrupt existing markup/attributes.
   // Track depth inside renderMarkup's class="mk" spans ([markup] tokens). The game
   // writes buff keywords in markup too (e.g. [Shared Pain:blood]), so being inside
@@ -307,9 +320,10 @@ function linkify(html, refs) {
       return seg;
     }
     const inMarkup = mkDepth > 0;
-    return seg.replace(re, m =>
-      (inMarkup && kindOf[m] === 'buff' && TAGCOLOR[m]) ? m
-        : `<span class="xref" data-k="${kindOf[m]}" data-n="${esc(m)}">${m}</span>`);
+    return seg.replace(re, m => {
+      if (kindOf[m] === 'buff') return (inMarkup && TAGCOLOR[m]) ? m : buffSpan(m);
+      return `<span class="xref" data-k="${kindOf[m]}" data-n="${esc(m)}">${m}</span>`;
+    });
   }).join('');
 }
 
@@ -452,8 +466,8 @@ function equipmentCard(e) {
   card.id = 'e-' + slug(e.name);
   const recipe = recipeChips(e.recipe);
   const bonuses = e.bonuses.length
-    ? `<div class="bonuses">${e.bonuses.map(b => `<div class="b">${linkify(renderMarkup(b), e.refs)}</div>`).join('')}</div>` : '';
-  const desc = e.desc ? `<div class="desc">${linkify(renderMarkup(e.desc), e.refs)}</div>` : '';
+    ? `<div class="bonuses">${e.bonuses.map(b => `<div class="b">${linkify(renderMarkup(b), e.refs, e.btips)}</div>`).join('')}</div>` : '';
+  const desc = e.desc ? `<div class="desc">${linkify(renderMarkup(e.desc), e.refs, e.btips)}</div>` : '';
   card.innerHTML = `
     <div class="card-head">
       ${iconImg('equipment', e)}
@@ -906,7 +920,7 @@ function componentCard(c) {
       </div>
       <button class="add-build${INVENTORY[c.name] ? ' in' : ''}" data-addcomp="${esc(c.name)}">${INVENTORY[c.name] ? `✓ In pool ×${INVENTORY[c.name]}` : '＋ Add to pool'}</button>
     </div>
-    <div class="desc">${linkify(renderMarkup(c.desc), c.refs)}</div>
+    <div class="desc">${linkify(renderMarkup(c.desc), c.refs, c.btips)}</div>
     ${summonRow(c.summons)}`;
   return card;
 }
@@ -953,7 +967,7 @@ function spellCard(s) {
   const dt = s.damage_type.length ? `<div class="card-meta">${s.damage_type.map(tagPill).join('')}</div>` : '';
   const upg = s.upgrades.length ? `
     <details class="upgrades"><summary>${s.upgrades.length} upgrade${s.upgrades.length > 1 ? 's' : ''}</summary>
-      ${s.upgrades.map(u => `<div class="upg"><span class="uh">${esc(u.name)}</span><span class="ul">${u.level} SP</span><div class="desc">${linkify(renderMarkup(u.desc), s.refs)}</div></div>`).join('')}
+      ${s.upgrades.map(u => `<div class="upg"><span class="uh">${esc(u.name)}</span><span class="ul">${u.level} SP</span><div class="desc">${linkify(renderMarkup(u.desc), s.refs, s.btips)}</div></div>`).join('')}
     </details>` : '';
   const levelBadge = s.forbidden
     ? `<span class="badge level forbidden" title="Forbidden — granted by equipment, not bought with SP">Forbidden</span>`
@@ -975,7 +989,7 @@ function spellCard(s) {
         </div>
       </div>
     </div>
-    <div class="desc">${linkify(renderMarkup(s.desc), s.refs)}</div>
+    <div class="desc">${linkify(renderMarkup(s.desc), s.refs, s.btips)}</div>
     ${granted}
     ${stats ? `<div class="stats">${stats}</div>` : ''}
     ${dt}${summonRow(s.summons)}${upg}`;
@@ -1065,7 +1079,7 @@ function gotoEntry(kind, name) {
 }
 
 // Build the name->kind index and the linkify() that wraps references in <span class="xref">.
-function renderAbility(a, refs) {
+function renderAbility(a, refs, btips) {
   const bits = [];
   if (a.damage) bits.push(`<span class="udmg">${a.damage}${a.damage_type ? ' ' + a.damage_type.join('/') : ''} dmg</span>`);
   if (a.range && a.range > 1.5) bits.push(`rng ${Math.round(a.range)}`);
@@ -1074,7 +1088,7 @@ function renderAbility(a, refs) {
   if (a.cool_down) bits.push(`cd ${a.cool_down}`);
   if (a.hp_cost) bits.push(`${a.hp_cost} hp`);
   if (a.quick_cast) bits.push('quick');
-  return `<div class="uab"><span class="uabn">${esc(a.name)}</span>${bits.length ? ` <span class="ubits">${bits.join(' · ')}</span>` : ''}${a.desc ? `<div class="udesc">${linkify(renderMarkup(a.desc), refs)}</div>` : ''}</div>`;
+  return `<div class="uab"><span class="uabn">${esc(a.name)}</span>${bits.length ? ` <span class="ubits">${bits.join(' · ')}</span>` : ''}${a.desc ? `<div class="udesc">${linkify(renderMarkup(a.desc), refs, btips)}</div>` : ''}</div>`;
 }
 
 function monsterCard(u) {
@@ -1083,8 +1097,8 @@ function monsterCard(u) {
   const flags = [u.flying && 'Flying', u.stationary && 'Immobile', u.burrowing && 'Burrowing'].filter(Boolean);
   const resists = Object.entries(u.resists).sort((a, b) => b[1] - a[1])
     .map(([t, v]) => `<span class="ures" style="color:${TAGCOLOR[t] || 'var(--muted)'}">${v}% ${esc(t)}</span>`).join('');
-  const abilities = u.abilities.map(a => renderAbility(a, u.refs)).join('');
-  const passives = u.passives.map(p => `<div class="upass">${linkify(renderMarkup(p), u.refs)}</div>`).join('');
+  const abilities = u.abilities.map(a => renderAbility(a, u.refs, u.btips)).join('');
+  const passives = u.passives.map(p => `<div class="upass">${linkify(renderMarkup(p), u.refs, u.btips)}</div>`).join('');
   const depthBadge = u.depth ? `<span class="badge">Depth ${u.depth}</span>` : '';
   const typeBadge = u.is_companion ? '<span class="badge">companion</span>'
     : u.is_monster ? '' : '<span class="badge">summon</span>';
@@ -1881,7 +1895,6 @@ async function init() {
   DATA = await fetch('data.json').then(r => r.json());
   COLORS = DATA.colors;
   UNITS = DATA.units || {};
-  BUFFS_BY_NAME = DATA.buffs || {};
   for (const [name, info] of Object.entries(DATA.tags.all)) TAGCOLOR[name] = rgb(info.color);
   COMPONENT_TAGS = DATA.tags.component_tags.filter(t => t !== 'Any').sort();
   STAT_META = DATA.stat_meta || {};
