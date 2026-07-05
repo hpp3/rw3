@@ -142,11 +142,18 @@ and handles dynamic construction that AST can't. Summon chips in the UI link via
 So unit cross-links have two sources: structured `summons` (chips) and AST `refs` (inline links in
 prose). Both feed the same `units` catalog.
 
+A monster can also summon units from **inside its ability-spell classes** — `BatBreath.per_square_effect`
+does `self.summon(Bat())` — which neither the unit factory's AST nor `summons_of` on player content
+surfaces. So `refs_for` additionally scans the classes of a unit's `spells`, and `main()`'s unit loop
+runs to a **fixpoint**: any unit named in a card's refs that isn't carded yet is registered (via its
+`UNIT_FACTORY` entry) and processed in turn, since a summoned unit may summon others. This is what
+cards Bat, Freezing Coral, Ash Imp, Vine, etc.
+
 ---
 
 ## 6. The monster/unit catalog and the "passives = all buffs" subtlety
 
-`data.units` (437 entries) = the full bestiary (351 monsters: base spawns + evolutions + the rare
+`data.units` (459 entries) = the full bestiary (351 monsters: base spawns + evolutions + the rare
 rosters) **plus** summon-only minions and the 13 Tavern companions, deduped by name. Each is a stat
 sheet built by `register_unit`. `is_monster` distinguishes bestiary vs summon-only; `is_companion`
 flags the companions; `depth` is the earliest spawn depth for base monsters. Final bosses
@@ -193,11 +200,17 @@ and renders the description (`_resolve_buff`). The result is attached to the ref
 `RegenBuff(10)` show their own numbers, and a name shared by two classes (both display "Regeneration")
 resolves to whichever class *that* entity references. Args that aren't literals (a stat/variable)
 fall back to filler positional args; a description that still renders a standalone `None` (e.g.
-`ChannelBuff`'s `{spell}`) is treated as un-describable and the buff isn't linked. A card links a buff
-only when its **source code references the buff class** (the `BUFF_IDENT` fallback in `refs_for`) —
-same AST rigor as every other ref, so no prose false positives. The frontend renders them as
-hover-only tooltips (`renderBuffSheet` from the link's `data-desc`/`data-color`), styled with a dashed
-underline + help cursor so they read as glossary terms, not navigable links.
+`ChannelBuff`'s `{spell}`) is treated as un-describable and the buff isn't linked. When a buff has no
+`get_description`/`get_tooltip` prose at all, its text falls back to its **mechanical effect lines**
+(`render_bonus_lines`: resists and stat bonuses) — many status buffs are pure stat effects (e.g.
+Conductivity = "-100% Resist Lightning"). A card links a buff only when its **source code references
+the buff class** — for a unit this includes the classes of its **ability spells** (a buff applied
+inside a monster spell's `cast()`, not the unit factory), same AST rigor as every other ref, so no
+prose false positives. The frontend renders them as hover-only tooltips (`renderBuffSheet` from the
+link's `data-desc`/`data-color`), styled with a dashed underline + help cursor. Buff names match
+**case-insensitively** (the game's `SimpleCurse` renders "Apply conductivity …" for the "Conductivity"
+buff); unit/spell/equipment names stay case-exact, and both allow a trailing plural so "Summon 3 Ash
+Imps" / "Fae Thorns" link to the singular unit.
 
 *Disambiguating a buff from a same-named damage type ("Poison" the status vs. `[Poison]` the
 element)* uses three independent signals, so we never fall back to a blanket exclusion:

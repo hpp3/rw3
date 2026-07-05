@@ -556,6 +556,16 @@ def _buff_text(b):
                 return rendered
         except Exception:
             continue
+    # No prose: fall back to the buff's mechanical effect lines (resists / stat
+    # bonuses). Many status buffs are pure stat effects with no get_description —
+    # e.g. Conductivity is just -100% Lightning resist — and the game builds their
+    # tooltip from these the same way it does for equipment (render_bonus_lines).
+    try:
+        lines = render_bonus_lines(b)
+        if lines:
+            return "\n".join(lines)
+    except Exception:
+        pass
     return ""
 
 def _all_subclasses(cls):
@@ -607,6 +617,18 @@ def refs_for(instance, entry, self_name):
             if base is object or base.__name__ in FRAMEWORK_BASES:
                 continue
             srcs.append(_getsource(base))
+    # For a unit, also scan the classes of its abilities: a summon or buff applied
+    # *inside* an ability's cast()/per_square_effect (e.g. BatBreath's
+    # `self.summon(Bat())`, or a monster spell's `apply_buff(...)`) lives in that
+    # ability-spell class, not the unit factory, so it's otherwise invisible.
+    if isinstance(instance, Unit):
+        for sp in getattr(instance, 'spells', None) or []:
+            spcls = type(sp)
+            if isinstance(spcls, type):
+                for base in spcls.__mro__:
+                    if base is object or base.__name__ in FRAMEWORK_BASES:
+                        continue
+                    srcs.append(_getsource(base))
     names, attrs = _collect_idents(srcs)
     call_args = _buff_call_args(srcs)
     out, seen, btips = [], set(), {}
@@ -665,9 +687,7 @@ def extract_monsters(factories):
             continue
         if not isinstance(u, Unit):
             continue
-        register_unit(u)
-        # factory is authoritative for monsters
-        UNITS[u.name]["refs"], UNITS[u.name]["btips"] = refs_for(u, fac, u.name)
+        register_unit(u)          # refs computed later in main()'s unit fixpoint
         MONSTER_NAMES.add(u.name)
         if depth is not None:
             cur = MONSTER_DEPTH.get(u.name)
@@ -949,26 +969,51 @@ def main():
     components = extract_components()            # these populate UNITS via summons_of()
     extract_monsters(monster_factories)         # full bestiary into UNITS
     extract_companions()                         # Tavern companions into UNITS
-    # annotate units with monster-roster metadata + factory-derived refs
+
+    # Compute every unit's refs, and card any unit it summons that isn't already
+    # carded — to a fixpoint, since a summoned unit may summon others. A unit's
+    # summons come from AST (`self.summon(Bat())` inside an ability class, now
+    # scanned by refs_for) and from the game's examine-tooltip hook (SimpleSummon
+    # etc.); both feed the same unit refs.
+    def compute_unit_refs(name):
+        fac = UNIT_FACTORY.get(name)
+        inst = _safe_call(fac) if fac else None
+        if inst is None:
+            return None
+        refs, btips = refs_for(inst, fac, name)
+        for sp in getattr(inst, 'spells', None) or []:
+            for nm in summons_of(sp):
+                if nm != name and [nm, 'unit'] not in refs:
+                    refs.append([nm, 'unit'])
+        # A unit's own permanent buffs are already shown in full under Passives;
+        # don't also linkify their names on the card (the Vampire Hunter's
+        # "Silvered Weapons" self-link). Buffs it merely grants/applies aren't in
+        # u.buffs (e.g. the Alchemist's Brewed Concoctions), so they stay.
+        own = {getattr(b, 'name', None) for b in getattr(inst, 'buffs', [])}
+        refs = [r for r in refs if not (r[1] == 'buff' and r[0] in own)]
+        return refs, btips
+
+    queue = list(UNITS.keys())
+    while queue:
+        name = queue.pop()
+        if name not in UNITS:
+            continue
+        got = compute_unit_refs(name)
+        if got is None:
+            continue
+        UNITS[name]["refs"], UNITS[name]["btips"] = got
+        for r in UNITS[name]["refs"]:
+            if r[1] == 'unit' and r[0] not in UNITS:
+                nf = UNIT_FACTORY.get(r[0])
+                ni = _safe_call(nf) if nf else None
+                if ni is not None and ni.name not in UNITS:
+                    register_unit(ni)
+                    queue.append(ni.name)
     for name, sheet in UNITS.items():
         sheet["is_monster"] = name in MONSTER_NAMES
         sheet["is_companion"] = name in COMPANION_NAMES
         if name in MONSTER_DEPTH:
             sheet["depth"] = MONSTER_DEPTH[name]
-        fac = UNIT_FACTORY.get(name)
-        if fac:
-            inst = _safe_call(fac)
-            if inst is not None:
-                refs, btips = refs_for(inst, fac, name)
-                # A unit's own permanent buffs are already shown in full under
-                # Passives; don't also linkify their names on the card. Without
-                # this, the Vampire Hunter's "Silvered Weapons" passive got a
-                # redundant self-link on the word "Silvered" (SilveredBuff.name).
-                # Buffs a unit merely grants or applies conditionally aren't in
-                # u.buffs (e.g. the Alchemist's Brewed Concoctions), so they stay.
-                own_buffs = {getattr(b, 'name', None) for b in getattr(inst, 'buffs', [])}
-                sheet["refs"] = [r for r in refs if not (r[1] == 'buff' and r[0] in own_buffs)]
-                sheet["btips"] = btips
     # Prune cross-refs whose target has no card (e.g. units that are never
     # surfaced), so every link resolves to a real entry.
     valid = {'spell': {s['name'] for s in spells},

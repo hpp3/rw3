@@ -295,15 +295,20 @@ function buffSheetFromNode(node) {
 // each tooltip reflects the value that entity actually applies.
 function linkify(html, refs, btips) {
   if (!html || !refs || !refs.length) return html;
-  const kindOf = {};
-  for (const [n, k] of refs) kindOf[n] = k;
+  const kindOf = {}, canonOf = {};   // exact name -> kind; lowercased -> canonical name
+  for (const [n, k] of refs) { kindOf[n] = k; canonOf[n.toLowerCase()] = n; }
   const names = refs.map(r => r[0]).sort((a, b) => b.length - a.length);
-  const re = new RegExp('(?<![A-Za-z])(' + names.map(escapeRegex).join('|') + ')(?![A-Za-z])', 'g');
-  const buffSpan = m => {
-    const t = btips && btips[m];
+  // Case-insensitive so a buff written lower-case links (the game's SimpleCurse
+  // renders "Apply conductivity …" for the buff "Conductivity"). A trailing plural
+  // is also allowed so "Summon 3 Ash Imps" / "Fae Thorns" link to the singular
+  // unit. The base + plural are captured separately; the canonical name is resolved
+  // per match, and non-buff kinds are still required to match case-exactly below.
+  const re = new RegExp('(?<![A-Za-z])(' + names.map(escapeRegex).join('|') + ')(e?s)?(?![A-Za-z])', 'gi');
+  const buffSpan = (text, base) => {
+    const t = btips && btips[base];
     const dd = t ? ` data-desc="${esc(t.desc)}"` : '';
     const dc = t && t.color ? ` data-color="${esc(t.color.join(','))}"` : '';
-    return `<span class="xref" data-k="buff" data-n="${esc(m)}"${dd}${dc}>${m}</span>`;
+    return `<span class="xref" data-k="buff" data-n="${esc(base)}"${dd}${dc}>${text}</span>`;
   };
   // Only touch text between tags so we never corrupt existing markup/attributes.
   // Track depth inside renderMarkup's class="mk" spans ([markup] tokens). The game
@@ -320,9 +325,19 @@ function linkify(html, refs, btips) {
       return seg;
     }
     const inMarkup = mkDepth > 0;
-    return seg.replace(re, m => {
-      if (kindOf[m] === 'buff') return (inMarkup && TAGCOLOR[m]) ? m : buffSpan(m);
-      return `<span class="xref" data-k="${kindOf[m]}" data-n="${esc(m)}">${m}</span>`;
+    return seg.replace(re, (full, base, plural) => {
+      const canon = kindOf[base] ? base : canonOf[base.toLowerCase()];
+      const kind = kindOf[canon];
+      if (!kind) return full;
+      if (kind === 'buff') {
+        // Don't pluralize status names ("Poisons" the verb isn't the Poison buff).
+        if (plural) return full;
+        return (inMarkup && TAGCOLOR[canon]) ? full : buffSpan(full, canon);
+      }
+      // Units/spells/equipment link only on an exact-case match — case-folding
+      // them would wrongly link common lowercase words to unit/spell names.
+      if (base !== canon) return full;
+      return `<span class="xref" data-k="${kind}" data-n="${esc(canon)}">${full}</span>`;
     });
   }).join('');
 }
