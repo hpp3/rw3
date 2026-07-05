@@ -293,9 +293,11 @@ function linkify(html, refs) {
   const names = refs.map(r => r[0]).sort((a, b) => b.length - a.length);
   const re = new RegExp('(?<![A-Za-z])(' + names.map(escapeRegex).join('|') + ')(?![A-Za-z])', 'g');
   // Only touch text between tags so we never corrupt existing markup/attributes.
-  // Track depth inside renderMarkup's class="mk" spans: a buff name there came
-  // from a [markup] token (e.g. the [Poison] damage type), not a prose mention of
-  // the status, so we don't linkify it. Other ref kinds are unaffected.
+  // Track depth inside renderMarkup's class="mk" spans ([markup] tokens). The game
+  // writes buff keywords in markup too (e.g. [Shared Pain:blood]), so being inside
+  // markup isn't itself disqualifying — we only skip a buff whose name is ALSO a
+  // Tag (damage type/element): inside a [Poison] token that's the damage type, not
+  // the Poison status. Non-tag buff names still link anywhere.
   let mkDepth = 0;
   return html.split(/(<[^>]+>)/).map(seg => {
     if (!seg) return seg;
@@ -306,7 +308,7 @@ function linkify(html, refs) {
     }
     const inMarkup = mkDepth > 0;
     return seg.replace(re, m =>
-      (inMarkup && kindOf[m] === 'buff') ? m
+      (inMarkup && kindOf[m] === 'buff' && TAGCOLOR[m]) ? m
         : `<span class="xref" data-k="${kindOf[m]}" data-n="${esc(m)}">${m}</span>`);
   }).join('');
 }

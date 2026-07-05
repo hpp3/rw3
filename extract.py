@@ -468,6 +468,19 @@ def _getsource(o):
 BUFF_IDENT = {}    # class identifier -> buff display name  (None == ambiguous)
 BUFFS = {}         # display name -> {name, desc, color}
 
+def _construct_buff(cls):
+    """Instantiate a Buff for its name/description. Many buffs need constructor
+    args (e.g. RegenBuff(heal), DamageAuraBuff(damage, ...)); a zero-arg attempt
+    would skip them entirely — and they'd be silently unlinkable (the Witch
+    Doctor's Regeneration). Fall back to filler positional args; the name and
+    description template are what we read, and those don't depend on the values."""
+    for args in ((), (1,), (1, 1), (1, 1, 1), (1, 1, 1, 1)):
+        try:
+            return cls(*args)
+        except Exception:
+            continue
+    return None
+
 def _buff_text(b):
     for meth in ('get_description', 'get_tooltip'):
         f = getattr(b, meth, None)
@@ -477,7 +490,13 @@ def _buff_text(b):
             fmt = b.fmt_dict() if hasattr(b, 'fmt_dict') else {}
             txt = f()
             if txt:
-                return rtext(txt, fmt=fmt)
+                rendered = rtext(txt, fmt=fmt)
+                # A standalone "None" means a fmt value was empty because we
+                # filler-constructed the buff (e.g. ChannelBuff's {spell} with no
+                # real spell). That description is an artifact, not real text.
+                if re.search(r'(?<![A-Za-z])None(?![A-Za-z])', rendered):
+                    return ""
+                return rendered
         except Exception:
             continue
     return ""
@@ -503,7 +522,7 @@ def build_buff_map():
     # never linkifies a buff name inside a [markup] token (the damage type).
     for cls in sorted(_all_subclasses(Buff), key=lambda c: c.__name__):
         ident = cls.__name__
-        b = _safe_call(cls)
+        b = _construct_buff(cls)
         if b is None:
             continue
         name = getattr(b, 'name', None)

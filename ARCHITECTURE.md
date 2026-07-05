@@ -183,9 +183,13 @@ The game runs this when a unit enters a level **and in the examine panel itself*
 card and is never explained — e.g. Brew Concoctions says "gain a stack of *Brewed Concoctions*"
 without saying what that does. `build_buff_map` instantiates every `Buff` subclass, keeps the ones
 with a usable name + description (`get_description` → `get_tooltip`, rendered through the game's own
-`resolve_text`), and records `{name, desc, color}`. A card links a buff only when its **source code
+`resolve_text`), and records `{name, desc, color}`. Many buffs need constructor args
+(`RegenBuff(heal)`, `DamageAuraBuff(damage, …)`), so `_construct_buff` retries with filler positional
+args — a zero-arg-only attempt silently dropped ~40 referenced buffs (the Witch Doctor's
+Regeneration). A rendered description containing a standalone `None` is a filler artifact (e.g.
+`ChannelBuff`'s `{spell}`) and is discarded. A card links a buff only when its **source code
 references the buff class** (the `BUFF_IDENT` fallback in `refs_for`) — same AST rigor as every other
-ref, so no prose false positives. Only buffs actually referenced by some card are shipped (~70 of
+ref, so no prose false positives. Only buffs actually referenced by some card are shipped (~110 of
 ~400 buildable), and the frontend renders them as hover-only tooltips (`renderBuffSheet`), styled
 with a dashed underline + help cursor so they read as glossary terms, not navigable links.
 
@@ -196,9 +200,11 @@ element)* uses three independent signals, so we never fall back to a blanket exc
    names only, so the Corrupted Lamasu's `Tags.Poison` aura never gets a spurious Poison-buff ref,
    while the Witch Doctor's literal `Poison` hex does.
 2. **Markup token vs. prose (`renderMarkup` `class="mk"` → `linkify`).** `renderMarkup` tags every
-   `[…]` token's output with `class="mk"`; `linkify` refuses to link a buff name inside such a span.
-   So "3 [Dark] or [Poison] damage" stays colored-but-unlinked, while a bare-prose "Necrosis,
-   Poison, or Bleed" links each status.
+   `[…]` token's output with `class="mk"`. The game writes *buff* keywords in markup too (e.g.
+   `[Shared Pain:blood]`), so being inside markup isn't itself disqualifying — `linkify` skips a
+   buff there only when its name is **also a Tag** (`TAGCOLOR[name]`): inside `[Poison]` that's the
+   damage type, not the status. So "3 [Dark] or [Poison] damage" stays colored-but-unlinked, while
+   `[Shared Pain:blood]` and a bare-prose "Necrosis, Poison, or Bleed" all link.
 3. **Own-name words (`prune`).** A buff whose name is a whole word of the entity's *own* name is
    dropped from its refs — otherwise "Poison Sting gains …" would self-link "Poison" on the Poison
    Sting card (the same shape as the Vampire Hunter's "Silvered Weapons" own-buff exclusion above).
