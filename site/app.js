@@ -47,6 +47,14 @@ function renderMarkup(str) {
   return out.replace(/\n/g, '<br>');
 }
 
+// Plain-text version of a markup string, for search haystacks: turns
+// [Nature:nature] -> "Nature" and [some_name] -> "some name", mirroring
+// renderMarkup's visible text. Without this, a token's ":colorkey]" sits
+// between words, so a phrase query like "Nature spells" never matches.
+function stripMarkup(str) {
+  return (str || '').replace(MARKUP_RE, (_, name) => name.replace(/_/g, ' '));
+}
+
 // ---------------------------------------------------------------------------
 // Small UI builders
 // ---------------------------------------------------------------------------
@@ -79,10 +87,14 @@ function unitSprite(u, ctxClass) {
   const anim = cols > 1 ? ' c' + cols : '';
   return `<div class="sprite ${ctxClass}${anim}" style="--cols:${cols};--rows:${rows};background-image:url(icons/units/${esc(u.icon)})"></div>`;
 }
-function summonRow(summons) {
-  if (!summons || !summons.length) return '';
-  const chips = summons.map(n => `<span class="summon-chip" data-unit="${esc(n)}" tabindex="0">${unitSprite(UNITS[n], 'chip-sprite')}${esc(n)}</span>`).join('');
-  return `<div class="summon-row"><span class="section-label">Summons</span><div class="summon-chips">${chips}</div></div>`;
+function summonRow(summons, poolSummons) {
+  const unitChips = (summons || []).map(n => `<span class="summon-chip" data-unit="${esc(n)}" tabindex="0">${unitSprite(UNITS[n], 'chip-sprite')}${esc(n)}</span>`);
+  // A summon that draws a random member of a named roster (Summon Wizard) links
+  // to the pool, which the Monsters tab can filter to. Labeled "Any Wizard".
+  const poolChips = (poolSummons || []).map(p => `<span class="pool-chip" data-pool="${esc(p)}" tabindex="0" title="Show all ${esc(p)}s in the Monsters tab">Any ${esc(p)}</span>`);
+  const chips = [...poolChips, ...unitChips];
+  if (!chips.length) return '';
+  return `<div class="summon-row"><span class="section-label">Summons</span><div class="summon-chips">${chips.join('')}</div></div>`;
 }
 // One steps() keyframe per distinct idle-frame count (idle loops at 5fps).
 function injectSpriteKeyframes() {
@@ -184,6 +196,8 @@ function wireTooltips() {
   });
   // touch / keyboard / navigation
   document.addEventListener('click', e => {
+    const pc = e.target.closest && e.target.closest('.pool-chip');
+    if (pc) { e.preventDefault(); hideTip(); gotoPool(pc.dataset.pool); return; }
     const xr = e.target.closest && e.target.closest('.xref');
     if (xr) {
       e.preventDefault();
@@ -447,6 +461,72 @@ function passesStatFilters(item, filters) {
   return true;
 }
 
+// Monster search: free-text over the grid, plus a summon-pool autocomplete.
+// Typing "wizard" suggests the "Any Wizard" pool; picking it (or arriving via a
+// spell's pool chip) adds a removable filter that narrows the grid to that roster.
+function buildPoolSuggestions(q) {
+  const out = [];
+  for (const name of Object.keys(DATA.pools || {})) {
+    if (MON.pools.has(name)) continue;                 // already an active filter
+    if ((name + ' any ' + name).toLowerCase().includes(q))
+      out.push({ pool: name, count: (DATA.pools[name] || []).length });
+  }
+  return out;
+}
+function makeMonSearch(inputEl, filtersEl) {
+  const dd = el('div', 'stat-dd');
+  dd.style.display = 'none';
+  document.body.appendChild(dd);
+
+  function positionDD() {
+    const r = inputEl.getBoundingClientRect();
+    dd.style.left = r.left + 'px';
+    dd.style.top = (r.bottom + 4) + 'px';
+    dd.style.width = r.width + 'px';
+  }
+  function updateDD() {
+    const q = inputEl.value.trim().toLowerCase();
+    const sugg = q.length >= 2 ? buildPoolSuggestions(q) : [];
+    if (!sugg.length) { dd.style.display = 'none'; return; }
+    dd._sugg = sugg;
+    dd.innerHTML = `<div class="stat-dd-head">Filter to a summon pool</div>` + sugg.map((s, i) =>
+      `<div class="stat-opt" data-i="${i}"><span class="so-kind pool">Pool</span><b>Any ${esc(s.pool)}</b><span class="so-count">${s.count}</span></div>`
+    ).join('');
+    positionDD();
+    dd.style.display = 'block';
+  }
+  function renderFilters() {
+    const pools = [...MON.pools];
+    if (!pools.length) { filtersEl.classList.add('hidden'); filtersEl.innerHTML = ''; return; }
+    filtersEl.classList.remove('hidden');
+    filtersEl.innerHTML = `<span class="af-label">Active filters:</span>` + pools.map(p =>
+      `<span class="af-chip"><span class="af-kind pool">Pool</span> Any ${esc(p)}<button data-af-pool="${esc(p)}" title="Remove">✕</button></span>`
+    ).join('');
+  }
+  function addPool(pool) {
+    MON.pools.add(pool);
+    inputEl.value = ''; MON.search = ''; dd.style.display = 'none';
+    renderFilters(); renderMonsters();
+  }
+
+  inputEl.addEventListener('input', () => { MON.search = inputEl.value; updateDD(); renderMonsters(); });
+  inputEl.addEventListener('focus', updateDD);
+  inputEl.addEventListener('blur', () => setTimeout(() => { dd.style.display = 'none'; }, 150));
+  dd.addEventListener('mousedown', e => {
+    const o = e.target.closest('.stat-opt');
+    if (o) { e.preventDefault(); addPool(dd._sugg[+o.dataset.i].pool); }
+  });
+  filtersEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-af-pool]');
+    if (b) { MON.pools.delete(b.dataset.afPool); renderFilters(); renderMonsters(); }
+  });
+  window.addEventListener('scroll', () => { if (dd.style.display === 'block') positionDD(); }, true);
+
+  MON._addPool = addPool;         // used by gotoPool (spell's "Any X" chip)
+  MON._renderFilters = renderFilters;
+  renderFilters();
+}
+
 // Multi-select chip groups -------------------------------------------------
 function buildChips(container, values, opts = {}) {
   container.innerHTML = '';
@@ -454,6 +534,7 @@ function buildChips(container, values, opts = {}) {
   values.forEach(v => {
     const label = opts.label ? opts.label(v) : v;
     const chip = el('button', 'chip');
+    chip.dataset.val = v;
     if (opts.dot) {
       const d = el('span', 'dot');
       d.style.background = opts.dot(v);
@@ -496,7 +577,7 @@ function equipmentCard(e) {
       <button class="add-build${WISH.has(e.name) ? ' in' : ''}" data-add="${esc(e.name)}">${WISH.has(e.name) ? '✓ Added' : '＋ Wishlist'}</button>
     </div>
     ${desc}${bonuses}
-    ${summonRow(e.summons)}
+    ${summonRow(e.summons, e.pool_summons)}
     <div class="section-label">Recipe · cost ${e.recipe_cost}</div>
     <div class="recipe">${recipe}</div>`;
   return card;
@@ -516,7 +597,7 @@ function renderEquipment() {
       for (const t of tags) if (!rtags.has(t)) return false;
     }
     if (q) {
-      const hay = (e.name + ' ' + e.desc + ' ' + e.bonuses.join(' ') + ' ' + e.tags.join(' ') + ' ' + e.slot + ' ' + (e.summons || []).join(' ')).toLowerCase();
+      const hay = stripMarkup(e.name + ' ' + e.desc + ' ' + e.bonuses.join(' ') + ' ' + e.tags.join(' ') + ' ' + e.slot + ' ' + (e.summons || []).join(' ')).toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -936,7 +1017,7 @@ function componentCard(c) {
       <button class="add-build${INVENTORY[c.name] ? ' in' : ''}" data-addcomp="${esc(c.name)}">${INVENTORY[c.name] ? `✓ In pool ×${INVENTORY[c.name]}` : '＋ Add to pool'}</button>
     </div>
     <div class="desc">${linkify(renderMarkup(c.desc), c.refs, c.btips)}</div>
-    ${summonRow(c.summons)}`;
+    ${summonRow(c.summons, c.pool_summons)}`;
   return card;
 }
 
@@ -1007,7 +1088,7 @@ function spellCard(s) {
     <div class="desc">${linkify(renderMarkup(s.desc), s.refs, s.btips)}</div>
     ${granted}
     ${stats ? `<div class="stats">${stats}</div>` : ''}
-    ${dt}${summonRow(s.summons)}${upg}`;
+    ${dt}${summonRow(s.summons, s.pool_summons)}${upg}`;
   return card;
 }
 
@@ -1019,7 +1100,7 @@ function renderSpells() {
     if (SP.statFilters && !passesStatFilters(s, SP.statFilters)) return false;
     if (SP.tags.size) { for (const t of SP.tags) if (!s.tags.includes(t)) return false; }
     if (q) {
-      const hay = (s.name + ' ' + s.desc + ' ' + s.tags.join(' ') + ' ' + s.upgrades.map(u => u.name + ' ' + u.desc).join(' ') + ' ' + (s.summons || []).join(' ')).toLowerCase();
+      const hay = stripMarkup(s.name + ' ' + s.desc + ' ' + s.tags.join(' ') + ' ' + s.upgrades.map(u => u.name + ' ' + u.desc).join(' ') + ' ' + (s.summons || []).join(' ')).toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -1078,8 +1159,19 @@ function clearFilters(tab) {
     const f = $('#sp-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
   } else if (tab === 'monsters') {
     MON.search = ''; const i = $('#mon-search'); if (i) i.value = '';
-    clearChipGroup(MON.types, '#mon-types'); clearChipGroup(MON.moves, '#mon-moves'); clearChipGroup(MON.tags, '#mon-tags');
+    clearChipGroup(MON.types, '#mon-types');
+    if (MON.pools) MON.pools.clear(); if (MON._renderFilters) MON._renderFilters();
+    clearChipGroup(MON.moves, '#mon-moves'); clearChipGroup(MON.tags, '#mon-tags');
   }
+}
+// A pool "summon" chip → Monsters tab, prefilling the pool as an active search
+// filter (the same state you'd reach by typing "wizard" and picking "Any Wizard").
+function gotoPool(pool) {
+  switchTab('monsters');
+  clearFilters('monsters');
+  if (MON._addPool) MON._addPool(pool);
+  else { MON.pools.add(pool); renderMonsters(); }
+  requestAnimationFrame(() => { const p = $('#tab-monsters'); if (p) p.scrollIntoView({ block: 'start' }); });
 }
 const TAB_RENDER = { equipment: () => renderEquipment(), spells: () => renderSpells(), monsters: () => renderMonsters() };
 function gotoEntry(kind, name) {
@@ -1133,7 +1225,7 @@ function monsterCard(u) {
   return card;
 }
 
-const MON = { search: '', types: null, moves: null, tags: null, sort: 'name' };
+const MON = { search: '', types: null, pools: null, moves: null, tags: null, sort: 'name' };
 const MOVE_FLAG = { Flying: 'flying', Immobile: 'stationary', Burrowing: 'burrowing' };
 function renderMonsters() {
   const q = MON.search.toLowerCase();
@@ -1142,10 +1234,11 @@ function renderMonsters() {
       const ty = u.is_companion ? 'companion' : u.is_monster ? 'monster' : 'summon';
       if (!MON.types.has(ty)) return false;
     }
+    if (MON.pools.size) { for (const p of MON.pools) if (!(u.pools || []).includes(p)) return false; }
     if (MON.moves.size) { for (const mv of MON.moves) if (!u[MOVE_FLAG[mv]]) return false; }
     if (MON.tags.size) { for (const t of MON.tags) if (!u.tags.includes(t)) return false; }
     if (q) {
-      const hay = (u.name + ' ' + u.tags.join(' ') + ' '
+      const hay = stripMarkup(u.name + ' ' + u.tags.join(' ') + ' '
         + u.abilities.map(a => a.name + ' ' + (a.desc || '')).join(' ') + ' '
         + u.passives.join(' ')).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -1987,6 +2080,7 @@ async function init() {
     label: t => ({ monster: 'Monster', summon: 'Summonable', companion: 'Companion' }[t]),
     onChange: renderMonsters, activeColor: () => '#fff'
   });
+  MON.pools = new Set();
   MON.moves = buildChips($('#mon-moves'), ['Flying', 'Immobile', 'Burrowing'], {
     onChange: renderMonsters, activeColor: () => '#fff'
   });
@@ -1996,7 +2090,7 @@ async function init() {
     activeColor: t => TAGCOLOR[t] || 'var(--accent)',
     onChange: renderMonsters
   });
-  $('#mon-search').addEventListener('input', e => { MON.search = e.target.value; renderMonsters(); });
+  makeMonSearch($('#mon-search'), $('#mon-filters'));
   $('#mon-sort').addEventListener('change', e => { MON.sort = e.target.value; renderMonsters(); });
 
   // render all

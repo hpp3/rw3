@@ -3,7 +3,7 @@ Extract Rift Wizard 3 spell / equipment / component data into a JSON file
 for the static browser resource. Reads ONLY from the game install dir;
 writes only into this project's site/ folder.
 """
-import os, sys, json, ast, inspect, textwrap, re
+import os, sys, json, ast, inspect, textwrap, re, random
 
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
@@ -326,8 +326,12 @@ def _unit_passives(u):
     return out
 
 def register_unit(u):
-    """Extract + store a unit's stat sheet; return its name."""
+    """Extract + store a unit's stat sheet; return its name (or None if it has
+    no real name — some abilities summon a nameless placeholder/prop unit, e.g.
+    the various Idols; those aren't cards and shouldn't be linked)."""
     name = u.name
+    if not name or name == 'Unnamed':
+        return None
     if name in UNITS:
         return name
     # Apply tag-derived default resists (Undead -> Holy -100/Dark 100/Ice 50,
@@ -355,6 +359,7 @@ def register_unit(u):
         "passives": _unit_passives(u),
         "refs": [],
         "btips": {},
+        "pool_summons": [],
         "icon": asset_filename(u.get_asset()),
     }
     cols, rows = sheet_grid(sheet["icon"], getattr(u, 'radius', 0))
@@ -377,11 +382,12 @@ IDENT_MAP = {}     # python identifier -> (display_name, kind) ; value None == a
 UNIT_FACTORY = {}  # unit display name -> its factory (for computing a unit's own refs)
 
 def _register_factory(name, fac):
-    if not name:
-        return
-    if name in UNIT_FACTORY and UNIT_FACTORY[name] is not fac:
-        UNIT_FACTORY[name] = None    # ambiguous
-    elif name not in UNIT_FACTORY:
+    # Display names are NOT unique (two factories can build a "Ice Drake"), so
+    # this map is keyed by name only as a best-effort handle for reconstructing a
+    # unit to analyse. First stable producer wins and is never overwritten — a
+    # later same-named factory can't destroy an existing entry (the old code
+    # marked it ambiguous/None, which silently dropped that unit's refs).
+    if name and name not in UNIT_FACTORY:
         UNIT_FACTORY[name] = fac
 
 def _register_ident(ident, name, kind):
@@ -393,7 +399,14 @@ def _register_ident(ident, name, kind):
     elif cur is not None and cur != (name, kind):
         IDENT_MAP[ident] = None   # same identifier maps to >1 thing -> unusable
 
-def build_ident_map(monster_factories):
+def build_ident_map():
+    # Only spells and equipment — the two kinds that need an allowlist (a Spell
+    # subclass existing doesn't make it a player spell; likewise Equipment). We
+    # build these from the authoritative registries (constructed once each, all
+    # deterministic). UNITS are NOT registered here: they're resolved on demand,
+    # in the namespace where a reference actually occurs (see refs_for's
+    # `_unit_name_of`) — so we never blind-construct every module callable, which
+    # is what used to sweep up the random spawners (random_drake, ...).
     for cons in Spells.all_player_spell_constructors:
         try: _register_ident(cons.__name__, cons().name, 'spell')
         except Exception: pass
@@ -406,27 +419,51 @@ def build_ident_map(monster_factories):
         if isinstance(entry, type):
             try: _register_ident(entry.__name__, entry().name, 'equipment')
             except Exception: pass
-    for fac in monster_factories:
-        try: _register_ident(getattr(fac, '__name__', None), fac().name, 'unit')
-        except Exception: pass
-        _register_factory(getattr(_safe_call(fac), 'name', None), fac)
-    # Also map every zero-arg unit factory in Monsters/RareMonsters (e.g.
-    # BrainSapling, which only appears as a spawned minion) so code references
-    # to them resolve. Refs to units without a card are pruned later.
-    for mod in (Monsters, RareMonsters):
-        for ident, obj in list(vars(mod).items()):
-            if not callable(obj) or isinstance(obj, type):
-                continue
-            u = _safe_call(obj)
-            if isinstance(u, Unit) and u.name:
-                _register_ident(ident, u.name, 'unit')
-                _register_factory(u.name, obj)
 
 def _safe_call(fac):
     try:
         return fac()
     except Exception:
         return None
+
+_UNIT_NAME_CACHE = {}
+def _unit_name_of(o):
+    """If `o` is a unit — a Unit subclass, or a factory function that builds one —
+    return its display name; else None. Cached by identity. We resolve units the
+    same way we resolve buffs (introspect the object the reference names) rather
+    than pre-constructing every module callable. Factory functions that pick a
+    RANDOM unit (`random_drake`, `RandomImp`, `bat_or_ghost`: all use `random.`)
+    aren't a single unit, so they're rejected by a deterministic source check —
+    no sampling, so the output is stable run to run."""
+    if not (inspect.isclass(o) or inspect.isfunction(o)):
+        return None
+    key = id(o)
+    if key in _UNIT_NAME_CACHE:
+        return _UNIT_NAME_CACHE[key]
+    name = None
+    if inspect.isclass(o) and not issubclass(o, Unit):
+        name = None                                  # a class, but not a unit
+    else:
+        u = _safe_call(o)
+        if isinstance(u, Unit) and u.name and u.name != 'Unnamed':
+            name = u.name
+            # A factory that uses randomness might pick a random *unit* (random_drake,
+            # mushboom) or just randomize stats (HealingTotem). Only the former isn't
+            # a single unit. Tell them apart by whether the NAME is stable — sampled
+            # under FIXED seeds so the verdict is identical every run (a live-RNG
+            # sample could occasionally mis-judge a 2-way pick like mushboom).
+            if inspect.isfunction(o) and re.search(r'\brandom\.', _getsource(o) or ''):
+                st = random.getstate()
+                names = set()
+                for seed in range(24):
+                    random.seed(seed)
+                    u2 = _safe_call(o)
+                    names.add(u2.name if isinstance(u2, Unit) and u2.name else None)
+                random.setstate(st)
+                if names != {name}:
+                    name = None
+    _UNIT_NAME_CACHE[key] = name
+    return name
 
 def _collect_idents(srcs):
     """Return (names, attrs): bare-name identifiers vs attribute accesses.
@@ -448,26 +485,77 @@ def _collect_idents(srcs):
                 attrs.add(node.attr)
     return names, attrs
 
+_MODULE_INDEX = {}   # module -> {qualname: source string}
+def _module_index(mod):
+    """{qualname: source} for every top-level class/function (and class method) in
+    a module, built by parsing the module ONCE. inspect.getsource(a_class) re-parses
+    the whole (huge) module every call to find the class — doing ~1200 of those was
+    the build's bottleneck; a single parse per module replaces them with a lookup."""
+    idx = _MODULE_INDEX.get(mod)
+    if idx is not None:
+        return idx
+    idx = {}
+    _MODULE_INDEX[mod] = idx
+    try:
+        src = inspect.getsource(mod)
+        tree = ast.parse(src)
+    except Exception:
+        return idx
+    lines = src.splitlines(keepends=True)
+    def walk(node, prefix):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                qn = prefix + child.name
+                # slice by line span (O(1)); starts at the `class`/`def` line, so it
+                # matches inspect.getsource minus decorators (irrelevant to analysis).
+                idx.setdefault(qn, ''.join(lines[child.lineno - 1:child.end_lineno]))
+                if isinstance(child, ast.ClassDef):     # index methods too (Class.method)
+                    walk(child, qn + '.')
+    walk(tree, '')
+    return idx
+
 _SRC_CACHE = {}
 def _getsource(o):
     key = id(o)
-    if key not in _SRC_CACHE:
-        try:
-            _SRC_CACHE[key] = inspect.getsource(o)
+    if key in _SRC_CACHE:
+        return _SRC_CACHE[key]
+    src = None
+    qn = getattr(o, '__qualname__', None)
+    mod = sys.modules.get(getattr(o, '__module__', None))
+    if qn and mod is not None and '<locals>' not in qn:   # module-level classes/fns/methods
+        src = _module_index(mod).get(qn)
+    if src is None:
+        try:                                              # closures, or anything not indexed
+            src = inspect.getsource(o)
         except Exception:
-            _SRC_CACHE[key] = None
-    return _SRC_CACHE[key]
+            src = None
+    _SRC_CACHE[key] = src
+    return src
 
 # --- Buffs (named status effects with no card of their own) -----------------
 # A unit ability like "gain a stack of Brewed Concoctions" names a Buff that's
 # never explained on-screen. We surface each such buff's description as a
-# hover-only glossary tooltip. Buff class identifiers live in their OWN map
-# (not IDENT_MAP) so that a buff class sharing a name with a real spell/unit
-# can never neutralize that identifier (see _register_ident's collision rule).
-# A buff ref is only ever emitted when an entity's source *code* references the
-# buff class — same AST rigor as the cross-references above, so no prose matches.
-BUFF_IDENT = {}    # class identifier -> buff display name  (None == ambiguous)
-BUFF_CLASS = {}    # class identifier -> Buff subclass       (None == ambiguous)
+# hover-only glossary tooltip.
+#
+# We DON'T keep a global buff registry. A buff is recognised the way Python
+# itself resolves the name: for each identifier the AST finds in a piece of
+# source, look it up in *that source's own module namespace* and ask
+# `issubclass(obj, Buff)` — so `FiendConductance` resolves to the buff, locals
+# and `Tags.Poison` (an attribute, not a bare name) don't, and import aliases
+# just work. On top of that we introspect each ability *instance*'s `.buff`
+# attribute, which catches buffs applied by a delegated/wrapped factory the AST
+# never sees (the Aether Spider Queen's `QueenMonster(PhaseSpider)`). See refs_for.
+
+def _source_and_ns(o):
+    """(source text, module namespace) for a function/class, or (None, None).
+    A function resolves names in its own __globals__; a class in its module."""
+    src = _getsource(o)
+    if src is None:
+        return None, None
+    if inspect.isfunction(o):
+        return src, getattr(o, '__globals__', None) or {}
+    mod = sys.modules.get(getattr(o, '__module__', None))
+    return src, getattr(mod, '__dict__', None) or {}
 
 def _literal_args(call_args):
     """Python values of an ast.Call's positional args, or None if any isn't a
@@ -483,32 +571,12 @@ def _literal_args(call_args):
             return None
     return tuple(vals)
 
-def _buff_call_args(srcs):
-    """ident -> the literal positional args the source constructs it with, so a
-    buff's tooltip reflects the value actually applied (RegenBuff's heal ranges
-    1..100 across the game). First all-literal call site wins; ties are rare."""
-    out = {}
-    for src in srcs:
-        if not src:
-            continue
-        try:
-            tree = ast.parse(textwrap.dedent(src))
-        except (SyntaxError, ValueError):
-            continue
-        for node in ast.walk(tree):
-            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                    and node.func.id in BUFF_CLASS and node.func.id not in out):
-                lits = _literal_args(node.args)
-                if lits is not None:
-                    out[node.func.id] = lits
-    return out
-
-def _resolve_buff(ident, args):
-    """Build a buff's {desc, color} from the class the source references and the
-    args it applies (falling back to filler args if the call wasn't literal)."""
-    cls = BUFF_CLASS.get(ident)
-    if cls is None:
-        return None
+def _describe_buff(cls, args):
+    """(display_name, {desc, color}) for a Buff subclass, or None if it has no
+    usable name/description. `args` are the literal constructor args the source
+    applies (so RegenBuff(1) vs RegenBuff(10) differ); fall back to filler args
+    when the call wasn't literal — the name/description template don't depend on
+    the values for the buffs that need this."""
     b = None
     if args is not None:
         try:
@@ -519,11 +587,14 @@ def _resolve_buff(ident, args):
         b = _construct_buff(cls)
     if b is None:
         return None
+    name = getattr(b, 'name', None)
+    if not name or name == 'Unnamed buff':
+        return None
     desc = _buff_text(b)
     if not desc:
         return None
     col = getattr(b, 'color', None)
-    return {"desc": desc, "color": to_tup(col) if isinstance(col, Color) else None}
+    return name, {"desc": desc, "color": to_tup(col) if isinstance(col, Color) else None}
 
 def _construct_buff(cls):
     """Instantiate a Buff for its name/description. Many buffs need constructor
@@ -568,91 +639,192 @@ def _buff_text(b):
         pass
     return ""
 
-def _all_subclasses(cls):
-    seen, stack = set(), [cls]
-    while stack:
-        for sub in stack.pop().__subclasses__():
-            if sub not in seen:
-                seen.add(sub)
-                stack.append(sub)
-    return seen
 
-def build_buff_map():
-    # Import the content modules that define buffs, then walk the Buff class tree
-    # directly (not any module's __dict__). This is order-independent and complete,
-    # so the shipped buff set is stable across rebuilds regardless of import quirks.
-    import CommonContent, Level  # noqa: F401  (ensure their buffs are loaded)
-    from Level import Buff
-    # A buff whose name collides with a damage-type Tag (e.g. "Poison") is still
-    # registered — disambiguation happens at reference time: `refs_for` links it
-    # only from a bare-name class reference (not `Tags.Poison`), and the frontend
-    # never linkifies a buff name inside a [markup] token (the damage type).
-    # Map class identifier -> (display name, class). The description itself is NOT
-    # finalized here — it's resolved per reference site from the actual args (see
-    # _resolve_buff), because e.g. RegenBuff's heal amount differs everywhere.
-    for cls in sorted(_all_subclasses(Buff), key=lambda c: c.__name__):
-        ident = cls.__name__
-        b = _construct_buff(cls)
-        if b is None:
-            continue
-        name = getattr(b, 'name', None)
-        if not name or name == 'Unnamed buff':
-            continue
-        if not _buff_text(b):
-            continue    # no describable text even with filler args -> not a glossary buff
-        if ident in BUFF_IDENT and BUFF_IDENT[ident] != name:
-            BUFF_IDENT[ident] = BUFF_CLASS[ident] = None   # same ident -> >1 buff: unusable
-        elif ident not in BUFF_IDENT:
-            BUFF_IDENT[ident] = name
-            BUFF_CLASS[ident] = cls
+_MISSING = object()   # distinct-from-None sentinel for dict lookups
+# Cache of the per-source AST analysis, keyed by the class/function whose source
+# it is. Those are long-lived module-level objects (stable identity, hashable), and
+# the same base/ability class is analysed for hundreds of units — so this turns an
+# O(units × sources) reparse into one parse per distinct source. The cached tuple
+# is treated as read-only by callers (they only union/read it), so sharing is safe.
+_SRC_ANALYSIS = {}
+def _analyze_source(o):
+    """(names, attrs, buffs, units) referenced by one class/function's source:
+      names/attrs — bare-name vs attribute identifiers (for IDENT_MAP lookups)
+      buffs — {Buff subclass: literal ctor args or None}
+      units — {unit display name: its factory}
+    A pure function of the source + its module namespace, both fixed for a given
+    object, so the result is cached and reused wherever this class is scanned."""
+    cached = _SRC_ANALYSIS.get(o)
+    if cached is not None:
+        return cached
+    names, attrs, buffs, units = set(), set(), {}, {}
+    src, ns = _source_and_ns(o)
+    tree = None
+    if src is not None:
+        try:
+            tree = ast.parse(textwrap.dedent(src))
+        except (SyntaxError, ValueError):
+            tree = None
+    if tree is not None:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                c = ns.get(node.func.id)         # capture literal ctor args for buffs
+                if inspect.isclass(c) and issubclass(c, BuffBase):
+                    lits = _literal_args(node.args)
+                    if lits is not None:
+                        buffs[c] = lits          # a literal call wins over a bare mention
+            elif isinstance(node, ast.Name):
+                names.add(node.id)
+                c = ns.get(node.id)
+                if inspect.isclass(c) and issubclass(c, BuffBase):
+                    buffs.setdefault(c, None)
+                else:
+                    un = _unit_name_of(c)
+                    if un:
+                        units.setdefault(un, c)
+            elif isinstance(node, ast.Attribute):
+                attrs.add(node.attr)
+    _SRC_ANALYSIS[o] = (names, attrs, buffs, units)
+    return _SRC_ANALYSIS[o]
 
-def refs_for(instance, entry, self_name):
-    """Return (refs, btips): refs = [[display_name, kind], …] this entity
-    references in its code; btips = {buff_name: {desc, color}} resolved from the
-    actual class + args the source applies (so tooltips are exact, per site)."""
-    srcs = [_getsource(entry)]                   # the registry entry (class / factory / lambda)
+def _scan_objects(instance, entry):
+    """The objects whose source we analyse for an entity: its registry entry
+    (class / factory / lambda) and non-framework base classes, plus — for a unit —
+    its ability-spell classes (a summon/buff applied *inside* an ability's cast(),
+    e.g. BatBreath's `self.summon(Bat())`, lives there, not the unit factory)."""
+    objs, seen = [], set()
+    def add(o):
+        if o is not None and o not in seen:
+            seen.add(o)
+            objs.append(o)
+    add(entry)
     cls = type(instance)
     if isinstance(cls, type):
-        for base in cls.__mro__:                 # base-class method bodies (generic logic)
-            if base is object or base.__name__ in FRAMEWORK_BASES:
-                continue
-            srcs.append(_getsource(base))
-    # For a unit, also scan the classes of its abilities: a summon or buff applied
-    # *inside* an ability's cast()/per_square_effect (e.g. BatBreath's
-    # `self.summon(Bat())`, or a monster spell's `apply_buff(...)`) lives in that
-    # ability-spell class, not the unit factory, so it's otherwise invisible.
+        for base in cls.__mro__:
+            if base is not object and base.__name__ not in FRAMEWORK_BASES:
+                add(base)
     if isinstance(instance, Unit):
         for sp in getattr(instance, 'spells', None) or []:
             spcls = type(sp)
             if isinstance(spcls, type):
                 for base in spcls.__mro__:
-                    if base is object or base.__name__ in FRAMEWORK_BASES:
-                        continue
-                    srcs.append(_getsource(base))
-    names, attrs = _collect_idents(srcs)
-    call_args = _buff_call_args(srcs)
+                    if base is not object and base.__name__ not in FRAMEWORK_BASES:
+                        add(base)
+    return objs
+
+# --- Unit pools: named rosters the game draws (often random) summons from -----
+# e.g. Summon Wizard does `random.choice(RareMonsters.WIZARDS)`. The individual
+# members are never named in the spell's source (so refs can't link them), but the
+# pool *list* is — so we link the pool instead, and let the Monsters tab filter to
+# its members. Each entry: (display name, the list, identifiers that name it in code).
+POOL_MEMBERS = {}    # display name -> [member unit display names]  (shipped)
+POOL_IDENTS = {}     # source identifier -> pool display name
+
+def build_pools():
+    import Monsters as _M, RareMonsters as _RM
+    defs = [
+        ("Wizard",   getattr(_RM, "WIZARDS", []),     {"WIZARDS"}),
+        ("Kaiju",    getattr(_RM, "KAIJU", []),       {"KAIJU"}),
+        ("Horseman", getattr(_RM, "horsemen", []),    {"horsemen"}),
+        ("Slime",    getattr(_M, "slime_types", []),  {"slime_types"}),
+    ]
+    for disp, pool, idents in defs:
+        members, seen = [], set()
+        for e in pool:
+            fac = e[0] if isinstance(e, (list, tuple)) else e
+            u = _safe_call(fac)
+            if isinstance(u, Unit) and u.name and u.name not in seen:
+                seen.add(u.name)
+                members.append(u.name)
+        if members:
+            POOL_MEMBERS[disp] = members
+            for i in idents:
+                POOL_IDENTS[i] = disp
+
+def pools_referenced(instance, entry):
+    """Pool display names an entity summons from — detected by its source naming a
+    pool list (e.g. `WIZARDS`). Reuses the cached per-source analysis, so cheap."""
+    hits = set()
+    for o in _scan_objects(instance, entry):
+        names, attrs, _b, _u = _analyze_source(o)
+        for ident in names | attrs:
+            if ident in POOL_IDENTS:
+                hits.add(POOL_IDENTS[ident])
+    return sorted(hits)
+
+def refs_for(instance, entry, self_name):
+    """Return (refs, btips): refs = [[display_name, kind], …] this entity
+    references in its code; btips = {buff_name: {desc, color}} resolved from the
+    actual class + args the source applies (so tooltips are exact, per site)."""
+    scan_objs = _scan_objects(instance, entry)
+
+    # Each name is resolved in the namespace of the source it appears in (never a
+    # blind sweep of every module callable): a Buff class -> a buff ref, a unit
+    # class/factory -> a unit ref. `Tags.Poison` is an *attribute*, not a bare
+    # name, so it can't masquerade as the Poison status buff; locals resolve to
+    # nothing. IDENT_MAP still resolves spell/equipment refs from names|attrs.
+    names, attrs = set(), set()
+    buff_hits = {}                               # Buff subclass -> literal args tuple or None
+    unit_hits = {}                               # unit display name -> its factory
+    for o in scan_objs:
+        n, a, b, u = _analyze_source(o)
+        names |= n
+        attrs |= a
+        for c, lits in b.items():
+            cur = buff_hits.get(c, _MISSING)
+            if cur is _MISSING or (cur is None and lits is not None):
+                buff_hits[c] = lits              # first/literal call wins over a bare mention
+        for un, fac in u.items():
+            unit_hits.setdefault(un, fac)
+    # Also read what each ability *instance* applies/summons straight off the
+    # object. This survives construction the AST never sees: a buff hidden in a
+    # delegated factory (`spell.buff` — the Aether Spider Queen), or a unit built
+    # inline and handed to a summon spell (`spell.spawn_func` — Troll Geomancer's
+    # Clay Hound, made as a local `wolf`). `_unit_name_of` still rejects random
+    # summoners (Dragon Mage's random_drake) so this stays deterministic.
+    if isinstance(instance, Unit):
+        for sp in getattr(instance, 'spells', None) or []:
+            b = getattr(sp, 'buff', None)
+            b = b if inspect.isclass(b) else (type(b) if isinstance(b, BuffBase) else None)
+            if b is not None and issubclass(b, BuffBase):
+                buff_hits.setdefault(b, None)
+            sf = getattr(sp, 'spawn_func', None)
+            if callable(sf):
+                un = _unit_name_of(sf)
+                if un:
+                    unit_hits.setdefault(un, sf)
+
+    # Remember each referenced unit's factory so the fixpoint can card it.
+    for un, fac in unit_hits.items():
+        _register_factory(un, fac)
+
     out, seen, btips = [], set(), {}
+    # Real carded entities (spell/equipment via the allowlist, units resolved
+    # above) claim their name before buffs, so a real card wins a name collision.
     for ident in names | attrs:
         m = IDENT_MAP.get(ident)
-        if m:
-            name, kind = m
-        elif ident in names and BUFF_IDENT.get(ident):
-            # Buffs fall back to the glossary, but only from a bare-name class
-            # reference — never an attribute. So `Tags.Poison` (the damage type)
-            # can't masquerade as the Poison status buff, while a literal `Poison`
-            # reference (e.g. the Witch Doctor's hex) still links.
-            name, kind = BUFF_IDENT[ident], 'buff'
-        else:
+        if not m:
             continue
+        name, kind = m
         if name == self_name or name in seen:
             continue
-        if kind == 'buff':
-            info = _resolve_buff(ident, call_args.get(ident))
-            if not info:                         # can't describe it -> don't link it
-                continue
-            btips[name] = info
         seen.add(name)
         out.append([name, kind])
+    for name in unit_hits:
+        if name == self_name or name in seen:
+            continue
+        seen.add(name)
+        out.append([name, 'unit'])
+    for cls_, args in buff_hits.items():
+        info = _describe_buff(cls_, args)
+        if not info:                             # can't describe it -> don't link it
+            continue
+        name, meta = info
+        if name == self_name or name in seen:
+            continue
+        seen.add(name)
+        out.append([name, 'buff'])
+        btips[name] = meta
     out.sort()
     return out, btips
 
@@ -687,11 +859,18 @@ def extract_monsters(factories):
             continue
         if not isinstance(u, Unit):
             continue
-        register_unit(u)          # refs computed later in main()'s unit fixpoint
-        MONSTER_NAMES.add(u.name)
-        if depth is not None:
-            cur = MONSTER_DEPTH.get(u.name)
-            MONSTER_DEPTH[u.name] = depth if cur is None else min(cur, depth)
+        if register_unit(u):      # refs computed later in main()'s unit fixpoint
+            # Remember the spawn factory so the fixpoint can re-derive this
+            # monster's refs from its source. `_unit_name_of` returns None only for
+            # a factory whose *name* is random (a random spawner like random_drake,
+            # not one monster) — a monster that merely uses random for stats/cooldown
+            # (Mantis Queen) has a stable name and is kept.
+            if _unit_name_of(fac):
+                _register_factory(u.name, fac)
+            MONSTER_NAMES.add(u.name)
+            if depth is not None:
+                cur = MONSTER_DEPTH.get(u.name)
+                MONSTER_DEPTH[u.name] = depth if cur is None else min(cur, depth)
 
 # ---------------------------------------------------------------------------
 # Companions: permanent allies bought at the Tavern (Equipment.all_companions).
@@ -728,9 +907,8 @@ def summons_of(obj):
     seen = set()
 
     def add(u):
-        if isinstance(u, Unit) and u.name not in seen:
+        if isinstance(u, Unit) and u.name not in seen and register_unit(u):
             seen.add(u.name)
-            register_unit(u)
             names.append(u.name)
 
     fn = getattr(obj, 'get_extra_examine_tooltips', None)
@@ -797,6 +975,7 @@ def _spell_entry(s, cons, forbidden=False, granted_by=None):
         "desc": rtext(s.get_description() or "", fmt=fmt),
         "upgrades": upgrades,
         "summons": summons_of(s),
+        "pool_summons": pools_referenced(s, cons),
         "refs": refs,
         "btips": btips,
         "mod_stats": mod_stats,
@@ -890,6 +1069,7 @@ def extract_equipment():
             "desc": desc,
             "bonuses": bonus_lines,
             "summons": summons,
+            "pool_summons": pools_referenced(e, cons),
             "refs": refs,
             "btips": btips,
             "mod_stats": mod_stats,
@@ -927,6 +1107,7 @@ def extract_components():
                 "on_pickup": has_pickup,
                 "desc": rtext(getattr(c, 'description', "") or "", fmt={}),
                 "summons": summons_of(c),
+                "pool_summons": pools_referenced(c, cons),
                 "refs": refs,
                 "btips": btips,
                 "icon": asset_filename(c.get_asset()),
@@ -938,8 +1119,9 @@ def extract_components():
 # Tags metadata
 # ---------------------------------------------------------------------------
 def extract_tags():
-    # component_tags are the craftable/recipe tags
-    comp_tags = [t.name for t in Components.component_tags]
+    # component_tags are the craftable/recipe tags (a set -> sort for a stable,
+    # reproducible order; the frontend re-sorts it anyway).
+    comp_tags = sorted(t.name for t in Components.component_tags)
     tags = {}
     for tag in Tags:
         tags[tag.name] = {"color": to_tup(tag.color)}
@@ -961,9 +1143,13 @@ def extract_tags():
     return {"all": tags, "component_tags": comp_tags}
 
 def main():
+    # A handful of unit factories randomize stats/cooldowns; seed the RNG so a
+    # rebuild is byte-for-byte reproducible (random *unit* pickers are still
+    # excluded from refs by _unit_name_of's fixed-seed check, independent of this).
+    random.seed(0)
     monster_factories = collect_monster_factories()
-    build_ident_map(monster_factories.keys())   # must precede any refs_for() call
-    build_buff_map()                            # buff glossary; also feeds refs_for()
+    build_ident_map()                           # must precede any refs_for() call
+    build_pools()                               # named unit rosters (Wizard, Kaiju, …)
     spells = extract_spells()
     equipment = extract_equipment()
     components = extract_components()            # these populate UNITS via summons_of()
@@ -981,17 +1167,18 @@ def main():
         if inst is None:
             return None
         refs, btips = refs_for(inst, fac, name)
-        for sp in getattr(inst, 'spells', None) or []:
-            for nm in summons_of(sp):
-                if nm != name and [nm, 'unit'] not in refs:
-                    refs.append([nm, 'unit'])
+        # (Summons a unit's abilities make are picked up by refs_for's namespace
+        # resolution — `SimpleSummon(CopperImp)` names CopperImp in the source. We
+        # deliberately don't fall back to summons_of here: it constructs the
+        # ability's summon, which for a random summoner (Dragon Mage's random_drake)
+        # would yield a different unit each run.)
         # A unit's own permanent buffs are already shown in full under Passives;
         # don't also linkify their names on the card (the Vampire Hunter's
         # "Silvered Weapons" self-link). Buffs it merely grants/applies aren't in
         # u.buffs (e.g. the Alchemist's Brewed Concoctions), so they stay.
         own = {getattr(b, 'name', None) for b in getattr(inst, 'buffs', [])}
         refs = [r for r in refs if not (r[1] == 'buff' and r[0] in own)]
-        return refs, btips
+        return refs, btips, pools_referenced(inst, fac)
 
     queue = list(UNITS.keys())
     while queue:
@@ -1001,17 +1188,22 @@ def main():
         got = compute_unit_refs(name)
         if got is None:
             continue
-        UNITS[name]["refs"], UNITS[name]["btips"] = got
+        UNITS[name]["refs"], UNITS[name]["btips"], UNITS[name]["pool_summons"] = got
         for r in UNITS[name]["refs"]:
             if r[1] == 'unit' and r[0] not in UNITS:
                 nf = UNIT_FACTORY.get(r[0])
                 ni = _safe_call(nf) if nf else None
-                if ni is not None and ni.name not in UNITS:
-                    register_unit(ni)
+                if ni is not None and ni.name not in UNITS and register_unit(ni):
                     queue.append(ni.name)
+    # Which pools each carded unit belongs to (for the Monsters-tab pool filter).
+    pool_of = {}
+    for disp, members in POOL_MEMBERS.items():
+        for m in members:
+            pool_of.setdefault(m, []).append(disp)
     for name, sheet in UNITS.items():
         sheet["is_monster"] = name in MONSTER_NAMES
         sheet["is_companion"] = name in COMPANION_NAMES
+        sheet["pools"] = sorted(pool_of.get(name, []))
         if name in MONSTER_DEPTH:
             sheet["depth"] = MONSTER_DEPTH[name]
     # Prune cross-refs whose target has no card (e.g. units that are never
@@ -1055,6 +1247,7 @@ def main():
         "equipment": equipment,
         "components": components,
         "units": UNITS,
+        "pools": POOL_MEMBERS,
         "tags": extract_tags(),
         "colors": tooltip_colors,
         "slots": list(SLOT_NAMES.values()),

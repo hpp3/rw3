@@ -82,6 +82,7 @@ select{
 .af-kind{font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:800;padding:1px 6px;border-radius:999px}
 .af-kind.mod{background:#3a2350;color:#d7a6ff}
 .af-kind.use{background:#143a45;color:#7fdcef}
+.af-kind.pool{background:#3a3410;color:#e6d27a}
 .af-chip button{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;line-height:1}
 .af-chip button:hover{background:#a33;color:#fff}
 
@@ -96,6 +97,7 @@ select{
 .so-kind{font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:800;padding:2px 7px;border-radius:999px}
 .so-kind.mod{background:#3a2350;color:#d7a6ff}
 .so-kind.use{background:#143a45;color:#7fdcef}
+.so-kind.pool{background:#3a3410;color:#e6d27a}
 .so-count{color:var(--muted);font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
 
 /* Grid + cards */
@@ -370,6 +372,13 @@ select{
 }
 .summon-chip:hover,.summon-chip:focus{border-color:var(--accent2);color:#fff;outline:none}
 .summon-chip .chip-sprite{--d:18px}
+/* A pool summon ("Any Wizard") — links to the Monsters-tab filter, not one unit. */
+.pool-chip{
+  display:inline-flex;align-items:center;cursor:pointer;
+  background:var(--panel2);border:1px dashed var(--accent2);border-radius:6px;
+  padding:1px 8px;font-size:11.5px;font-weight:700;color:#cbd6ec;
+}
+.pool-chip:hover,.pool-chip:focus{background:var(--accent2);color:#0c0e14;outline:none}
 
 .unit-tip{
   position:fixed;z-index:100;width:280px;max-width:92vw;

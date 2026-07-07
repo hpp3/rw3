@@ -106,29 +106,47 @@ approaches:
    too weak. It only finds references stored as attributes (e.g. `FreeCastStaff.spell`); it **misses
    references inside method bodies**. Dread Lash references `SealFate` only inside its `cast()` method,
    so the object at rest has no trace of it.
-3. **AST of the source** (chosen): `inspect.getsource()` of the entity's class/factory **and its
-   non-framework base classes**, walked for `ast.Name`/`ast.Attribute` identifiers, intersected with
-   `IDENT_MAP` (python identifier → display name). This finds `SealFate` in Dread Lash's `cast()`.
+3. **AST of the source** (chosen): the source of the entity's class/factory, its non-framework base
+   classes, and (for a unit) its ability-spell classes, walked for `ast.Name`/`ast.Attribute`
+   identifiers. This finds `SealFate` in Dread Lash's `cast()`, and `Bat` in `BatBreath.per_square_effect`.
+
+**How an identifier becomes a ref** (`_analyze_source` → `refs_for`): each bare name is resolved *in
+the namespace of the source it appears in* and inspected — the same principle for all three kinds:
+- resolves to a **`Buff` subclass** → a buff ref (`Tags.Poison` is an *attribute*, not a bare name, so
+  the Poison damage type can't masquerade as the Poison status buff);
+- resolves to a **unit** (class or factory function) → a unit ref (`_unit_name_of`);
+- is a spell/equipment identifier in **`IDENT_MAP`** → that ref.
+
+`IDENT_MAP` (built by `build_ident_map`) holds **only** spells and equipment — the two kinds that need
+an *allowlist* (a `Spell` subclass existing doesn't make it a player spell). Units and buffs need no
+allowlist and are resolved by introspection at the reference site, so we do **not** pre-construct
+every module callable to harvest names — that blind sweep used to pull in random spawners
+(`random_drake`) and made the output nondeterministic.
 
 Supporting machinery:
-- `IDENT_MAP`: built in `build_ident_map`. Maps **every** spell class, equipment class, monster
-  factory, **and every zero-arg unit-producing function** in `Monsters`/`RareMonsters` (so
-  summon-only units like `BrainSapling` resolve). Ambiguous identifiers (one name → two things) map
-  to `None` and are dropped.
-- `UNIT_FACTORY`: name → factory, so a unit's *own* refs can be computed from its factory source
-  (a summon-only unit isn't in the monster roster loop, so its refs are filled in `main()`).
-- `BUFF_IDENT` / `BUFF_CLASS`: buff class identifier → display name / class, built by `build_buff_map`
-  by walking the `Buff` subclass tree (`_all_subclasses`, not any module's `__dict__` — so it's
-  import-order independent and stable across rebuilds). Kept **separate** from `IDENT_MAP` on purpose:
-  a buff class sharing a name with a real spell/unit must never neutralize that identifier via the
-  collision rule. `refs_for` consults them as a fallback after `IDENT_MAP` and resolves each buff's
-  description per call site (see §6's buff-glossary note).
+- **`_unit_name_of`**: a bare name → the unit's display name, or `None`. Factory functions that pick a
+  *random unit* (`random_drake`, `mushboom`) aren't one unit; they're rejected by checking whether the
+  name is stable **under fixed seeds** (a factory that merely randomizes *stats*, like `HealingTotem`,
+  keeps its name and is kept). `main()` also `random.seed(0)`s the whole build so stats/cooldowns are
+  reproducible.
+- **`UNIT_FACTORY`**: unit name → factory, populated as units are referenced/carded (first stable
+  producer wins; never overwritten — display names aren't unique). Lets `main()`'s fixpoint re-derive
+  a unit's refs from its source and card units it summons.
+- **Instance introspection**: a buff/summon applied by a delegated or inline construction the AST
+  can't see is read straight off the ability object — `spell.buff` (Aether Spider Queen's Poison,
+  hidden behind `QueenMonster(PhaseSpider)`) and `spell.spawn_func` (Troll Geomancer's inline Clay
+  Hound). `_unit_name_of` still filters random summoners here.
+- **Buff description** is resolved per reference site (`_describe_buff` — see §6's buff note).
+- **Caching**: `_module_index` parses each module *once* and indexes every class/function's source by
+  qualname (line-sliced), replacing `inspect.getsource`'s per-class full-module reparse; `_analyze_source`
+  memoizes each source's analysis. Together these take the build from ~70s to ~2s. All caches are keyed
+  by stable module-level objects and the output is byte-for-byte identical with them off.
 - **Ref pruning**: in `main()`, refs whose target isn't actually in the output (units with no card)
   are dropped, so every link resolves. There should always be **0 broken refs**.
 
-Known limitation (accepted): references chosen *dynamically* — `random.choice([SpellA, SpellB])`,
-lookups by tag/string — aren't caught. This is rare and preferred over false positives. Prose-only
-mentions (a description that *names* a spell it doesn't actually invoke in code) also won't link.
+Known limitation (accepted): a reference chosen *dynamically* by non-literal args, or a genuinely
+random pick, isn't linked (we prefer that over a nondeterministic or wrong link). Prose-only mentions
+(a description that *names* something it doesn't invoke in code) also won't link.
 
 ---
 
@@ -187,15 +205,15 @@ The game runs this when a unit enters a level **and in the examine panel itself*
 `resists_applied` and needs no level). Skipping it (the original bug) showed Vampire as only
 `Fire -100`, hiding its Holy vulnerability — and was wrong for **214 of 412** units.
 
-**Buff glossary (per-entity `btips`, `build_buff_map`/`refs_for`):** many abilities name a buff that
+**Buff glossary (per-entity `btips`, `refs_for`):** many abilities name a buff that
 has no card and is never explained — e.g. Brew Concoctions says "gain a stack of *Brewed
-Concoctions*" without saying what that does. `build_buff_map` walks every `Buff` subclass and records
-`BUFF_IDENT` (identifier → display name) and `BUFF_CLASS` (identifier → class); it does **not**
-finalize a description, because the same buff reads differently depending on the args the source
-applies — `RegenBuff(heal)` ranges from "Heals 1 HP" to "Heals 100 HP" across the game. Instead each
-reference is resolved **at its call site**: `refs_for` finds the `ast.Call` that constructs the buff,
-reads its literal args (`_literal_args`/`_buff_call_args`), constructs *that* class with *those* args,
-and renders the description (`_resolve_buff`). The result is attached to the referencing entity as
+Concoctions*" without saying what that does. A buff is recognised by resolving a bare name in its
+source's namespace to a `Buff` subclass (§4) — no pre-built registry. Its description is **not** a
+fixed global value, because the same buff reads differently depending on the args the source applies —
+`RegenBuff(heal)` ranges from "Heals 1 HP" to "Heals 100 HP" across the game. Instead each reference is
+resolved **at its call site**: `refs_for` finds the `ast.Call` that constructs the buff, reads its
+literal args (`_literal_args`), constructs *that* class with *those* args, and renders the description
+(`_describe_buff`). The result is attached to the referencing entity as
 `btips = {name: {desc, color}}` and embedded on each link in the frontend, so `RegenBuff(1)` and
 `RegenBuff(10)` show their own numbers, and a name shared by two classes (both display "Regeneration")
 resolves to whichever class *that* entity references. Args that aren't literals (a stat/variable)
