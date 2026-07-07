@@ -29,6 +29,13 @@ header{
 }
 .title h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.3px}
 .title .sub{margin:1px 0 6px;color:var(--muted);font-size:11.5px}
+.version-picker{color:var(--muted)}
+.version-picker.hidden{display:none}
+.version-picker select{
+  margin-left:3px;font:inherit;font-size:11.5px;color:var(--text,#e8e8e8);
+  background:var(--panel,#1b1b1f);border:1px solid var(--border,#333);
+  border-radius:4px;padding:1px 4px;cursor:pointer;
+}
 .tabs{display:flex;gap:4px;flex-wrap:wrap}
 .tabs button{
   background:transparent;border:none;border-bottom:2px solid transparent;

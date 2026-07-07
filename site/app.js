@@ -1997,10 +1997,70 @@ function switchTab(name, fromHash) {
 }
 
 // ---------------------------------------------------------------------------
+// Version selector (live vs beta) — see gameinfo.py / versions.json.
+// The active version picks which data file we fetch. It also rides in the URL as
+// a human-readable `v=<branch>` param (absent = the default/live branch), so a
+// shared Guide link like `?g=…&v=beta` shows at a glance that it targets beta and
+// opens against the matching dataset, so its stable ids resolve. Ids are a single
+// append-only namespace across branches (see ARCHITECTURE.md §3/§13), so a name
+// means the same id in whichever version has it.
+// ---------------------------------------------------------------------------
+const VERSION_PARAM = 'v';
+let VERSIONS = [];          // versions.json: [{id,label,file,build_id,generated}]
+let ACTIVE_VERSION = null;
+
+function defaultVersionId() {
+  if (VERSIONS.some(v => v.id === 'live')) return 'live';
+  return VERSIONS[0] ? VERSIONS[0].id : 'live';
+}
+function activeDataFile() { return (ACTIVE_VERSION && ACTIVE_VERSION.file) || 'data.json'; }
+
+async function initVersions() {
+  try { VERSIONS = await fetch('versions.json').then(r => r.ok ? r.json() : []); }
+  catch (_) { VERSIONS = []; }               // no manifest yet -> single-file legacy behavior
+  if (!Array.isArray(VERSIONS)) VERSIONS = [];
+  const want = new URL(location.href).searchParams.get(VERSION_PARAM);
+  ACTIVE_VERSION = VERSIONS.find(v => v.id === want)
+                || VERSIONS.find(v => v.id === defaultVersionId())
+                || null;
+  syncVersionUrl();
+  renderVersionSelector();
+}
+
+// Keep the URL clean: `v` is present only for a non-default branch. replaceState
+// so it doesn't add a history entry. Runs before the Guide reads the URL, and
+// updateGuideUrl preserves other params, so `v` and `g` never fight.
+function syncVersionUrl() {
+  const url = new URL(location.href);
+  if (!ACTIVE_VERSION || ACTIVE_VERSION.id === defaultVersionId()) url.searchParams.delete(VERSION_PARAM);
+  else url.searchParams.set(VERSION_PARAM, ACTIVE_VERSION.id);
+  history.replaceState(null, '', url);
+}
+
+function renderVersionSelector() {
+  const wrap = $('#version-picker'), sel = $('#version-select');
+  if (!wrap || !sel) return;
+  if (VERSIONS.length < 2) { wrap.classList.add('hidden'); return; }   // nothing to switch between
+  wrap.classList.remove('hidden');
+  sel.innerHTML = VERSIONS.map(v =>
+    `<option value="${esc(v.id)}"${ACTIVE_VERSION && v.id === ACTIVE_VERSION.id ? ' selected' : ''}>${esc(v.label || v.id)}</option>`
+  ).join('');
+  sel.onchange = () => {
+    const url = new URL(location.href);
+    if (sel.value === defaultVersionId()) url.searchParams.delete(VERSION_PARAM);
+    else url.searchParams.set(VERSION_PARAM, sel.value);
+    // Full reload rebuilds every module-global lookup table cleanly against the
+    // other dataset — simpler and safer than re-running init's wiring in place.
+    location.href = url.toString();
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 async function init() {
-  DATA = await fetch('data.json').then(r => r.json());
+  await initVersions();
+  DATA = await fetch(activeDataFile()).then(r => r.json());
   COLORS = DATA.colors;
   UNITS = DATA.units || {};
   for (const [name, info] of Object.entries(DATA.tags.all)) TAGCOLOR[name] = rgb(info.color);

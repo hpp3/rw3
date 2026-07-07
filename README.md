@@ -81,6 +81,26 @@ The build reads **only** from the game install dir
 (`E:\SteamLibrary\steamapps\common\Rift Wizard 3`, set at the top of `extract.py` /
 `copy_icons.py`) and writes only into `site/`. Update that path if your install differs.
 
+### Live vs beta versions
+
+The site can serve both the **live** and **beta** Steam branches with a header version
+selector. `gameinfo.py` reads the installed branch/build from Steam's app manifest and
+`extract.py` tags each dataset. Since the build reads one install and Steam checks out one
+branch at a time, build **each branch in its own pass**:
+
+```sh
+# on the default (live) branch installed in Steam:
+.venv/Scripts/python.exe build.py        # -> site/data.json  + versions.json[live]
+# switch Steam to the beta branch, let it update, then:
+.venv/Scripts/python.exe build.py        # -> site/data.beta.json + versions.json[beta]
+```
+
+Commit `data.json`, `data.beta.json`, `versions.json`, and `ids.json`. Each pass upserts only
+its own branch (order-independent), and stable ids are a single append-only namespace shared
+across branches, so Guide links keep working in whichever version has that content. The reader
+switches with the header dropdown; the choice rides in the URL as a human-readable `v=beta`
+(live omits it). See **ARCHITECTURE.md §17**.
+
 ### Scripts
 
 | file | purpose |

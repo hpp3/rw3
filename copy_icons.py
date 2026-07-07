@@ -1,10 +1,17 @@
 """Copy referenced icon PNGs from the game's rl_data into site/icons/,
-normalizing filenames to lowercase. Reads only from the game dir."""
+normalizing filenames to lowercase. Reads only from the game dir.
+
+Icons are a shared pool across branches (live + beta): each build copies the
+icons its own branch's data file references, so beta-only art is unioned in.
+Filenames are the key, so identically-named art shared by both branches is only
+copied once (last write wins — an accepted edge, same as ARCHITECTURE.md §10)."""
 import os, json, shutil
+import gameinfo
 
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(HERE, "site")
+DATA_FILE = gameinfo.data_filename(gameinfo.branch_info(GAME)["id"])
 
 SOURCES = {
     "spells":     os.path.join(GAME, "rl_data", "UI", "spell skill icons"),
@@ -23,7 +30,7 @@ def build_index(d):
     return idx
 
 def main():
-    data = json.load(open(os.path.join(SITE, "data.json"), encoding="utf-8"))
+    data = json.load(open(os.path.join(SITE, DATA_FILE), encoding="utf-8"))
     stats = {}
     for cat, key in [("spells", "spells"), ("equipment", "equipment"),
                      ("components", "components"), ("units", "units")]:

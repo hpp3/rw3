@@ -12,8 +12,13 @@ GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 import ids as ids_mod  # stable append-only id assignment (HERE-relative; safe before chdir)
+import gameinfo        # Steam branch/build detection (HERE-relative; safe before chdir)
 OUT_DIR = os.path.join(HERE, "site")
 os.makedirs(OUT_DIR, exist_ok=True)
+
+# Which Steam branch/build is checked out right now (live vs beta). Stamped onto
+# the output and used to name the file + upsert versions.json. See gameinfo.py.
+BRANCH = gameinfo.branch_info(GAME)
 
 sys.path.insert(0, GAME)
 os.chdir(GAME)  # so rl_data/loc text json loads
@@ -1253,16 +1258,23 @@ def main():
         "slots": list(SLOT_NAMES.values()),
         "stat_meta": {k: format_attr(k) for k in STAT_KEYS},
         "generated": __import__("datetime").date.today().isoformat(),
+        # Version stamp: which Steam branch/build this dataset was extracted from.
+        "branch": BRANCH["id"],
+        "branch_label": BRANCH["label"],
+        "build_id": BRANCH["build_id"],
     }
-    out_path = os.path.join(OUT_DIR, "data.json")
+    out_path = os.path.join(OUT_DIR, gameinfo.data_filename(BRANCH["id"]))
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    # Record this branch in the frontend's version manifest (preserves the other
+    # branch's entry — each build only tags its own).
+    gameinfo.update_versions(OUT_DIR, BRANCH, data["generated"])
     monsters = sum(1 for s in UNITS.values() if s.get("is_monster"))
     companions = sum(1 for s in UNITS.values() if s.get("is_companion"))
     distinct_buffs = set()
     for it in spells + equipment + components + list(UNITS.values()):
         distinct_buffs.update(it.get("btips", {}))
-    print("Wrote", out_path)
+    print("Wrote", out_path, "| branch:", BRANCH["id"], "build:", BRANCH["build_id"] or "?")
     print("spells:", len(data["spells"]), "equipment:", len(data["equipment"]),
           "components:", len(data["components"]), "units:", len(data["units"]),
           "(monsters:", monsters, "companions:", companions, ")",

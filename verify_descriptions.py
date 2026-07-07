@@ -24,6 +24,9 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
+import gameinfo  # HERE-relative; import before chdir
+# Compare against the data file for whichever branch is currently checked out.
+DATA_FILE = gameinfo.data_filename(gameinfo.branch_info(GAME)["id"])
 sys.path.insert(0, GAME)
 os.chdir(GAME)
 
@@ -119,7 +122,7 @@ def build_roster():
 
 
 def main():
-    data = json.load(open(os.path.join(HERE, 'site', 'data.json'), encoding='utf-8'))
+    data = json.load(open(os.path.join(HERE, 'site', DATA_FILE), encoding='utf-8'))
     by_name = {e['name']: e for e in data['spells']}
 
     roster = build_roster()

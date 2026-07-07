@@ -1,0 +1,16 @@
+[
+  {
+    "id": "live",
+    "label": "Live",
+    "file": "data.json",
+    "build_id": "",
+    "generated": "2026-07-06"
+  },
+  {
+    "id": "beta",
+    "label": "Beta",
+    "file": "data.beta.json",
+    "build_id": "24066992",
+    "generated": "2026-07-06"
+  }
+]

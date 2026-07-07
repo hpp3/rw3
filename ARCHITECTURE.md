@@ -362,7 +362,9 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
   an updated game install. If you change `data.json`'s schema, that job and `app.js` must stay in sync.
   Since the build no longer needs Pillow, that job's environment doesn't either. **It must also commit
   `ids.json`** — `extract.py` appends to it when the game gains content (§13); dropping that file would
-  re-randomize ids and break every existing share-URL.
+  re-randomize ids and break every existing share-URL. **With the live/beta split (§17) it must build
+  *both* branches** (switch Steam branch between passes) and commit `data.json`, `data.<branch>.json`,
+  and `versions.json` — each pass upserts only its own branch, so order doesn't matter.
 
 ---
 
@@ -456,6 +458,68 @@ copies the guide's equipment into their own Wishlist explicitly via the **Send t
   upgrades, and rejects a drag that would orphan an upgrade. **Core is mandatory** (one per track,
   heading-locked); other sections are add/remove/reorder-able. Drag moves items within a supersection
   only — never across the SP↔Equipment line.
+
+---
+
+## 17. Versioning — live vs beta datasets (one id namespace)
+
+The game ships two Steam branches: the default (**live**) and an opt-in **beta**. The
+compendium can serve both and let the reader switch between them.
+
+**Detecting the version (`gameinfo.py`).** The game's *own source carries no version
+string* — there is no `VERSION`/`__version__`/changelog anywhere in the `.py` files. Steam,
+however, records the exact build and the installed branch in the app manifest one level up
+from the install dir (`<steamapps>/appmanifest_4366330.acf`): `buildid` (monotonic per push)
+and `UserConfig.BetaKey` (`""`/absent = live, `"beta"` = beta). `gameinfo.branch_info(GAME)`
+parses these; `extract.py` stamps `branch`/`branch_label`/`build_id` onto each data file.
+
+**Two datasets, built one branch at a time.** `extract.py` reads a *single* live install and
+Steam only checks out *one* branch into that folder at a time, so producing both datasets is a
+**two-pass** job:
+
+```
+Steam on default → build.py → site/data.json        (branch "live")
+Steam on beta    → build.py → site/data.beta.json   (branch "beta")
+```
+
+Live deliberately keeps the canonical `data.json` name (stable share URLs; the deploy/automation
+default); every other branch is `data.<branch>.json` (`gameinfo.data_filename`). Each build
+**upserts only its own entry** into `site/versions.json` (`gameinfo.update_versions`) — the other
+branch's entry is preserved, so the two passes are order-independent. `copy_icons.py` reads the
+branch's data file, so beta-only art is unioned into the shared `site/icons/` pool (filename is
+the key; identically-named art shared by both is copied once — the §10 edge). The verifiers
+(`verify_*`) also read the active branch's data file, so `build.py`'s post-build gate compares the
+*checked-out* branch's game against the *matching* data file.
+
+**One shared, append-only id namespace across branches — load-bearing.** `ids.json` is keyed by
+display name and append-only (§13). It is **not** rebuilt per branch: whichever branch you build
+appends only *its* new names, so a beta-only spell just gets an id that's absent from the live
+dataset (and drops harmlessly on decode, §15), while a name present in both keeps **one** id in
+both. Consequence: a Guide's ids mean the same thing in whichever version has that content, and a
+beta rebalance that changes a spell's stats but keeps its name keeps the same id (each dataset
+renders its own numbers). A beta *rename* falls under §3's accepted rename behavior. **Never make
+a per-branch id space** — it would force every id to be interpreted relative to a branch.
+
+**Frontend selection + the `v` URL param (`app.js` `initVersions`).** On load the frontend fetches
+`versions.json`; if absent or single-entry it silently falls back to the legacy single-`data.json`
+behavior (no selector). Otherwise it renders a header `<select>` and picks the active version from
+**URL `v=` → default (`live`)**. `activeDataFile()` decides which JSON to fetch. Switching versions
+does a **full `location.reload()`** — the app has ~1k lines of module-global lookup tables
+(`EQ_BY_NAME`, `SP_BY_ID`, …) and a reload rebuilds them all cleanly, far safer than re-running
+`init`'s wiring in place.
+
+The branch rides in the URL as a **human-readable** `v=<branch>` param — `?g=…&v=beta` shows at a
+glance that a shared Guide targets beta — kept **separate** from the `g=` guide string (so the guide
+encoding, §15, is untouched and needs no `VER` bump). `syncVersionUrl` keeps it clean: `v` is
+present only for a non-default branch (live omits it), written with `replaceState`. It runs *before*
+the Guide reads the URL, and `updateGuideUrl` preserves other params, so `v` and `g` never fight;
+`guideCopyLink` copies `location.href`, so a copied beta-guide link carries `v=beta`. Opening such a
+link loads `data.beta.json` first, so the guide's ids resolve against beta.
+
+**The automation (§11) must build both branches** to enroll beta-only names into the shared
+`ids.json` and to refresh both data files + `versions.json`. If it lags on one branch, the worst
+case is a not-yet-enrolled id that drops gracefully — no corruption, because everything is
+append-only and keyed by name.
 
 ---
 

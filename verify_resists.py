@@ -13,6 +13,9 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 HERE = os.path.dirname(os.path.abspath(__file__))
+import gameinfo  # HERE-relative; import before chdir
+# Compare against the data file for whichever branch is currently checked out.
+DATA_FILE = gameinfo.data_filename(gameinfo.branch_info(GAME)["id"])
 sys.path.insert(0, GAME)
 os.chdir(GAME)
 
@@ -72,7 +75,7 @@ def game_resists_by_name():
 
 
 def main():
-    data = json.load(open(os.path.join(HERE, 'site', 'data.json'), encoding='utf-8'))
+    data = json.load(open(os.path.join(HERE, 'site', DATA_FILE), encoding='utf-8'))
     units = data['units']
     name2tag = tagname_to_tag()
 
