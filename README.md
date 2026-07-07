@@ -39,9 +39,10 @@ The static site (`site/`) lets you:
   from this inventory. Persists across reloads.
 - **Spells** — all 196 player spells with level, tags, stats, descriptions, and upgrades.
 - **Monsters** — the full bestiary (351 monsters across base spawns, evolutions, and the rare
-  rosters), all summonable minions, and the 13 Tavern **companions**, as cards with art,
-  HP/shields/resists, movement, tags, depth, and every ability and passive. Filter by
-  tag/element, type (monster / summonable / companion), and text.
+  rosters), all summonable minions, the 13 Tavern **companions**, and the **final bosses** (the
+  floor-20 roster plus Mordred's three phases), as cards with art, HP/shields/resists, movement,
+  tags, depth, and every ability and passive. Filter by tag/element, type (monster / summonable /
+  companion / boss), and text.
 - **Cross-reference links** — when a spell, item, or monster references another spell, item, or
   unit, the name is a link: clicking it switches to the right tab, scrolls the entry into view,
   and flashes it. References are found **programmatically** by static-analysing each class's

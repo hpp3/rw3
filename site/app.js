@@ -1207,7 +1207,8 @@ function monsterCard(u) {
   const abilities = u.abilities.map(a => renderAbility(a, u.refs, u.btips)).join('');
   const passives = u.passives.map(p => `<div class="upass">${linkify(renderMarkup(p), u.refs, u.btips)}</div>`).join('');
   const depthBadge = u.depth ? `<span class="badge">Depth ${u.depth}</span>` : '';
-  const typeBadge = u.is_companion ? '<span class="badge">companion</span>'
+  const typeBadge = u.is_boss ? '<span class="badge badge-boss">boss</span>'
+    : u.is_companion ? '<span class="badge">companion</span>'
     : u.is_monster ? '' : '<span class="badge">summon</span>';
   const hp = u.hp ? `${u.hp} HP` : 'HP varies';
   card.innerHTML = `
@@ -1231,7 +1232,7 @@ function renderMonsters() {
   const q = MON.search.toLowerCase();
   let list = Object.values(DATA.units).filter(u => {
     if (MON.types.size) {
-      const ty = u.is_companion ? 'companion' : u.is_monster ? 'monster' : 'summon';
+      const ty = u.is_boss ? 'boss' : u.is_companion ? 'companion' : u.is_monster ? 'monster' : 'summon';
       if (!MON.types.has(ty)) return false;
     }
     if (MON.pools.size) { for (const p of MON.pools) if (!(u.pools || []).includes(p)) return false; }
@@ -2136,8 +2137,8 @@ async function init() {
   makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: () => DATA.spells, render: renderSpells });
 
   // --- Monsters controls ---
-  MON.types = buildChips($('#mon-types'), ['monster', 'summon', 'companion'], {
-    label: t => ({ monster: 'Monster', summon: 'Summonable', companion: 'Companion' }[t]),
+  MON.types = buildChips($('#mon-types'), ['monster', 'summon', 'companion', 'boss'], {
+    label: t => ({ monster: 'Monster', summon: 'Summonable', companion: 'Companion', boss: 'Boss' }[t]),
     onChange: renderMonsters, activeColor: () => '#fff'
   });
   MON.pools = new Set();

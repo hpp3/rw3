@@ -107,8 +107,9 @@ approaches:
    references inside method bodies**. Dread Lash references `SealFate` only inside its `cast()` method,
    so the object at rest has no trace of it.
 3. **AST of the source** (chosen): the source of the entity's class/factory, its non-framework base
-   classes, and (for a unit) its ability-spell classes, walked for `ast.Name`/`ast.Attribute`
-   identifiers. This finds `SealFate` in Dread Lash's `cast()`, and `Bat` in `BatBreath.per_square_effect`.
+   classes, and (for a unit) its ability-spell **and buff** classes, walked for `ast.Name`/`ast.Attribute`
+   identifiers. This finds `SealFate` in Dread Lash's `cast()`, `Bat` in `BatBreath.per_square_effect`,
+   and `SnowQueenDethroned` in the Snow Queen's `SnowQueenUnseated` buff.
 
 **How an identifier becomes a ref** (`_analyze_source` → `refs_for`): each bare name is resolved *in
 the namespace of the source it appears in* and inspected — the same principle for all three kinds:
@@ -160,12 +161,18 @@ and handles dynamic construction that AST can't. Summon chips in the UI link via
 So unit cross-links have two sources: structured `summons` (chips) and AST `refs` (inline links in
 prose). Both feed the same `units` catalog.
 
-A monster can also summon units from **inside its ability-spell classes** — `BatBreath.per_square_effect`
-does `self.summon(Bat())` — which neither the unit factory's AST nor `summons_of` on player content
-surfaces. So `refs_for` additionally scans the classes of a unit's `spells`, and `main()`'s unit loop
-runs to a **fixpoint**: any unit named in a card's refs that isn't carded yet is registered (via its
-`UNIT_FACTORY` entry) and processed in turn, since a summoned unit may summon others. This is what
-cards Bat, Freezing Coral, Ash Imp, Vine, etc.
+A monster can also summon/transform into units from **inside its ability-spell classes _or_ its buff
+classes** — `BatBreath.per_square_effect` does `self.summon(Bat())`; Snow Queen's `SnowQueenUnseated`
+buff constructs `SnowQueenDethroned()` + `SnowQueensPet()` in `on_damage` ("At 0 HP, transform into
+Snow Queen, Dethroned and summon Frost Saber"). Neither the unit factory's AST nor `summons_of`
+surfaces these. So `refs_for`/`_scan_objects` scans the classes of a unit's `spells` **and its
+`buffs`** (same rationale — the reference is in code the factory itself doesn't contain), and
+`main()`'s unit loop runs to a **fixpoint**: any unit named in a card's refs that isn't carded yet is
+registered (via its `UNIT_FACTORY` entry) and processed in turn, since a summoned unit may summon
+others. This is what cards Bat, Freezing Coral, Ash Imp, Vine, Snow Queen Dethroned, Frost Saber, etc.
+(A summon/transform mentioned only in a buff's *prose* — not constructed in its code — still won't
+link, the same accepted limitation as anywhere else; e.g. Mordred's "become Mordred's servant" is an
+`onhit_description` string whose handler only reassigns `target.team`, so there's no unit to link.)
 
 ---
 
@@ -174,8 +181,21 @@ cards Bat, Freezing Coral, Ash Imp, Vine, etc.
 `data.units` (459 entries) = the full bestiary (351 monsters: base spawns + evolutions + the rare
 rosters) **plus** summon-only minions and the 13 Tavern companions, deduped by name. Each is a stat
 sheet built by `register_unit`. `is_monster` distinguishes bestiary vs summon-only; `is_companion`
-flags the companions; `depth` is the earliest spawn depth for base monsters. Final bosses
-(`FinalBosses.py`) are **not** included — no clean registry.
+flags the companions; `is_boss` flags the final bosses; `depth` is the earliest spawn depth for base
+monsters. The Monsters-tab type filter is `monster` / `summon` / `companion` / `boss`, derived
+boss-first (a boss is none of the other three).
+
+**Final bosses (`extract_bosses`):** the floor-20 encounters. Contrary to the old "no clean registry"
+note, `FinalBosses.py` *does* have one: `final_bosses` (the 9-boss rollable roster) plus the three
+Mordred forms (`Mordred` → `Mordred, Unbound` → `Mordred, Ascendant`, chained by `ForcedRespawn`).
+They're neither in the spawn tables nor summonable, so they're pulled in explicitly and flagged
+`is_boss`. Two wrinkles: (1) the roster factories don't set `is_boss` themselves — `roll_final_boss`
+does it *after* construction — so `extract_bosses` sets it, mirroring the game; (2) the boss buffs
+`import SteamAdapter` to stash `unlock_achievement`/`unlock_bestiary` (stored, never called in
+extraction), and the real module drags in a `LevelGen`→`Game` circular import plus `steamworks`
+(absent from the venv), so extract.py installs a no-op `SteamAdapter` stub in `sys.modules` (same
+headless-shim spirit as the SDL dummies). Whatever a boss summons/transforms into is carded by
+main()'s fixpoint and self-flags `is_boss` off its own attribute.
 
 **Companions (`extract_companions`):** the 13 Tavern allies live in `Equipment.all_companions`, a
 list *separate* from `all_equipment` — each is a `Companion` equipment whose examine tooltip is the
@@ -222,9 +242,9 @@ fall back to filler positional args; a description that still renders a standalo
 `get_description`/`get_tooltip` prose at all, its text falls back to its **mechanical effect lines**
 (`render_bonus_lines`: resists and stat bonuses) — many status buffs are pure stat effects (e.g.
 Conductivity = "-100% Resist Lightning"). A card links a buff only when its **source code references
-the buff class** — for a unit this includes the classes of its **ability spells** (a buff applied
-inside a monster spell's `cast()`, not the unit factory), same AST rigor as every other ref, so no
-prose false positives. The frontend renders them as hover-only tooltips (`renderBuffSheet` from the
+the buff class** — for a unit this includes the classes of its **ability spells and its own buffs**
+(a buff applied inside a monster spell's `cast()`, or a unit/buff constructed inside another buff's
+handler, not the unit factory), same AST rigor as every other ref, so no prose false positives. The frontend renders them as hover-only tooltips (`renderBuffSheet` from the
 link's `data-desc`/`data-color`), styled with a dashed underline + help cursor. Buff names match
 **case-insensitively** (the game's `SimpleCurse` renders "Apply conductivity …" for the "Conductivity"
 buff); unit/spell/equipment names stay case-exact, and both allow a trailing plural so "Summon 3 Ash
@@ -400,7 +420,8 @@ component inventory, component→item assignments, scroll, and active tab (`#has
 
 ## 14. Things deliberately not done / open ideas
 
-- **Final bosses** in the monster tab — excluded (no clean registry in `FinalBosses.py`).
+- **Final bosses** in the monster tab — now **included** (see §6, `extract_bosses`). The related
+  boss sub-forms a boss transforms into are carded only when AST-referenced in code, not prose.
 - **Optimal build allocation** (§7) — greedy is good enough; exact bin-packing wasn't worth it.
 - **Monsters' own "summons" chips** — monster cards rely on AST `refs` inline links rather than a
   separate chip row; fine because their spawn behavior is in prose/passives.
@@ -487,7 +508,11 @@ default); every other branch is `data.<branch>.json` (`gameinfo.data_filename`).
 **upserts only its own entry** into `site/versions.json` (`gameinfo.update_versions`) — the other
 branch's entry is preserved, so the two passes are order-independent. `copy_icons.py` reads the
 branch's data file, so beta-only art is unioned into the shared `site/icons/` pool (filename is
-the key; identically-named art shared by both is copied once — the §10 edge). The verifiers
+the key; identically-named art shared by both is copied once — the §10 edge). **`copy_icons` also
+*writes back* the data file** (to stamp `has_icon` flags) — it must write the **same** branch file
+it read (`DATA_FILE`), never a hardcoded `data.json`. Getting this wrong makes a beta build silently
+clobber live's `data.json` with beta content (a bug that bit twice: the read was branch-aware but
+the write wasn't). The verifiers
 (`verify_*`) also read the active branch's data file, so `build.py`'s post-build gate compares the
 *checked-out* branch's game against the *matching* data file.
 

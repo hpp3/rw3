@@ -38,6 +38,12 @@ def _acf_value(text, key):
     return m[-1].strip() if m else ""
 
 
+# Steam names for the game's DEFAULT (non-beta) branch. RW3's manifest reports
+# BetaKey "public" when on the default branch (not an empty key), so map that — and
+# an absent/empty key — to our canonical "live" id (-> data.json, the default).
+DEFAULT_BRANCH_KEYS = {"", "public", "default"}
+
+
 def branch_info(game_dir):
     """{id,label,build_id} for the branch currently checked out in game_dir.
     Falls back to the 'live' branch (empty build id) if the manifest is absent."""
@@ -49,9 +55,9 @@ def branch_info(game_dir):
         build = _acf_value(txt, "buildid")
     except OSError:
         pass
-    bid = beta or "live"
-    label = "Live" if bid == "live" else beta[:1].upper() + beta[1:]
-    return {"id": bid, "label": label, "build_id": build}
+    if beta.lower() in DEFAULT_BRANCH_KEYS:
+        return {"id": "live", "label": "Live", "build_id": build}
+    return {"id": beta, "label": beta[:1].upper() + beta[1:], "build_id": build}
 
 
 def data_filename(branch_id):

@@ -54,8 +54,9 @@ def main():
             if src:
                 item["has_icon"] = True
         stats[cat] = (found, missing, missing_names[:15])
-    # re-write data.json with has_icon flags
-    json.dump(data, open(os.path.join(SITE, "data.json"), "w", encoding="utf-8"),
+    # re-write the SAME branch data file we read (never the hardcoded data.json —
+    # a beta build must not clobber live's data.json) with has_icon flags.
+    json.dump(data, open(os.path.join(SITE, DATA_FILE), "w", encoding="utf-8"),
               ensure_ascii=False, separators=(",", ":"))
     for cat, (f, m, names) in stats.items():
         print(f"{cat}: {f} copied, {m} missing")

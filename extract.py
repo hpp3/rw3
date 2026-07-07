@@ -3,10 +3,21 @@ Extract Rift Wizard 3 spell / equipment / component data into a JSON file
 for the static browser resource. Reads ONLY from the game install dir;
 writes only into this project's site/ folder.
 """
-import os, sys, json, ast, inspect, textwrap, re, random
+import os, sys, json, ast, inspect, textwrap, re, random, types
 
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
+
+# Headless stub for SteamAdapter. The final-boss buffs (FinalBosses.ForcedRespawn,
+# SnowQueenUnseated) only *store* SteamAdapter callables (unlock_achievement /
+# unlock_bestiary) and never invoke them during extraction. Importing the real
+# module drags in LevelGen -> Game (whose module-level achievement check is a
+# circular import back into the half-initialised SteamAdapter) plus `steamworks`
+# (absent from the build venv). Same headless-shim spirit as the SDL dummies.
+class _StubModule(types.ModuleType):
+    def __getattr__(self, name):
+        return lambda *a, **k: None
+sys.modules.setdefault('SteamAdapter', _StubModule('SteamAdapter'))
 
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -381,6 +392,7 @@ def register_unit(u):
 # — e.g. Dread Lash's cast() contains `SealFate`, so it references Seal Fate.
 import Monsters
 import RareMonsters
+import FinalBosses
 
 FRAMEWORK_BASES = {'Spell', 'Equipment', 'Buff', 'Upgrade', 'Unit', 'Component', 'object'}
 IDENT_MAP = {}     # python identifier -> (display_name, kind) ; value None == ambiguous
@@ -709,10 +721,14 @@ def _scan_objects(instance, entry):
             if base is not object and base.__name__ not in FRAMEWORK_BASES:
                 add(base)
     if isinstance(instance, Unit):
-        for sp in getattr(instance, 'spells', None) or []:
-            spcls = type(sp)
-            if isinstance(spcls, type):
-                for base in spcls.__mro__:
+        # Ability-spell classes AND buff classes: a summon/transform can live in
+        # either a spell's cast() (BatBreath -> Bat) or a buff's handler (Snow
+        # Queen's Unseated buff constructs SnowQueenDethroned + SnowQueensPet in
+        # on_damage) — both are code the unit factory itself doesn't contain.
+        for holder in (getattr(instance, 'spells', None) or []) + (getattr(instance, 'buffs', None) or []):
+            hcls = type(holder)
+            if isinstance(hcls, type):
+                for base in hcls.__mro__:
                     if base is not object and base.__name__ not in FRAMEWORK_BASES:
                         add(base)
     return objs
@@ -905,6 +921,36 @@ def extract_companions():
         registered = set(summons_of(e))
         if e.name in registered:
             COMPANION_NAMES.add(e.name)
+
+# ---------------------------------------------------------------------------
+# Final bosses (floor-20 encounters) + Mordred's phases. FinalBosses.py has a
+# clean registry: `final_bosses` (the rollable floor-20 roster) plus the three
+# Mordred forms, which chain by ForcedRespawn (Mordred -> Unbound -> Ascendant).
+# They're neither in the bestiary spawn tables (Monsters.spawn_options) nor
+# summonable, so they'd be absent otherwise (this is the "no clean registry"
+# exclusion ARCHITECTURE §6/§14 called out — the registry is `final_bosses`).
+# The roster factories don't set is_boss themselves (roll_final_boss does, after
+# construction), so we set it here, mirroring the game. Whatever a boss
+# summons/transforms into (Snow Queen's Dethroned form, etc.) is carded by
+# main()'s unit fixpoint, and flags itself is_boss off its own attribute.
+# ---------------------------------------------------------------------------
+BOSS_NAMES = set()
+
+def extract_bosses():
+    factories = list(FinalBosses.final_bosses) + [
+        FinalBosses.Mordred, FinalBosses.MordredUnbound, FinalBosses.MordredAscendant]
+    for fac in factories:
+        u = _safe_call(fac)
+        if not isinstance(u, Unit):
+            print("skip boss", getattr(fac, '__name__', fac))
+            continue
+        u.is_boss = True                       # what roll_final_boss does post-construction
+        if register_unit(u):
+            # Enable AST cross-refs + name links, and let the fixpoint re-derive
+            # this boss's refs (Mordred phase X names phase X+1 in its source).
+            _register_ident(getattr(fac, '__name__', None), u.name, 'unit')
+            _register_factory(u.name, fac)
+            BOSS_NAMES.add(u.name)
 
 def summons_of(obj):
     """Return list of distinct unit names this spell/equipment/component can summon."""
@@ -1160,6 +1206,7 @@ def main():
     components = extract_components()            # these populate UNITS via summons_of()
     extract_monsters(monster_factories)         # full bestiary into UNITS
     extract_companions()                         # Tavern companions into UNITS
+    extract_bosses()                             # floor-20 final bosses + Mordred phases
 
     # Compute every unit's refs, and card any unit it summons that isn't already
     # carded — to a fixpoint, since a summoned unit may summon others. A unit's
