@@ -176,6 +176,7 @@ function tipHtml(node) {
   if (node.dataset.comptip != null) return renderComponentSheet(node.dataset.comptip);
   if (node.classList && node.classList.contains('xref')) {
     const k = node.dataset.k, n = node.dataset.n;
+    if (k === 'spell' && node.dataset.upgrade) return renderUpgradeSheet(n, node.dataset.upgrade);
     if (k === 'spell') return renderSpellSheet(n);
     if (k === 'equipment') return renderEquipSheet(n);
     if (k === 'unit') return renderUnitSheet(n);
@@ -276,6 +277,23 @@ function renderSpellSheet(name) {
     </div>
     ${s.desc ? `<div class="udesc">${renderMarkup(s.desc)}</div>` : ''}
     ${stats ? `<div class="stats" style="margin-top:6px">${stats}</div>` : ''}
+  </div>`;
+}
+// An upgrade has no card of its own; it shows a sheet built from its parent spell's
+// icon plus the upgrade's own name, SP cost, and description.
+function renderUpgradeSheet(spellName, upgradeName) {
+  const s = SPELL_BY_NAME[spellName];
+  const u = s && (s.upgrades || []).find(u => u.name === upgradeName);
+  if (!u) return renderSpellSheet(spellName);
+  return `<div class="unit-sheet">
+    <div class="uhead">
+      <img class="uicon" src="icons/spells/${esc(s.icon)}${IV}" onerror="this.style.visibility='hidden'">
+      <div class="uhmeta">
+        <div class="uname">${esc(u.name)}</div>
+        <div class="card-meta"><span class="badge level" style="background:${TAGCOLOR[s.tags[0]] || '#2a3550'};color:#0c0e14">${u.level} SP</span><span class="badge">${esc(s.name)} upgrade</span></div>
+      </div>
+    </div>
+    ${u.desc ? `<div class="udesc">${renderMarkup(u.desc)}</div>` : ''}
   </div>`;
 }
 
@@ -1711,9 +1729,10 @@ function altHtml(superKey, id, si, ii, ai, editing) {
     icon = iconImg('spells', e); name = e.name; cls = e.kind; lv = e.level; k = 'spell';
     if (e.kind === 'upgrade') { sub = e.spell + ' upgrade'; name = e.name; }
   }
+  const isUpg = superKey === 'sp' && SP_BY_ID[id].kind === 'upgrade';
   const navName = editing
     ? `<span class="g-alt-name">${esc(name)}</span>`
-    : `<span class="g-alt-name xref" data-k="${k}" data-n="${esc(superKey === 'sp' && SP_BY_ID[id].kind === 'upgrade' ? SP_BY_ID[id].spell : name)}">${esc(name)}</span>`;
+    : `<span class="g-alt-name xref" data-k="${k}" data-n="${esc(isUpg ? SP_BY_ID[id].spell : name)}"${isUpg ? ` data-upgrade="${esc(name)}"` : ''}>${esc(name)}</span>`;
   // Everything in the SP track shows its SP cost (a spell's level is its SP cost
   // to learn; an upgrade's level is its SP cost to buy).
   const badge = superKey === 'sp' ? `<span class="g-lv" title="SP cost">${lv} SP</span>` : '';
