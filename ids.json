@@ -354,7 +354,8 @@
     "Doombrand": 351,
     "Lightbinder": 352,
     "The Haemanthus": 353,
-    "The Lodestar": 354
+    "The Lodestar": 354,
+    "Warlord Banner": 355
   },
   "sp": {
     "Amalgamate Slime": 0,
@@ -1290,7 +1291,11 @@
     "Wyrm Eggs::Radiant Eggs": 930,
     "Wyrm Eggs::Scale Harvest": 931,
     "Immolate::Cursed Flames": 932,
-    "Mystic Vision::Superior Sight": 933
+    "Mystic Vision::Superior Sight": 933,
+    "Boiling Blood::Escalating Fury": 934,
+    "Frostfire Hydra::Crystalline Hydra": 935,
+    "Frostfire Hydra::Double Dragon": 936,
+    "Frostfire Hydra::Orochi": 937
   },
   "spell": {
     "Amalgamate Slime": 0,
