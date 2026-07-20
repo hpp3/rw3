@@ -1036,7 +1036,8 @@ def _spell_entry(s, cons, forbidden=False, granted_by=None):
     if forbidden:
         # Forbidden spells aren't bought with SP — they come with a SpellBook.
         # The frontend shows "Forbidden" instead of an SP cost and links the
-        # granting equipment. They're excluded from Guide SP ids (see main()).
+        # granting equipment. They can still be planned in Guides, along with
+        # their upgrades.
         entry["forbidden"] = True
         if granted_by:
             entry["granted_by"] = granted_by
@@ -1285,8 +1286,8 @@ def main():
     # Stable integer ids for shareable build URLs (append-only; see ids.py).
     # Mutates ids.json on disk — it MUST be committed alongside data.json.
     idmap = ids_mod.load_ids()
-    # Forbidden spells are equipment-granted (no SP cost), so they get no spell
-    # id and don't enter the Guide SP track (assign_sp skips them internally).
+    # Forbidden spells are equipment-granted (no SP cost), so they retain no
+    # legacy spell-category id. They do receive combined Guide `sp` ids below.
     learnable = [s for s in spells if not s.get("forbidden")]
     ids_mod.assign(idmap, "equipment", [e["name"] for e in equipment])
     ids_mod.assign(idmap, "spell", [s["name"] for s in learnable])

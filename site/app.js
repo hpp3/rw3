@@ -1524,7 +1524,11 @@ function buildSpLookup() {
   SP_BY_ID = {};
   for (const s of DATA.spells) {
     if (s.sp_id == null) continue;
-    SP_BY_ID[s.sp_id] = { kind: 'spell', name: s.name, spell: s.name, level: s.level, icon: s.icon, has_icon: s.has_icon };
+    SP_BY_ID[s.sp_id] = {
+      kind: 'spell', name: s.name, spell: s.name, level: s.level,
+      icon: s.icon, has_icon: s.has_icon, forbidden: !!s.forbidden,
+      granted_by: s.granted_by || ''
+    };
     for (const u of s.upgrades || []) {
       if (u.sp_id == null) continue;
       SP_BY_ID[u.sp_id] = { kind: 'upgrade', name: u.name, spell: s.name, level: u.level, icon: s.icon, has_icon: s.has_icon };
@@ -1720,22 +1724,27 @@ function itemHtml(superKey, item, si, ii, editing) {
   return `<div class="g-item" data-super="${superKey}" data-sec="${si}" data-item="${ii}"${editing ? ' draggable="true"' : ''}>${alts}${editing ? `<button class="g-or-add" data-or-add data-super="${superKey}" data-sec="${si}" data-item="${ii}" title="Add an OR alternative">+or</button>` : ''}</div>`;
 }
 function altHtml(superKey, id, si, ii, ai, editing) {
-  let icon, name, sub = '', lv = '', cls, k;
+  let icon, name, sub = '', lv = '', cls, k, forbidden = false, grantedBy = '';
   if (superKey === 'eq') {
     const e = EQ_BY_NAME[EQ_NAME_BY_ID[id]]; if (!e) return '';
     icon = iconImg('equipment', e); name = e.name; sub = e.slot || ''; cls = 'eq'; k = 'equipment';
   } else {
     const e = SP_BY_ID[id]; if (!e) return '';
     icon = iconImg('spells', e); name = e.name; cls = e.kind; lv = e.level; k = 'spell';
+    forbidden = e.kind === 'spell' && e.forbidden;
+    grantedBy = e.granted_by || '';
+    if (forbidden && grantedBy) sub = 'Granted by ' + grantedBy;
     if (e.kind === 'upgrade') { sub = e.spell + ' upgrade'; name = e.name; }
   }
   const isUpg = superKey === 'sp' && SP_BY_ID[id].kind === 'upgrade';
   const navName = editing
     ? `<span class="g-alt-name">${esc(name)}</span>`
     : `<span class="g-alt-name xref" data-k="${k}" data-n="${esc(isUpg ? SP_BY_ID[id].spell : name)}"${isUpg ? ` data-upgrade="${esc(name)}"` : ''}>${esc(name)}</span>`;
-  // Everything in the SP track shows its SP cost (a spell's level is its SP cost
-  // to learn; an upgrade's level is its SP cost to buy).
-  const badge = superKey === 'sp' ? `<span class="g-lv" title="SP cost">${lv} SP</span>` : '';
+  // Forbidden spells are granted by equipment rather than learned with SP;
+  // their upgrades still show their normal SP cost.
+  const badge = superKey === 'sp'
+    ? `<span class="g-lv${forbidden ? ' forbidden' : ''}" title="${forbidden ? esc(grantedBy ? 'Granted by ' + grantedBy : 'Granted by equipment') : 'SP cost'}">${forbidden ? 'Forbidden' : lv + ' SP'}</span>`
+    : '';
   const rm = editing ? `<button class="g-alt-x" data-alt-remove data-super="${superKey}" data-sec="${si}" data-item="${ii}" data-alt="${ai}" title="Remove">✕</button>` : '';
   return `<span class="g-alt ${cls}">${icon}<span class="g-alt-text">${navName}${sub ? `<span class="g-alt-sub">${esc(sub)}</span>` : ''}</span>${badge}${rm}</span>`;
 }
@@ -1850,7 +1859,10 @@ function pickerCandidates(superKey) {
   // addable, and would otherwise be buried under all 186 spells), then spells.
   const upgrades = [], spells = [];
   for (const s of DATA.spells) {
-    if (s.sp_id != null) spells.push({ id: s.sp_id, name: s.name, sub: s.level + ' SP', cls: 'spell', tag: 'SPELL', search: s.name.toLowerCase() });
+    if (s.sp_id != null) {
+      const sub = s.forbidden ? ['Forbidden', s.granted_by].filter(Boolean).join(' • ') : s.level + ' SP';
+      spells.push({ id: s.sp_id, name: s.name, sub, cls: 'spell', tag: 'SPELL', search: (s.name + ' ' + (s.granted_by || '')).toLowerCase() });
+    }
     if (present.has(s.name)) for (const u of s.upgrades || []) if (u.sp_id != null)
       upgrades.push({ id: u.sp_id, name: u.name, sub: s.name + ' • ' + u.level + ' SP', cls: 'upg', tag: 'UPG', search: (u.name + ' ' + s.name).toLowerCase() });
   }

@@ -439,15 +439,17 @@ VIEW mode when the URL carries a `?g=`, and EDIT mode otherwise (or after clicki
 copies the guide's equipment into their own Wishlist explicitly via the **Send to Wishlist** button
 (§13) — opening a guide never auto-mutates the Wishlist.
 
-- **Two independent "supersections", because they're separate currencies:** the **SP track** (spells
-  & upgrades, in priority/spend order — an upgrade is its *own* line item, not attached to its spell)
+- **Two independent "supersections":** the **SP track** (spells & upgrades, in priority/spend order
+  — including equipment-granted forbidden spells; an upgrade is its *own* line item, not attached to its spell)
   and the **Equipment track**. Each is an ordered list of labeled **sections**; each section holds
   ordered **items**; each item is an **OR-group** of ids (alternatives, "A or B").
 - **Stable `sp` ids** (`ids.py: assign_sp`): one combined namespace for spells *and* upgrades, keyed
   `"Spell"` for a spell and `"Spell::Upgrade"` for an upgrade (the `::` makes the two key-spaces never
   collide). `extract.py` emits `sp_id` onto each spell and each upgrade dict. Combined (vs. a separate
   upgrade category) is deliberate: the SP stream stays pure ids with **no per-token type marker** —
-  `SP_BY_ID` disambiguates spell vs. upgrade at render time.
+  `SP_BY_ID` disambiguates spell vs. upgrade at render time. Forbidden spells and their upgrades are
+  included; the Guide labels the spell as equipment-granted instead of showing its internal level as
+  an SP cost, while its upgrades retain their normal SP costs.
 - **Encoding** (`encodeGuide`): `?g = VER _ <equipment> _ <sp> _ <title?>` (top-level sep is `_`, one
   of the few chars `URLSearchParams` leaves un-percent-encoded, so the shared URL stays clean). A
   track is sections run together; an **uppercase heading letter** both starts and labels each section

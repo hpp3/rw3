@@ -1,7 +1,8 @@
 """Stable, append-only integer IDs for shareable build URLs.
 
 Maintains `ids.json` (committed) mapping a display name -> small int, per
-category ("equipment", "spell"). Assignment is **append-only**:
+category ("equipment", legacy "spell", and Guide "sp"). Assignment is
+**append-only**:
 
   * an existing name NEVER changes id,
   * a name that disappears from the game keeps its id reserved (never reused),
@@ -16,12 +17,13 @@ rename would orphan the old id — accepted, see ARCHITECTURE.md §3).
 `ids.json` is the source of truth and must be committed. The frontend never
 fetches it; build emits the resolved `id` onto each entry in `data.json`.
 
-Run directly (`python ids.py`) to (re)assign ids and patch the ids into an
-existing `site/data.json` *without* a full game rebuild — handy for bootstrapping
-or refreshing after a manual data edit. The full build (`extract.py`) does the
-same thing inline on every run.
+Run directly (`python ids.py [data files...]`) to (re)assign ids and patch them
+into existing datasets *without* a full game rebuild — handy for bootstrapping
+or refreshing both live and beta after an ID-policy change. With no arguments it
+defaults to `site/data.json`. The full build (`extract.py`) does the same thing
+inline on every run.
 """
-import os, json
+import os, json, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 IDS_PATH = os.path.join(HERE, "ids.json")
@@ -61,10 +63,9 @@ def sp_key(spell_name, upgrade_name=None):
 def assign_sp(idmap, spells):
     """Assign + attach combined `sp` ids for every spell AND every upgrade.
     Mutates `spells` (adds `sp_id` to each spell and to each upgrade dict) and
-    `idmap`. Append-only like `assign`. Returns the `sp` category dict.
-    Forbidden spells (equipment-granted, no SP cost) are skipped — they don't
-    belong in the Guide SP track."""
-    spells = [s for s in spells if not s.get("forbidden")]
+    `idmap`. Append-only like `assign`. Returns the `sp` category dict. This
+    includes forbidden, equipment-granted spells so Guides can plan around the
+    spell and its upgrades even though the spell itself has no SP cost."""
     keys = []
     for s in spells:
         keys.append(sp_key(s["name"]))
@@ -93,29 +94,35 @@ def apply_to_data(data, idmap):
     """Assign+attach ids for every category present in `data` (mutates both)."""
     for data_key, category in CATEGORIES.items():
         entries = data.get(data_key, [])
-        if category == "spell":   # forbidden spells get no spell id (see assign_sp)
+        if category == "spell":   # legacy category excludes forbidden spells
             entries = [e for e in entries if not e.get("forbidden")]
         assign(idmap, category, [e["name"] for e in entries])
         m = idmap[category]
         for e in entries:
             e["id"] = m[e["name"]]
-    # Combined spell+upgrade ids for the Guide SP track (attaches sp_id to each
-    # spell and to each upgrade dict in place).
+    # Combined spell+upgrade ids for the Guide track (including forbidden
+    # equipment-granted spells; attaches sp_id to every spell and upgrade).
     assign_sp(idmap, data.get("spells", []))
     return idmap
 
 
-def main():
+def main(paths=None):
+    paths = list(paths if paths is not None else sys.argv[1:]) or [DATA_PATH]
     idmap = load_ids()
-    with open(DATA_PATH, encoding="utf-8") as f:
-        data = json.load(f)
-    apply_to_data(data, idmap)
+    datasets = []
+    for path in paths:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        apply_to_data(data, idmap)
+        datasets.append((path, data))
     save_ids(idmap)
-    with open(DATA_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    for path, data in datasets:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
     for cat, m in sorted(idmap.items()):
         print(f"{cat}: {len(m)} ids (max {max(m.values(), default=-1)})")
-    print("patched", DATA_PATH)
+    for path, _data in datasets:
+        print("patched", path)
 
 
 if __name__ == "__main__":
