@@ -601,7 +601,11 @@ function equipmentCard(e) {
   return card;
 }
 
-const EQ = { search: '', slots: null, tags: null, sort: 'cost', craftableOnly: false, statFilters: [] };
+// tagMode: how the tag chips are read. 'item' = the finished item carries the
+// tag; 'recipe' = the tag is consumed to craft it. They are genuinely different
+// sets (Helm of Hexes crafts from Dark but is tagged only Enchantment).
+const EQ = { search: '', slots: null, tags: null, sort: 'cost', craftableOnly: false, statFilters: [], tagMode: 'item' };
+const EQ_TAG_MODE_DEFAULT = 'item';
 function renderEquipment() {
   const q = EQ.search.toLowerCase();
   const slots = EQ.slots, tags = EQ.tags;
@@ -611,8 +615,8 @@ function renderEquipment() {
     if (EQ.statFilters && !passesStatFilters(e, EQ.statFilters)) return false;
     if (EQ.craftableOnly && evalRecipe(e.recipe, pool).missing > 0) return false;
     if (tags.size) {
-      const rtags = new Set(e.recipe.map(r => r[0]));
-      for (const t of tags) if (!rtags.has(t)) return false;
+      const have = EQ.tagMode === 'recipe' ? new Set(e.recipe.map(r => r[0])) : new Set(e.tags);
+      for (const t of tags) if (!have.has(t)) return false;
     }
     if (q) {
       const hay = stripMarkup(e.name + ' ' + e.desc + ' ' + e.bonuses.join(' ') + ' ' + e.tags.join(' ') + ' ' + e.slot + ' ' + (e.summons || []).join(' ')).toLowerCase();
@@ -1165,11 +1169,25 @@ function clearChipGroup(set, sel) {
   if (set) set.clear();
   $$(sel + ' .chip').forEach(c => { c.classList.remove('active'); c.style.background = ''; });
 }
+// State + DOM only (no render): callers decide when to repaint, and clearFilters
+// runs before its own render pass.
+function setEqTagMode(mode) {
+  EQ.tagMode = mode;
+  const box = $('#eq-tagmode');
+  if (!box) return;
+  box.dataset.mode = mode;          // drives the thumb slide in CSS
+  $$('#eq-tagmode .seg-opt').forEach(b => {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+}
 function clearFilters(tab) {
   if (tab === 'equipment') {
     EQ.search = ''; const i = $('#eq-search'); if (i) i.value = ''; EQ.statFilters.length = 0;
     EQ.craftableOnly = false; const b = $('#eq-craftable'); if (b) b.classList.remove('active');
     clearChipGroup(EQ.slots, '#eq-slots'); clearChipGroup(EQ.tags, '#eq-tags');
+    setEqTagMode(EQ_TAG_MODE_DEFAULT);
     const f = $('#eq-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
   } else if (tab === 'spells') {
     SP.search = ''; const i = $('#sp-search'); if (i) i.value = ''; SP.statFilters.length = 0;
@@ -2132,6 +2150,13 @@ async function init() {
     dot: t => TAGCOLOR[t] || 'var(--muted)',
     activeColor: t => TAGCOLOR[t] || 'var(--accent)',
     onChange: renderEquipment
+  });
+  const tagmode = $('#eq-tagmode');
+  if (tagmode) tagmode.addEventListener('click', ev => {
+    const btn = ev.target.closest('.seg-opt');
+    if (!btn || btn.dataset.mode === EQ.tagMode) return;
+    setEqTagMode(btn.dataset.mode);
+    renderEquipment();
   });
   makeStatSearch({ inputEl: $('#eq-search'), filtersEl: $('#eq-filters'), state: EQ, getDataset: () => DATA.equipment, render: renderEquipment });
   $('#eq-sort').addEventListener('change', e => { EQ.sort = e.target.value; renderEquipment(); });

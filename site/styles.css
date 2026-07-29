@@ -195,6 +195,30 @@ select{
 .toggle.active{background:#13391f;color:#7ee0a0;border-color:#2f6b45}
 .toggle.active::before{content:"✓ "}
 
+/* Sliding two-way switch (equipment tag filter: item tags vs recipe tags).
+   inline-grid with 1fr columns sizes BOTH options to the wider label, so the
+   thumb is exactly half the track and slides a clean 100% with no measuring. */
+.segmented{
+  position:relative;display:inline-grid;grid-template-columns:repeat(2,1fr);
+  background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:2px;
+  align-self:flex-start;   /* .control-group is a flex column: don't stretch to the chip row */
+}
+.seg-thumb{
+  position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);
+  border-radius:999px;background:var(--accent);pointer-events:none;
+  transition:transform .18s cubic-bezier(.4,0,.2,1);
+}
+.segmented[data-mode="recipe"] .seg-thumb{transform:translateX(100%)}
+.seg-opt{
+  position:relative;z-index:1;background:none;border:none;cursor:pointer;
+  padding:3px 11px;border-radius:999px;white-space:nowrap;
+  font:inherit;font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--muted);
+}
+.seg-opt:hover:not(.active){color:var(--text)}
+.seg-opt.active{color:#0c0e14}
+.seg-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.seg-thumb{transition:none}}
+
 /* Component inventory ("I have 2 Chaos Seeds…") */
 .inventory{background:linear-gradient(180deg,#16212b,#121a24);border:1px solid #2f5a4a;
   border-radius:11px;padding:10px 12px;margin-bottom:10px}

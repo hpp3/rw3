@@ -49,7 +49,15 @@
         <div class="chips" id="eq-slots"></div>
       </div>
       <div class="control-group">
-        <label>Recipe contains tag</label>
+        <!-- Two ways to read a tag: the item's own tags vs the tags its recipe
+             consumes. They differ (e.g. Holy: 47 items carry it, 53 craft from it). -->
+        <div class="segmented" id="eq-tagmode" data-mode="item" role="radiogroup" aria-label="Tag filter mode">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button type="button" class="seg-opt active" data-mode="item" role="radio" aria-checked="true"
+                  title="Show equipment that carries the selected tag">Equipment has tag</button>
+          <button type="button" class="seg-opt" data-mode="recipe" role="radio" aria-checked="false"
+                  title="Show equipment whose recipe consumes the selected tag">Recipe uses tag</button>
+        </div>
         <div class="chips" id="eq-tags"></div>
       </div>
       <div class="control-group">
