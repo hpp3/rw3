@@ -181,5 +181,34 @@ def backfill(site_dir):
     print(f"wrote {os.path.join(site_dir, HISTORY_FILE)} (+{total} first-seen records)")
 
 
+def reset(site_dir, branch_id, date=None):
+    """Collapse a branch's entire recorded history into a single baseline, so
+    Recent changes starts empty and only *future* additions appear.
+
+    Use when the recorded history is dominated by extraction churn rather than
+    real patches (see the invariant above) and is not worth untangling entry by
+    entry. The names are kept — that's what stops the next build from reporting
+    the whole catalogue as new — they're just all filed under one baseline date.
+    """
+    hist = load(site_dir)
+    br = hist["branches"].get(branch_id)
+    if not br:
+        print(f"no history for branch {branch_id!r}")
+        return
+    names = {k: v for k, v in known_names(br).items() if v}
+    date = date or max(br.get("added", {}), default="") or ""
+    before = sum(len(kinds.get(k, [])) for kinds in br.get("added", {}).values() for k in kinds)
+    br["added"] = {date: {k: sorted(v) for k, v in names.items()}}
+    br["baseline"] = {k: date for k in names}
+    save(site_dir, hist)
+    print(f"{branch_id}: collapsed {before} first-seen records into a single baseline at {date}; "
+          f"kept {sum(len(v) for v in names.values())} names across {len(names)} kinds")
+
+
 if __name__ == "__main__":
-    backfill(os.path.join(HERE, "site"))
+    import sys
+    site = os.path.join(HERE, "site")
+    if len(sys.argv) > 2 and sys.argv[1] == "reset":
+        reset(site, sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
+    else:
+        backfill(site)

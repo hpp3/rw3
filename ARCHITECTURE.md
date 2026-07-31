@@ -35,7 +35,7 @@ Non-obvious gotchas, each of which cost real debugging time:
   the game's bundled `SDL2.dll` (2.28.1) and pygame (compiled against 2.28.4) raises
   *"Dynamic linking causes SDL downgrade"*. That's why sprite dimensions are read by parsing the
   PNG IHDR header by hand (`_png_size`) instead of using an image library.
-- **The build is slow (~2 min)** — dominated by `inspect.getsource()` over ~900 classes for the
+- **The build's cost is dominated** by `inspect.getsource()` over every game class for the
   AST cross-reference pass (§4). There's a `_getsource` cache; it's still the bottleneck.
 
 If the game updates and an attribute/registry moves, the build is where it breaks. The registries
@@ -78,11 +78,11 @@ component inventory, and the equipment build (`localStorage`), all off the **dis
 **one** thing that does *not* is the shareable **Guide**, whose URL uses stable integer ids (§13, §15).
 
 Facts a future agent should know:
-- Display names are currently **unique across all 350 equipment and 196 spells** (the game's own
-  tests enforce it). That uniqueness is what makes the name a safe key.
-- Python **class names are unique for spells** and for ~288/350 equipment, but **not** for the 62
-  factory-built items (11 share `FreeCastStaff`, etc.) — which is *why* we key on display name, not
-  class name, both for the DOM/links and as the stable key behind the id map (§13).
+- Display names are **unique across all equipment and spells** (the game's own tests enforce it).
+  That uniqueness is what makes the name a safe key.
+- Python **class names are unique for spells** but **not** for equipment: the factory-built items
+  collide (several share `FreeCastStaff`, etc.) — which is *why* we key on display name, not class
+  name, both for the DOM/links and as the stable key behind the id map (§13).
 - Names are stable against *content additions* (new items don't rename old ones) but not against a
   *rename*. Renames are deliberately **not** handled: a rename orphans the item's id and the new
   name gets a fresh one (old share-URLs lose that one item). This is accepted — renames are rare.
@@ -178,15 +178,15 @@ link, the same accepted limitation as anywhere else; e.g. Mordred's "become Mord
 
 ## 6. The monster/unit catalog and the "passives = all buffs" subtlety
 
-`data.units` (459 entries) = the full bestiary (351 monsters: base spawns + evolutions + the rare
-rosters) **plus** summon-only minions and the 13 Tavern companions, deduped by name. Each is a stat
+`data.units` = the full bestiary (base spawns + evolutions + the rare rosters) **plus** summon-only
+minions and the Tavern companions, deduped by name. Each is a stat
 sheet built by `register_unit`. `is_monster` distinguishes bestiary vs summon-only; `is_companion`
 flags the companions; `is_boss` flags the final bosses; `depth` is the earliest spawn depth for base
 monsters. The Monsters-tab type filter is `monster` / `summon` / `companion` / `boss`, derived
 boss-first (a boss is none of the other three).
 
 **Final bosses (`extract_bosses`):** the floor-20 encounters. Contrary to the old "no clean registry"
-note, `FinalBosses.py` *does* have one: `final_bosses` (the 9-boss rollable roster) plus the three
+note, `FinalBosses.py` *does* have one: `final_bosses` (the rollable roster) plus the three
 Mordred forms (`Mordred` → `Mordred, Unbound` → `Mordred, Ascendant`, chained by `ForcedRespawn`).
 They're neither in the spawn tables nor summonable, so they're pulled in explicitly and flagged
 `is_boss`. Two wrinkles: (1) the roster factories don't set `is_boss` themselves — `roll_final_boss`
@@ -197,7 +197,7 @@ extraction), and the real module drags in a `LevelGen`→`Game` circular import 
 headless-shim spirit as the SDL dummies). Whatever a boss summons/transforms into is carded by
 main()'s fixpoint and self-flags `is_boss` off its own attribute.
 
-**Companions (`extract_companions`):** the 13 Tavern allies live in `Equipment.all_companions`, a
+**Companions (`extract_companions`):** the Tavern allies live in `Equipment.all_companions`, a
 list *separate* from `all_equipment` — each is a `Companion` equipment whose examine tooltip is the
 (buffed) unit it summons. Because they're neither craftable nor in the bestiary, their units are
 otherwise absent, so we pull them in via `summons_of` (which yields the in-game buffed stats — the
@@ -223,7 +223,7 @@ The game runs this when a unit enters a level **and in the examine panel itself*
 (`RiftWizard3.py`), so a freshly-constructed unit's `resists` dict is **incomplete** until you call it.
 `register_unit` calls `u.set_default_resistances()` before reading `resists` (it's idempotent via
 `resists_applied` and needs no level). Skipping it (the original bug) showed Vampire as only
-`Fire -100`, hiding its Holy vulnerability — and was wrong for **214 of 412** units.
+`Fire -100`, hiding its Holy vulnerability — and was wrong for **over half of all units**.
 
 **Buff glossary (per-entity `btips`, `refs_for`):** many abilities name a buff that
 has no card and is never explained — e.g. Brew Concoctions says "gain a stack of *Brewed
@@ -365,9 +365,9 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
   matches what the game itself renders, so they need the game install and **can't run in CI** — they
   run locally as the final step of `build.py` (a failing verifier fails the build). Current verifiers:
   `verify_resists.py` rebuilds the bestiary roster, applies the game's `set_default_resistances` (§6),
-  renders resist lines through the game's own examine draw logic, and compares all 351 monsters;
+  renders resist lines through the game's own examine draw logic, and compares every monster;
   `verify_descriptions.py` re-implements the game's `draw_examine_spell`/`draw_examine_upgrade` text
-  assembly and compares every spell (196) and upgrade (788) description. Both are independent of
+  assembly and compares every spell and upgrade description. Both are independent of
   `extract.py`'s assembly code (they only borrow the reconstructed `tooltip_colors`/`TT_ATTRS` color
   tables, since the UI module isn't importable here). Add a verifier here when a new extracted field
   has an authoritative game-render to check against.
@@ -401,7 +401,7 @@ component inventory, component→item assignments, scroll, and active tab (`#has
   resolved `id` onto each equipment/spell entry in `data.json` (the frontend never fetches `ids.json`).
   `python ids.py` re-applies ids to an existing `site/data.json` without a game rebuild (how it was
   bootstrapped — and how the `sp` category was added without re-running the game).
-- **Why integers, not class names:** compact URLs, and class names aren't unique for the 62 factory
+- **Why integers, not class names:** compact URLs, and class names aren't unique for the factory-built
   items (§3). The stable *key* behind the map is the display name (game-unique; addition-stable).
 - **The equipment Wishlist is `localStorage`, not the URL.** `WISH` (a Set of equipment *names*; the
   UI labels it "Wishlist") persists under `rw3_build` via `loadBuild`/`saveBuild`; explicit actions
@@ -413,7 +413,7 @@ component inventory, component→item assignments, scroll, and active tab (`#has
   Wishlist: the Guide's view-mode **"Send to Wishlist"** button (`sendGuideEquipToWishlist`) unions its
   equipment into `WISH` and saves. (Edit mode has the reverse: **"Import from Wishlist"** copies the
   Wishlist into the guide's Core via `importBuildEquipment`.)
-- The legacy `spell` category (0–185) is kept but **unused** — the Guide uses the combined `sp`
+- The legacy `spell` category is kept but **unused** — the Guide uses the combined `sp`
   category instead. Harmless to keep (append-only) and reserved.
 
 ---
@@ -563,8 +563,8 @@ with that build's `generated` date + build id), and `python history.py` **backfi
 replaying every committed revision of `site/data*.json` oldest-first and taking each commit's
 date. The backfill is idempotent and only fills gaps, so it is safe to re-run.
 
-`baseline` entries are excluded from the UI: the initial 810-entry import, and the 72 costumes
-that appeared the day the *extractor* learned to read the wardrobe, are not game content changes.
+`baseline` entries are excluded from the UI: the initial bulk import, and the costumes that all
+appeared the day the *extractor* learned to read the wardrobe, are not game content changes.
 
 ### ⚠️ Intended invariant (NOT yet enforced): only real game changes belong here
 
@@ -585,6 +585,13 @@ through to `history.json`. Nothing automates that judgment today; it is a manual
 `history.json` can be hand-edited (it is plain, sorted, human-readable JSON) to move mistakenly
 recorded names back to an earlier date or to the branch's baseline.
 
+**Starting a branch over:** `python history.py reset <branch> [date]` collapses everything that
+branch has recorded into one baseline, so its screen reads "Nothing so far" and only future
+additions appear. The names are **kept** (filed under the baseline date) — that is what stops the
+next build from reporting the entire catalogue as new. This was done to **live**, whose recorded
+history was almost entirely extraction churn (the 2026-06-09 case above) rather than patches;
+beta's history was genuine per-patch data and was left intact.
+
 ---
 
 ## 16. Essence tags have **canonical one-letter codes** (not first-initial)
@@ -597,7 +604,7 @@ the *unassigned* pool, rendered as one chip per essence held — 4× Fire = `FFF
 (`RiftWizard3.KEY_BIND_DEFS`).
 
 - **These are NOT first letters.** Four pairs clash on first initial, so the game assigns distinct
-  letters: **Eye=Y, Dragon=R, Chaos=K, Slime=Z, Ritual=U** (and **Any=∗**). The remaining 15 happen to
+  letters: **Eye=Y, Dragon=R, Chaos=K, Slime=Z, Ritual=U** (and **Any=∗**). The rest happen to
   be their first letter (`Fire`=F, `Dark`=D, `Holy`=H, …). Using a naive `tag[0]` would collide
   Chaos/Conjuration, Dark/Dragon, Enchantment/Eye, Slime/Sorcery — **don't do that.**
 - **Source of truth is the game**, mirrored in two places that must stay in sync: `extract.py`'s

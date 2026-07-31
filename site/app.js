@@ -1434,6 +1434,9 @@ let HISTORY = null;
 const RECENT_KIND_LABEL = { spell: 'Spells', equipment: 'Equipment', component: 'Components',
                             unit: 'Monsters & units', costume: 'Costumes' };
 const RECENT_KIND_ORDER = ['spell', 'equipment', 'component', 'unit', 'costume'];
+// Shown when a branch has no changes to report — either nothing recorded yet, or
+// everything recorded is baseline (live was reset to a clean slate).
+const RECENT_EMPTY = 'Nothing so far. New changes will show up here.';
 
 function historyBranch() {
   const id = (ACTIVE_VERSION && ACTIVE_VERSION.id) || 'live';
@@ -1461,7 +1464,7 @@ function renderRecent() {
   const br = historyBranch();
   body.innerHTML = '';
   if (!br || !br.added) {
-    body.appendChild(el('div', 'empty', 'No change history recorded for this version yet.'));
+    body.appendChild(el('div', 'empty', RECENT_EMPTY));
     return;
   }
   const baseline = br.baseline || {}, builds = br.builds || {};
@@ -1493,7 +1496,7 @@ function renderRecent() {
     }
     body.appendChild(sec);
   }
-  if (!sections) body.appendChild(el('div', 'empty', 'Nothing new since tracking began.'));
+  if (!sections) body.appendChild(el('div', 'empty', RECENT_EMPTY));
 }
 
 // ---------------------------------------------------------------------------
