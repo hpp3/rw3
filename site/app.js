@@ -98,7 +98,8 @@ function summonRow(summons, poolSummons) {
 }
 // One steps() keyframe per distinct idle-frame count (idle loops at 5fps).
 function injectSpriteKeyframes() {
-  const counts = new Set(Object.values(UNITS).map(u => u.cols || 1).filter(c => c > 1));
+  const sheets = [...Object.values(UNITS), ...((DATA && DATA.costumes) || [])];
+  const counts = new Set(sheets.map(u => u.cols || 1).filter(c => c > 1));
   let css = '';
   for (const n of counts) {
     css += `@keyframes spr${n}{to{background-position-x:calc(${n} * var(--d) * -1)}}`;
@@ -1025,6 +1026,7 @@ function wireBuild() {
 // ---------------------------------------------------------------------------
 function componentCard(c) {
   const card = el('div', 'card');
+  card.id = 'c-' + slug(c.name);     // so Recent Changes can link to a component
   card.innerHTML = `
     <div class="card-head">
       ${iconImg('components', c)}
@@ -1140,8 +1142,8 @@ function renderSpells() {
 const slug = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 const unitCardId = name => 'u-' + slug(name);
 const escapeRegex = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const KIND_CARD_PREFIX = { spell: 's-', equipment: 'e-', unit: 'u-' };
-const KIND_TAB = { spell: 'spells', equipment: 'equipment', unit: 'monsters' };
+const KIND_CARD_PREFIX = { spell: 's-', equipment: 'e-', unit: 'u-', component: 'c-', costume: 'cos-' };
+const KIND_TAB = { spell: 'spells', equipment: 'equipment', unit: 'monsters', component: 'components', costume: 'costumes' };
 
 function flashCard(node) {
   node.classList.remove('flash');
@@ -1193,6 +1195,13 @@ function clearFilters(tab) {
     SP.search = ''; const i = $('#sp-search'); if (i) i.value = ''; SP.statFilters.length = 0;
     clearChipGroup(SP.levels, '#sp-levels'); clearChipGroup(SP.tags, '#sp-tags');
     const f = $('#sp-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
+  } else if (tab === 'components') {
+    CP.search = ''; const i = $('#cp-search'); if (i) i.value = '';
+    clearChipGroup(CP.tiers, '#cp-tiers'); clearChipGroup(CP.effects, '#cp-effects');
+    clearChipGroup(CP.tags, '#cp-tags');
+  } else if (tab === 'costumes') {
+    // Search only — navigating to a costume must never un-hide its art.
+    COS.search = ''; const i = $('#cos-search'); if (i) i.value = '';
   } else if (tab === 'monsters') {
     MON.search = ''; const i = $('#mon-search'); if (i) i.value = '';
     clearChipGroup(MON.types, '#mon-types');
@@ -1209,7 +1218,8 @@ function gotoPool(pool) {
   else { MON.pools.add(pool); renderMonsters(); }
   requestAnimationFrame(() => { const p = $('#tab-monsters'); if (p) p.scrollIntoView({ block: 'start' }); });
 }
-const TAB_RENDER = { equipment: () => renderEquipment(), spells: () => renderSpells(), monsters: () => renderMonsters() };
+const TAB_RENDER = { equipment: () => renderEquipment(), spells: () => renderSpells(), monsters: () => renderMonsters(),
+                     components: () => renderComponents(), costumes: () => renderCostumes() };
 function gotoEntry(kind, name) {
   const tab = KIND_TAB[kind];
   const id = KIND_CARD_PREFIX[kind] + slug(name);
@@ -1293,6 +1303,197 @@ function renderMonsters() {
   if (!list.length) grid.appendChild(el('div', 'empty', 'No monsters match.'));
   list.forEach(u => grid.appendChild(monsterCard(u)));
   $('#mon-count').textContent = `${list.length} of ${Object.keys(DATA.units).length} units`;
+}
+
+// ---------------------------------------------------------------------------
+// COSTUMES (wardrobe outfits)
+// ---------------------------------------------------------------------------
+// Cosmetic player skins whose unlock conditions spoil bosses, vaults and secret
+// interactions, so the ART is hidden behind a spoiler veil by default. The name
+// and the unlock condition are always visible — they're what you'd look this up
+// for; the reveal is the picture. Individual reveals persist so a costume you
+// chose to see stays seen across reloads.
+const COS = { search: '', showAll: false };
+const COS_KEY = 'rw3_costumes_revealed_v1';
+let COS_REVEALED = new Set();
+
+function loadRevealed() {
+  try { COS_REVEALED = new Set(JSON.parse(localStorage.getItem(COS_KEY)) || []); }
+  catch (e) { COS_REVEALED = new Set(); }
+}
+function saveRevealed() {
+  try { localStorage.setItem(COS_KEY, JSON.stringify([...COS_REVEALED])); } catch (e) {}
+}
+// A costume with no unlock achievement (the default Wizard) is available from
+// the start, so there is nothing to spoil: always shown, and not toggleable.
+function costumeFree(c) { return !c.achievement; }
+let COS_FREE = new Set();
+function costumeShownByName(name) {
+  return COS_FREE.has(name) || COS.showAll || COS_REVEALED.has(name);
+}
+function costumeShown(c) { return costumeFree(c) || COS.showAll || COS_REVEALED.has(c.name); }
+
+const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+  '<path d="M3 3l18 18"/>' +
+  '<path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c5 0 9 4.5 10 6-.4.7-1.4 2-2.9 3.2"/>' +
+  '<path d="M6.6 8.2C4.6 9.5 3.3 11.3 2 12c1 1.5 5 6 10 6 1.3 0 2.5-.3 3.6-.8"/>' +
+  '<path d="M9.9 10.2a3 3 0 0 0 4.1 4.2"/></svg>';
+
+function costumeCard(c) {
+  const card = el('div', 'card cos-card');
+  card.id = 'cos-' + slug(c.name);
+  card.dataset.name = c.name;
+  const free = costumeFree(c);
+  const shown = costumeShown(c);
+  if (free) card.classList.add('cos-open');      // no spoiler: no veil, no toggle
+  else {
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-pressed', shown ? 'true' : 'false');
+    card.setAttribute('aria-label', `${c.name} costume art, ${shown ? 'revealed' : 'hidden as a spoiler'}`);
+  }
+  card.classList.toggle('revealed', shown);
+  // Same spritesheet convention as units: cols = idle frames, idle = last row.
+  const anim = c.cols > 1 ? ' c' + c.cols : '';
+  const unlock = c.unlock
+    ? `<div class="cos-unlock">${esc(c.unlock)}</div>`
+    : `<div class="cos-unlock free">Unlocked from the start</div>`;
+  card.innerHTML = `
+    <div class="cos-art-wrap">
+      <div class="sprite cos-art${anim}" style="--cols:${c.cols || 1};--rows:${c.rows || 1};background-image:url(icons/costumes/${esc(c.icon)})"></div>
+      <div class="cos-veil">${EYE_OFF_SVG}<span class="cos-hint">Click to reveal</span></div>
+    </div>
+    <div class="cos-name">${esc(c.name)}</div>
+    ${unlock}`;
+  return card;
+}
+
+// Update one card in place (rather than re-rendering the grid) so the clicked
+// card keeps DOM focus and its idle animation doesn't restart.
+function syncCostumeCard(card, shown) {
+  card.classList.toggle('revealed', shown);
+  card.setAttribute('aria-pressed', shown ? 'true' : 'false');
+  card.setAttribute('aria-label', `${card.dataset.name} costume art, ${shown ? 'revealed' : 'hidden as a spoiler'}`);
+}
+function updateCostumeCount() {
+  const out = $('#cos-count');
+  if (!out) return;
+  const cards = $$('#cos-grid .cos-card');
+  const revealed = cards.filter(c => c.classList.contains('revealed')).length;
+  out.textContent = `${cards.length} of ${(DATA.costumes || []).length} costumes · ${revealed} revealed`;
+}
+function toggleCostume(name) {
+  if (COS_FREE.has(name)) return;               // nothing to hide
+  // With "Show all" on everything is already visible, so a click there means
+  // "keep this one when Show all goes back off" rather than hiding it now.
+  if (COS.showAll) COS_REVEALED.add(name);
+  else if (COS_REVEALED.has(name)) COS_REVEALED.delete(name);
+  else COS_REVEALED.add(name);
+  saveRevealed();
+  // The same costume can be on screen twice (its tab + Recent changes), so sync
+  // every copy, not just the one clicked.
+  const shown = costumeShownByName(name);
+  $$('.cos-card').forEach(c => { if (c.dataset.name === name) syncCostumeCard(c, shown); });
+  updateCostumeCount();
+}
+
+function setCostumeShowAll(on) {
+  COS.showAll = on;
+  const b = $('#cos-showall');
+  if (b) {
+    b.classList.toggle('active', on);
+    b.textContent = on ? 'Hide all' : 'Show all';
+    b.title = on ? 'Re-hide every costume image (clears individual reveals)' : 'Reveal every costume image';
+  }
+  if (!on) { COS_REVEALED.clear(); saveRevealed(); }   // "Hide all" is a full reset
+  renderCostumes();
+}
+
+function renderCostumes() {
+  const grid = $('#cos-grid');
+  if (!grid) return;
+  const all = DATA.costumes || [];
+  const q = COS.search.toLowerCase();
+  const list = q
+    ? all.filter(c => (c.name + ' ' + (c.unlock || '')).toLowerCase().includes(q))
+    : all;
+  grid.innerHTML = '';
+  if (!list.length) grid.appendChild(el('div', 'empty', 'No costumes match.'));
+  list.forEach(c => grid.appendChild(costumeCard(c)));
+  updateCostumeCount();
+}
+
+// ---------------------------------------------------------------------------
+// RECENT CHANGES
+// ---------------------------------------------------------------------------
+// history.json records the date each name was FIRST SEEN in this dataset (see
+// history.py — the game itself carries no timestamps). Bulk first-imports are
+// flagged as baselines and excluded here: they're this project learning to read
+// a category, not the game shipping 350 items in a day.
+let HISTORY = null;
+const RECENT_KIND_LABEL = { spell: 'Spells', equipment: 'Equipment', component: 'Components',
+                            unit: 'Monsters & units', costume: 'Costumes' };
+const RECENT_KIND_ORDER = ['spell', 'equipment', 'component', 'unit', 'costume'];
+
+function historyBranch() {
+  const id = (ACTIVE_VERSION && ACTIVE_VERSION.id) || 'live';
+  return (HISTORY && HISTORY.branches && HISTORY.branches[id]) || null;
+}
+
+// The real card from the entry's own tab, so an addition reads exactly as it
+// does natively. Ids are stripped: the native tab owns the id that cross-ref
+// navigation resolves, and duplicates would be invalid HTML.
+function recentCard(kind, name) {
+  const find = coll => (coll || []).find(i => i.name === name);
+  let node = null;
+  if (kind === 'spell') { const s = find(DATA.spells); node = s && spellCard(s); }
+  else if (kind === 'equipment') { const e = find(DATA.equipment); node = e && equipmentCard(e); }
+  else if (kind === 'component') { const c = find(DATA.components); node = c && componentCard(c); }
+  else if (kind === 'unit') { const u = DATA.units && DATA.units[name]; node = u && monsterCard(u); }
+  else if (kind === 'costume') { const c = find(DATA.costumes); node = c && costumeCard(c); }
+  if (node) node.removeAttribute('id');
+  return node;
+}
+
+function renderRecent() {
+  const body = $('#recent-body');
+  if (!body) return;
+  const br = historyBranch();
+  body.innerHTML = '';
+  if (!br || !br.added) {
+    body.appendChild(el('div', 'empty', 'No change history recorded for this version yet.'));
+    return;
+  }
+  const baseline = br.baseline || {}, builds = br.builds || {};
+  const dates = Object.keys(br.added).sort().reverse();      // newest first
+
+  let sections = 0;
+  for (const date of dates) {
+    // Each kind that gained entries on this date, minus its bulk first-import.
+    const kinds = RECENT_KIND_ORDER
+      .filter(k => (br.added[date][k] || []).length && baseline[k] !== date)
+      .map(k => [k, br.added[date][k]]);
+    if (!kinds.length) continue;
+    sections++;
+    const total = kinds.reduce((n, [, names]) => n + names.length, 0);
+    const build = builds[date] ? ` <span class="rc-build">build ${esc(builds[date])}</span>` : '';
+    const sec = el('section', 'rc-section');
+    sec.innerHTML = `<h3 class="rc-title">${esc(date)}${build}<span class="rc-total">${total} new</span></h3>`;
+    for (const [kind, names] of kinds) {
+      sec.appendChild(el('div', 'rc-kind',
+        `${esc(RECENT_KIND_LABEL[kind] || kind)} <span class="rc-kcount">${names.length}</span>`));
+      const grid = el('div', 'grid');
+      for (const n of names) {
+        const card = recentCard(kind, n);
+        // History is append-only across builds; something a later patch removed
+        // has no card in this dataset, so name it rather than dropping it.
+        grid.appendChild(card || el('div', 'card rc-gone', `${esc(n)} — no longer in this version`));
+      }
+      sec.appendChild(grid);
+    }
+    body.appendChild(sec);
+  }
+  if (!sections) body.appendChild(el('div', 'empty', 'Nothing new since tracking began.'));
 }
 
 // ---------------------------------------------------------------------------
@@ -2031,7 +2232,8 @@ function guideCopyLink(btn) {
 // Tabs
 // ---------------------------------------------------------------------------
 const TAB_SCROLL = {};
-const TAB_NAMES = ['equipment', 'components', 'spells', 'monsters', 'guide'];
+// 'recent' has a panel but no tab button — it's reached from the header link.
+const TAB_NAMES = ['equipment', 'components', 'spells', 'monsters', 'costumes', 'guide', 'recent'];
 let currentTab = 'equipment';
 function switchTab(name, fromHash) {
   if (name === currentTab) return;
@@ -2043,6 +2245,7 @@ function switchTab(name, fromHash) {
   // re-writing it there would clobber the forward-history stack.
   if (!fromHash) location.hash = name;
   if (name === 'guide') showGuideTab();
+  if (name === 'recent') renderRecent();     // rebuilt on entry: cheap, always fresh
   window.scrollTo(0, TAB_SCROLL[name] || 0); // restore this tab's last position
 }
 
@@ -2111,6 +2314,10 @@ function renderVersionSelector() {
 async function init() {
   await initVersions();
   DATA = await fetch(activeDataFile()).then(r => r.json());
+  // First-seen dates for Recent changes. Optional: an older deploy without the
+  // file still works, the screen just reports no history.
+  try { HISTORY = await fetch('history.json').then(r => r.ok ? r.json() : null); }
+  catch (_) { HISTORY = null; }
   COLORS = DATA.colors;
   UNITS = DATA.units || {};
   for (const [name, info] of Object.entries(DATA.tags.all)) TAGCOLOR[name] = rgb(info.color);
@@ -2210,10 +2417,39 @@ async function init() {
   makeMonSearch($('#mon-search'), $('#mon-filters'));
   $('#mon-sort').addEventListener('change', e => { MON.sort = e.target.value; renderMonsters(); });
 
+  // --- Costume controls ---
+  // The wardrobe is newer than the released build, so a dataset without it just
+  // drops the tab rather than showing an empty one.
+  const hasCostumes = (DATA.costumes || []).length > 0;
+  if (!hasCostumes) {
+    // Drop the tab entirely (and its route) rather than offering an empty panel.
+    const cosBtn = $('#tabbtn-costumes'); if (cosBtn) cosBtn.remove();
+    const panel = $('#tab-costumes'); if (panel) panel.remove();
+    const i = TAB_NAMES.indexOf('costumes'); if (i >= 0) TAB_NAMES.splice(i, 1);
+  } else {
+    loadRevealed();
+    COS_FREE = new Set(DATA.costumes.filter(costumeFree).map(c => c.name));
+    $('#cos-search').addEventListener('input', e => { COS.search = e.target.value; renderCostumes(); });
+    $('#cos-showall').addEventListener('click', () => setCostumeShowAll(!COS.showAll));
+    // Document-level so costume cards also work inside Recent changes.
+    document.addEventListener('click', e => {
+      const card = e.target.closest('.cos-card');
+      if (card) toggleCostume(card.dataset.name);
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('.cos-card');
+      if (!card) return;
+      e.preventDefault();                       // Space must not scroll the page
+      toggleCostume(card.dataset.name);
+    });
+  }
+
   // render all
   renderBuild();
   renderInventory();
   renderEquipment(); renderComponents(); renderSpells(); renderMonsters();
+  if (hasCostumes) renderCostumes();
 
   renderGuide();
 

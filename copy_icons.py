@@ -18,6 +18,9 @@ SOURCES = {
     "equipment":  os.path.join(GAME, "rl_data", "tiles", "items", "equipment"),
     "components": os.path.join(GAME, "rl_data", "tiles", "crafting"),
     "units":      os.path.join(GAME, "rl_data", "char"),
+    # Costume art is player sprites from the same char pool, kept in its own
+    # output folder so the Costumes tab is self-contained.
+    "costumes":   os.path.join(GAME, "rl_data", "char"),
 }
 
 def build_index(d):
@@ -33,7 +36,10 @@ def main():
     data = json.load(open(os.path.join(SITE, DATA_FILE), encoding="utf-8"))
     stats = {}
     for cat, key in [("spells", "spells"), ("equipment", "equipment"),
-                     ("components", "components"), ("units", "units")]:
+                     ("components", "components"), ("units", "units"),
+                     ("costumes", "costumes")]:
+        if key not in data:
+            continue          # branch without this section (e.g. no wardrobe yet)
         src_idx = build_index(SOURCES[cat])
         dest = os.path.join(SITE, "icons", cat)
         os.makedirs(dest, exist_ok=True)

@@ -550,6 +550,43 @@ append-only and keyed by name.
 
 ---
 
+## 18. Recent changes — first-seen dates (`history.py`, `site/history.json`)
+
+The game carries no timestamps (§17: not even a version string), so "what's new" has to be
+recorded by us. `site/history.json` maps, per branch, **date → kind → names that first appeared
+that day**, plus `builds` (date → Steam build id) and `baseline` (kind → the date that kind was
+first imported wholesale). It is **append-only and must be committed** alongside the data file,
+exactly like `ids.json`.
+
+Two writers: `history.update()` is called by `extract.py` on every build (stamping anything new
+with that build's `generated` date + build id), and `python history.py` **backfills from git** by
+replaying every committed revision of `site/data*.json` oldest-first and taking each commit's
+date. The backfill is idempotent and only fills gaps, so it is safe to re-run.
+
+`baseline` entries are excluded from the UI: the initial 810-entry import, and the 72 costumes
+that appeared the day the *extractor* learned to read the wardrobe, are not game content changes.
+
+### ⚠️ Intended invariant (NOT yet enforced): only real game changes belong here
+
+The screen must show **content the game added**, never churn this project caused. If a rebuild
+adds or renames entries because *we* changed extraction — a parser bug fix, a new field, a
+widened unit sweep — that is **not** a recent change and must not surface as one.
+
+`baseline` only covers the case where a whole *kind* appears for the first time. It does **not**
+cover a partial extraction change, and there is already one such entry in the committed history:
+**live, 2026-06-09, "221 units"** — that was the extractor learning to see more units, not a
+patch. (Tell-tale: the group carries no build id, because that commit predates build stamping.
+A build id is good evidence of a real patch, but its absence is not proof of the opposite.)
+
+**When you make an extraction change that shifts what gets emitted**, the fix is to write the
+updated data file while *preserving the old first-seen dates* for those records — i.e. judge
+whether each new name is new **content** or newly **visible**, and only let genuine content
+through to `history.json`. Nothing automates that judgment today; it is a manual step, and
+`history.json` can be hand-edited (it is plain, sorted, human-readable JSON) to move mistakenly
+recorded names back to an earlier date or to the branch's baseline.
+
+---
+
 ## 16. Essence tags have **canonical one-letter codes** (not first-initial)
 
 Components carry essence tags (`Fire`, `Dark`, `Holy`, …). Everywhere the crafting UI shows an essence

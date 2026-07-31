@@ -11,13 +11,14 @@
 <header>
   <div class="title">
     <h1>Rift Wizard 3 Compendium</h1>
-    <p class="sub">Last Updated: <span id="last-updated">—</span><label class="version-picker hidden" id="version-picker"> · Version <select id="version-select"></select></label></p>
+    <p class="sub">Last Updated: <span id="last-updated">—</span><label class="version-picker hidden" id="version-picker"> · Version <select id="version-select"></select></label> · <a href="#recent" id="recent-link">View recent changes</a></p>
   </div>
   <nav class="tabs" id="tabs">
     <button data-tab="equipment" class="active">Equipment</button>
     <button data-tab="components">Components</button>
     <button data-tab="spells">Spells</button>
     <button data-tab="monsters">Monsters</button>
+    <button data-tab="costumes" id="tabbtn-costumes">Costumes</button>
     <button data-tab="guide">Guide</button>
   </nav>
 </header>
@@ -147,6 +148,27 @@
     <div class="active-filters hidden" id="mon-filters"></div>
     <div class="count" id="mon-count"></div>
     <div class="grid" id="mon-grid"></div>
+  </section>
+
+  <!-- COSTUMES -->
+  <section id="tab-costumes" class="tab-panel">
+    <div class="controls">
+      <input type="search" id="cos-search" class="search" placeholder="Search costumes by name or unlock condition…">
+      <div class="control-group">
+        <label>Spoilers</label>
+        <button class="toggle" id="cos-showall" title="Reveal every costume image">Show all</button>
+      </div>
+    </div>
+    <div class="count" id="cos-count"></div>
+    <div class="grid cos-grid" id="cos-grid"></div>
+  </section>
+
+  <!-- RECENT CHANGES (reached from the header link, not the tab bar) -->
+  <section id="tab-recent" class="tab-panel">
+    <div class="recent-head">
+      <h2>Recent changes</h2>
+    </div>
+    <div id="recent-body"></div>
   </section>
 
   <!-- GUIDE -->

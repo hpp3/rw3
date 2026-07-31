@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 import ids as ids_mod  # stable append-only id assignment (HERE-relative; safe before chdir)
 import gameinfo        # Steam branch/build detection (HERE-relative; safe before chdir)
+import history         # first-seen dates for the Recent Changes screen
 OUT_DIR = os.path.join(HERE, "site")
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -383,6 +384,36 @@ def register_unit(u):
     sheet["rows"] = rows
     UNITS[name] = sheet
     return name
+
+# ---------------------------------------------------------------------------
+# Costumes (wardrobe outfits)
+# ---------------------------------------------------------------------------
+# Purely cosmetic player skins, each gated behind an achievement. The wardrobe
+# is newer than the released build, so a branch without it must yield an empty
+# list rather than failing the build (the frontend then hides the tab).
+def extract_costumes():
+    try:
+        import Mutators
+    except Exception:
+        return []
+    out = []
+    for o in getattr(Mutators, "wardrobe_outfits", []):
+        icon = (o.asset_name + ".png").lower()
+        # Player sheets are radius-0 char art, so the unit grid rule applies:
+        # cols = idle frames, idle animation plays the last row.
+        cols, rows = sheet_grid(icon, 0)
+        out.append({
+            "name": o.name,
+            "asset": o.asset_name,
+            "icon": icon,
+            "cols": cols,
+            "rows": rows,
+            # No achievement = unlocked from the start (the default Wizard).
+            "achievement": o.unlock_achievement or "",
+            "unlock": o.description or "",
+            "has_icon": True,
+        })
+    return out
 
 # ---------------------------------------------------------------------------
 # Cross-references via static source analysis (AST)
@@ -1295,10 +1326,12 @@ def main():
     ids_mod.save_ids(idmap)
     for e in equipment: e["id"] = idmap["equipment"][e["name"]]
     for s in learnable: s["id"] = idmap["spell"][s["name"]]
+    costumes = extract_costumes()
     data = {
         "spells": spells,
         "equipment": equipment,
         "components": components,
+        "costumes": costumes,
         "units": UNITS,
         "pools": POOL_MEMBERS,
         "tags": extract_tags(),
@@ -1317,6 +1350,10 @@ def main():
     # Record this branch in the frontend's version manifest (preserves the other
     # branch's entry — each build only tags its own).
     gameinfo.update_versions(OUT_DIR, BRANCH, data["generated"])
+    # First-seen dates for the Recent Changes screen. Append-only like ids.json,
+    # so history.json MUST be committed alongside the data file. Backfilled once
+    # from git history; see history.py.
+    fresh = history.update(OUT_DIR, BRANCH, data)
     monsters = sum(1 for s in UNITS.values() if s.get("is_monster"))
     companions = sum(1 for s in UNITS.values() if s.get("is_companion"))
     distinct_buffs = set()
@@ -1324,9 +1361,12 @@ def main():
         distinct_buffs.update(it.get("btips", {}))
     print("Wrote", out_path, "| branch:", BRANCH["id"], "build:", BRANCH["build_id"] or "?")
     print("spells:", len(data["spells"]), "equipment:", len(data["equipment"]),
-          "components:", len(data["components"]), "units:", len(data["units"]),
+          "components:", len(data["components"]), "costumes:", len(costumes),
+          "units:", len(data["units"]),
           "(monsters:", monsters, "companions:", companions, ")",
           "distinct buffs linked:", len(distinct_buffs))
+    if fresh:
+        print("new this build:", ", ".join(f"{k}:{len(v)}" for k, v in sorted(fresh.items())))
 
 if __name__ == "__main__":
     main()
