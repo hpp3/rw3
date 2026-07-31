@@ -11,10 +11,17 @@ crafting components.
 
 The static site (`site/`) lets you:
 
-- **Equipment** — browse all 350 craftable items. Filter by **slot**
+- **Equipment** — browse every craftable item. Filter by **slot**
   (Trinket / Head / Body / Feet / Weapon — slots aren't shown in-game, but are exposed here),
-  search by name/effect, and **filter by recipe tag** (e.g. *"show me everything that crafts
-  from Dark"*). Each card shows the icon, slot, item tags, full effect/bonus text, and the
+  search by name/effect, and **filter by tag** two different ways, chosen with a sliding switch
+  above the tag chips:
+  - **Equipment has tag** (the default) — the finished item carries that tag.
+  - **Recipe uses tag** — the tag is consumed to craft it, e.g. *"show me everything that crafts
+    from Dark"*.
+
+  The two readings genuinely differ: Helm of Hexes crafts from **Dark** but the finished item is
+  tagged only **Enchantment**, so it appears under *Recipe uses tag* and not under *Equipment has
+  tag*. Each card shows the icon, slot, item tags, full effect/bonus text, and the
   recipe with per-tag counts. A **Craftable only** toggle restricts the list to what your
   current component inventory can make (combined with all other filters).
 - **Stat search** (Equipment & Spells) — type a stat name or synonym (e.g. `dama`, `minion hp`,
@@ -32,14 +39,14 @@ The static site (`site/`) lets you:
   essences wasted, never shared between items) and marks each item ✓ craftable / ✗ short with
   per-requirement detail, the components it consumes, and any leftover components. Hovering an
   item name shows its full stat card. Persists across reloads (localStorage).
-- **Components & inventory** — all 83 component items (tiers 1–3 + rares) with their on-pickup /
+- **Components & inventory** — every component item (tiers 1–3 + rares) with their on-pickup /
   on-craft effects. *＋ Add to pool* collects components into a **"My components"** inventory
   (mental model: *"I have 2 Chaos Seeds and 1 Blood Basin"*), shown as editable chips with the
   derived essence pool. The Equipment tab's *Craftable only* toggle and build planner both read
   from this inventory. Persists across reloads.
-- **Spells** — all 196 player spells with level, tags, stats, descriptions, and upgrades.
-- **Monsters** — the full bestiary (351 monsters across base spawns, evolutions, and the rare
-  rosters), all summonable minions, the 13 Tavern **companions**, and the **final bosses** (the
+- **Spells** — every player spell with level, tags, stats, descriptions, and upgrades.
+- **Monsters** — the full bestiary (base spawns, evolutions, and the rare
+  rosters), all summonable minions, the Tavern **companions**, and the **final bosses** (the
   floor-20 roster plus Mordred's three phases), as cards with art, HP/shields/resists, movement,
   tags, depth, and every ability and passive. Filter by tag/element, type (monster / summonable /
   companion / boss), and text.
