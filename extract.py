@@ -1345,15 +1345,24 @@ def main():
         "build_id": BRANCH["build_id"],
     }
     out_path = os.path.join(OUT_DIR, gameinfo.data_filename(BRANCH["id"]))
+    # Read the PREVIOUS build's file before clobbering it: that's what lets
+    # history.py diff buffs/nerfs without keeping a separate snapshot.
+    prev_data = None
+    if os.path.exists(out_path):
+        try:
+            with open(out_path, encoding="utf-8") as f:
+                prev_data = json.load(f)
+        except (OSError, ValueError):
+            prev_data = None
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
     # Record this branch in the frontend's version manifest (preserves the other
     # branch's entry — each build only tags its own).
     gameinfo.update_versions(OUT_DIR, BRANCH, data["generated"])
-    # First-seen dates for the Recent Changes screen. Append-only like ids.json,
-    # so history.json MUST be committed alongside the data file. Backfilled once
-    # from git history; see history.py.
-    fresh = history.update(OUT_DIR, BRANCH, data)
+    # First-seen dates + changed-entry diffs for the Recent Changes screen.
+    # Append-only like ids.json, so history.json MUST be committed alongside the
+    # data file. Backfilled once from git history; see history.py.
+    fresh, changed = history.update(OUT_DIR, BRANCH, data, prev_data)
     monsters = sum(1 for s in UNITS.values() if s.get("is_monster"))
     companions = sum(1 for s in UNITS.values() if s.get("is_companion"))
     distinct_buffs = set()
@@ -1367,6 +1376,8 @@ def main():
           "distinct buffs linked:", len(distinct_buffs))
     if fresh:
         print("new this build:", ", ".join(f"{k}:{len(v)}" for k, v in sorted(fresh.items())))
+    if changed:
+        print("changed this build:", ", ".join(f"{k}:{len(v)}" for k, v in sorted(changed.items())))
 
 if __name__ == "__main__":
     main()

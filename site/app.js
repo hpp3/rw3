@@ -1458,30 +1458,59 @@ function recentCard(kind, name) {
   return node;
 }
 
+// Field-level diff for a changed entry: {f: field, o: old, n: new} rows from
+// history.py. Values are game text, so they render through the same markup
+// pipeline as the cards (renderMarkup escapes as it goes).
+function diffBlock(rows) {
+  const box = el('div', 'rc-diff');
+  box.innerHTML = (rows || []).map(r => {
+    // Field paths read like "upgrades: Impalement.level" — show the leaf plainly.
+    const label = r.f || 'value';
+    const long = (r.o || '').length + (r.n || '').length > 60;
+    return `<div class="rc-drow${long ? ' long' : ''}">
+      <span class="rc-dfield">${esc(label)}</span>
+      <span class="rc-dvals">
+        <span class="rc-dold">${renderMarkup(r.o)}</span>
+        <span class="rc-darrow">→</span>
+        <span class="rc-dnew">${renderMarkup(r.n)}</span>
+      </span>
+    </div>`;
+  }).join('');
+  return box;
+}
+
 function renderRecent() {
   const body = $('#recent-body');
   if (!body) return;
   const br = historyBranch();
   body.innerHTML = '';
-  if (!br || !br.added) {
+  if (!br || (!br.added && !br.changed)) {
     body.appendChild(el('div', 'empty', RECENT_EMPTY));
     return;
   }
+  const added = br.added || {}, changed = br.changed || {};
   const baseline = br.baseline || {}, builds = br.builds || {};
-  const dates = Object.keys(br.added).sort().reverse();      // newest first
+  // A build can be pure rebalance (no additions at all), so take both key sets.
+  const dates = [...new Set([...Object.keys(added), ...Object.keys(changed)])].sort().reverse();
 
   let sections = 0;
   for (const date of dates) {
     // Each kind that gained entries on this date, minus its bulk first-import.
     const kinds = RECENT_KIND_ORDER
-      .filter(k => (br.added[date][k] || []).length && baseline[k] !== date)
-      .map(k => [k, br.added[date][k]]);
-    if (!kinds.length) continue;
+      .filter(k => ((added[date] || {})[k] || []).length && baseline[k] !== date)
+      .map(k => [k, added[date][k]]);
+    const changedKinds = RECENT_KIND_ORDER
+      .map(k => [k, (changed[date] || {})[k] || null])
+      .filter(([, entries]) => entries && Object.keys(entries).length);
+    if (!kinds.length && !changedKinds.length) continue;
     sections++;
     const total = kinds.reduce((n, [, names]) => n + names.length, 0);
     const build = builds[date] ? ` <span class="rc-build">build ${esc(builds[date])}</span>` : '';
     const sec = el('section', 'rc-section');
-    sec.innerHTML = `<h3 class="rc-title">${esc(date)}${build}<span class="rc-total">${total} new</span></h3>`;
+    const totalChanged = changedKinds.reduce((n, [, e]) => n + Object.keys(e).length, 0);
+    const counts = [total ? `${total} new` : '', totalChanged ? `${totalChanged} changed` : '']
+      .filter(Boolean).join(' · ');
+    sec.innerHTML = `<h3 class="rc-title">${esc(date)}${build}<span class="rc-total">${counts}</span></h3>`;
     for (const [kind, names] of kinds) {
       sec.appendChild(el('div', 'rc-kind',
         `${esc(RECENT_KIND_LABEL[kind] || kind)} <span class="rc-kcount">${names.length}</span>`));
@@ -1491,6 +1520,21 @@ function renderRecent() {
         // History is append-only across builds; something a later patch removed
         // has no card in this dataset, so name it rather than dropping it.
         grid.appendChild(card || el('div', 'card rc-gone', `${esc(n)} — no longer in this version`));
+      }
+      sec.appendChild(grid);
+    }
+    // Buffs / nerfs / reworks: the card as it reads NOW, plus what moved.
+    for (const [kind, entries] of changedKinds) {
+      const names = Object.keys(entries).sort();
+      sec.appendChild(el('div', 'rc-kind',
+        `${esc(RECENT_KIND_LABEL[kind] || kind)} changed <span class="rc-kcount">${names.length}</span>`));
+      const grid = el('div', 'grid');
+      for (const n of names) {
+        const card = recentCard(kind, n);
+        const wrap = el('div', 'rc-change');
+        wrap.appendChild(card || el('div', 'card rc-gone', `${esc(n)} — no longer in this version`));
+        wrap.appendChild(diffBlock(entries[n]));
+        grid.appendChild(wrap);
       }
       sec.appendChild(grid);
     }

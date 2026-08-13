@@ -563,6 +563,20 @@ with that build's `generated` date + build id), and `python history.py` **backfi
 replaying every committed revision of `site/data*.json` oldest-first and taking each commit's
 date. The backfill is idempotent and only fills gaps, so it is safe to re-run.
 
+**Changed entries (buffs / nerfs / reworks)** are recorded too, under `changed` → date → kind →
+name → a list of `{f: field, o: old, n: new}` rows. A patch is mostly *rebalance*, so tracking only
+additions would miss most of it. The old values come from **the data file the build is about to
+overwrite** — `extract.py` reads it just before writing, so no snapshot has to be stored. Two
+consequences: a rebuild with no game change records nothing (the file it read is identical), and
+change-tracking can only compare *consecutive* builds. `python history.py changes <branch> <rev>`
+records a diff against a committed revision instead, for catching up a build that predates this.
+
+Diffing skips `DERIVED` fields (`id`, `refs`, `btips`, `mod_stats`, …) — an id shuffle or a new
+cross-ref is not a balance change. Lists of named dicts (upgrades, abilities) are matched **by
+name**, so a reordered list doesn't read as "everything changed", and plain lists are compared as
+sets. **Guard:** if more than `CHURN_LIMIT` (30%) of a kind changes in one build it is treated as
+an extraction change and recorded as nothing at all — see the invariant below.
+
 `baseline` entries are excluded from the UI: the initial bulk import, and the costumes that all
 appeared the day the *extractor* learned to read the wardrobe, are not game content changes.
 

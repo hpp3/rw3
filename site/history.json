@@ -1282,6 +1282,598 @@
     "2026-07-28": "24443072",
     "2026-07-30": "24443072",
     "2026-08-13": "24721540"
+   },
+   "changed": {
+    "2026-08-13": {
+     "component": {
+      "Chimera Eyes": [
+       {
+        "f": "desc",
+        "n": "On Craft:\nIf the crafted equipment has the [Chaos] or [Eye] tags, Chimera Eyes grants [Eye] spells you know a random upgrade\n\nIf this component grants one or more upgrades, it is destroyed",
+        "o": "On Craft:\nIf the crafted equipment has the [Chaos] or [Eye] tags, it grants [Eye] spells you know a random upgrade"
+       }
+      ],
+      "Primordial Ooze": [
+       {
+        "f": "desc",
+        "n": "On Craft:\nIf the crafted equipment has the [Slime] tag, a random spell you know gains the [Slime] tag",
+        "o": "On Craft:\nIf the crafted equipment has the [Slime] tag, it grants a random [Slime] spell you know all of its upgrades"
+       }
+      ],
+      "Quipu Saga": [
+       {
+        "f": "tier",
+        "n": "3",
+        "o": "2"
+       }
+      ]
+     },
+     "equipment": {
+      "Archangel's Halo": [
+       {
+        "f": "desc",
+        "n": "Each turn, [Holy] allies within [2:radius] tiles take an extra turn",
+        "o": "Each turn, [Holy] allies within [3:radius] tiles take an extra turn"
+       }
+      ],
+      "Artificer's Chalice": [
+       {
+        "f": "desc",
+        "n": "Picking up a Memory Orb randomly triggers the on pickup effect of one of the components used to craft Artificer's Chalice",
+        "o": "Picking up a Memory Orb randomly triggers the on pickup effect of one of the components used to craft it"
+       },
+       {
+        "f": "recipe",
+        "n": "[\"Any\", 8]",
+        "o": "[\"Any\", 10]"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "8",
+        "o": "10"
+       }
+      ],
+      "Artificer's Rod": [
+       {
+        "f": "desc",
+        "n": "Casting spells with tags that match the components used to craft Artificer's Rod recharges it\nOnce all tag requirements are satisfied, trigger the on pickup effect of each of the components used to craft it\nCan activate once per level",
+        "o": "Casting spells with tags that match the components used to craft this item recharges it\nOnce all tag requirements are satisfied, each of the components used to craft it activates its on pickup effect\nEach activation increases the requirements to activate again sevenfold until the next level"
+       },
+       {
+        "f": "recipe",
+        "n": "[\"Any\", 7]",
+        "o": "[\"Any\", 10]"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "7",
+        "o": "10"
+       }
+      ],
+      "Chaos Robes": [
+       {
+        "f": "bonuses",
+        "n": "33% Resist Fire; 33% Resist Lightning; 33% Resist Physical",
+        "o": "25% Resist Fire; 25% Resist Lightning; 25% Resist Physical"
+       },
+       {
+        "f": "recipe",
+        "n": "[\"Any\", 3]",
+        "o": "[\"Any\", 4]"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Conciliator's Claw": [
+       {
+        "f": "desc",
+        "n": "When you deal damage to an adjacent enemy, heal yourself and allies in your line of sight for [3 HP:heal]",
+        "o": "When you deal damage to an adjacent enemy, heal yourself and allies in your line of sight for [1 HP:heal]"
+       }
+      ],
+      "Crisis Charm": [
+       {
+        "f": "desc",
+        "n": "On taking lethal damage, remove all debuffs and heal to full health\nDiscarded after use",
+        "o": "Remove all debuffs and heal to full health if you would die\nDiscarded after use"
+       }
+      ],
+      "Crown of Ragnarok": [
+       {
+        "f": "desc",
+        "n": "On the 9th turn of each level, cast Earthquake, Flame Burst, and Storm Burst [3:num_targets] times",
+        "o": "On the 9th turn of each level, cast Earthquake, Flame Burst, and Storm Burst"
+       }
+      ],
+      "Galvanic Armor": [
+       {
+        "f": "desc",
+        "n": "When you cast a [Metallic] spell, gain Galvanic Redirection with duration equal to the spell's level\nGalvanic Redirection redirects incoming [Lightning] damage to a random enemy in line of sight",
+        "o": "When you cast a [Metallic] spell, gain Galvanic Redirection with duration equal to the spell's level\nGalvanic Redirection redirects incoming [Lightning] damage in a beam toward a random enemy in line of sight"
+       }
+      ],
+      "Mourning Bell": [
+       {
+        "f": "desc",
+        "n": "At the end of your turn, if at least 10 creatures have died since the last toll, the bell tolls, dealing [10:damage] [Dark], [Holy], and [Physical] damage to enemies within [4:radius] tiles\nDeath Toll : 0 / 10",
+        "o": "At the end of your turn, if at least 10 creatures have died since the last toll, the bell tolls, dealing [10:damage] [Dark] and [Holy] damage to enemies within [4:radius] tiles\nDeath Toll : 0 / 10"
+       }
+      ],
+      "Robe of Storms": [
+       {
+        "f": "desc",
+        "n": "When an enemy dies to [Ice] or [Lightning] damage, gain [1 SH:shields]",
+        "o": "When an enemy takes [Ice] or [Lightning] damage, gain [1 SH:shields] up to a max of 3"
+       },
+       {
+        "f": "recipe",
+        "n": "[\"Any\", 3]",
+        "o": "[\"Any\", 1]"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "4"
+       }
+      ],
+      "Sandals of Virtuous Sin": [
+       {
+        "f": "desc",
+        "n": "When you take a step, deal [Dark] and [Holy] damage to enemies within [2:radius] tiles\nThe damage dealt of each type is equal to the highest known spell level of the opposing school\n[Dark Damage:dark]: [0:holy]\n[Holy Damage:holy]: [0:dark]",
+        "o": "Casting a [Dark] or [Holy] spell grants a buff for [5:duration] turns that deals damage of the opposing type to enemies within [3:radius] tiles when you take a step\nThe damage dealt by the buff is equal to the highest known spell level of the spell school matching the damage type\n[Holy]: [0:holy]\n[Dark]: [0:dark]"
+       },
+       {
+        "f": "recipe",
+        "n": "[\"Translocation\", 2]",
+        "o": "[\"Translocation\", 1]"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "5"
+       },
+       {
+        "f": "tags",
+        "n": "Translocation",
+        "o": "-"
+       }
+      ],
+      "Slimebirth Cantromancy": [
+       {
+        "f": "desc",
+        "n": "When [Slime] allies are summoned, they cast a random level 1 spell you know that they share a tag with",
+        "o": "When [Slime] allies are summoned, they cast a random cantrip you know that they share a tag with"
+       }
+      ],
+      "Spark Conductor": [
+       {
+        "f": "desc",
+        "n": "When [Metallic] or [Construct] allies are summoned, they gain the Galvanic Redirection buff\nGalvanic Redirection causes [Lightning] damage they would take to instead be redirected to a random enemy in their line of sight",
+        "o": "When [Metallic] or [Construct] allies are summoned, they gain the Galvanic Redirection buff\nGalvanic Redirection causes [Lightning] damage they would take to instead be redirected in a beam toward a random enemy in their line of sight"
+       }
+      ],
+      "Vial of Ambrosia": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each level, gain [10:duration] turns of Clarity",
+        "o": "At the beginning of each level, gain immunity to [stun] effects for [10:duration] turns"
+       }
+      ]
+     },
+     "spell": {
+      "Bone Spear": [
+       {
+        "f": "upgrades: Blazing Spear",
+        "n": "removed",
+        "o": "present"
+       },
+       {
+        "f": "upgrades: Stun Spear",
+        "n": "removed",
+        "o": "present"
+       },
+       {
+        "f": "upgrades: Toxic Spear",
+        "n": "removed",
+        "o": "present"
+       },
+       {
+        "f": "upgrades: Hellfire Spear",
+        "n": "added",
+        "o": "absent"
+       },
+       {
+        "f": "upgrades: Osseous Recall",
+        "n": "added",
+        "o": "absent"
+       },
+       {
+        "f": "upgrades: Stunning Spear",
+        "n": "added",
+        "o": "absent"
+       }
+      ],
+      "Call Seraph": [
+       {
+        "f": "stats.max_charges",
+        "n": "3",
+        "o": "1"
+       },
+       {
+        "f": "stats.minion_duration",
+        "n": "20",
+        "o": "25"
+       }
+      ],
+      "Chill Wind": [
+       {
+        "f": "stats.max_charges",
+        "n": "3",
+        "o": "1"
+       }
+      ],
+      "Choir of Angels": [
+       {
+        "f": "upgrades: Dual Angels.desc",
+        "n": "Angelic Singers gain the [Dark] tag and can cast your Death Bolt on a 4 turn cooldown\nTheir song now heals only allies and damages only enemies\nAdds the [Dark:dark] tag",
+        "o": "Angelic Singers gain the [Dark] tag and can cast your Death Bolt on a 4 turn cooldown\nTheir song now only damages enemies\nAdds the [Dark:dark] tag"
+       }
+      ],
+      "Demonic Ritual": [
+       {
+        "f": "upgrades: Grand Ritual.level",
+        "n": "7",
+        "o": "9"
+       },
+       {
+        "f": "upgrades: Inviolate Ritual.level",
+        "n": "3",
+        "o": "4"
+       },
+       {
+        "f": "upgrades: Solomon's Binding.level",
+        "n": "1",
+        "o": "3"
+       },
+       {
+        "f": "upgrades: The Gate and the Key.level",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Dream the Starwhale": [
+       {
+        "f": "level",
+        "n": "7",
+        "o": "8"
+       },
+       {
+        "f": "requires_los",
+        "n": "no",
+        "o": "yes"
+       },
+       {
+        "f": "stats.range",
+        "n": "6",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Shatterstar",
+        "n": "removed",
+        "o": "present"
+       },
+       {
+        "f": "upgrades: Hungering Depths",
+        "n": "added",
+        "o": "absent"
+       }
+      ],
+      "Hatebolts": [
+       {
+        "f": "desc",
+        "n": "Unleash seeking bolts toward up to [4:num_targets] random enemies each turn, dealing [30:damage] [Fire] or [Dark] damage to units on the path\nCan be channeled for up to [5:max_channel] turns\nWhen you stop channeling this spell, it deals you 1 [Fire] and [Dark] damage for each remaining enemy",
+        "o": "Unleash seeking bolts toward up to [4:num_targets] random enemies each turn, dealing [14:damage] [Fire] or [Dark] damage to units on the path\nCan be channeled for up to [5:max_channel] turns\nWhen you stop channeling this spell, it deals you 1 [Fire] and [Dark] damage for each remaining enemy"
+       },
+       {
+        "f": "stats.damage",
+        "n": "30",
+        "o": "14"
+       },
+       {
+        "f": "stats.max_charges",
+        "n": "3",
+        "o": "1"
+       },
+       {
+        "f": "upgrades: Boomerang Bolts.level",
+        "n": "3",
+        "o": "4"
+       }
+      ],
+      "Ice Phoenix": [
+       {
+        "f": "upgrades: Polar Aura.level",
+        "n": "6",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Restorative Phoenix.level",
+        "n": "5",
+        "o": "4"
+       }
+      ],
+      "Lightning Spire": [
+       {
+        "f": "stats.max_charges",
+        "n": "4",
+        "o": "3"
+       },
+       {
+        "f": "stats.minion_health",
+        "n": "60",
+        "o": "35"
+       },
+       {
+        "f": "stats.range",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Night Hag": [
+       {
+        "f": "stats.max_charges",
+        "n": "-",
+        "o": "2"
+       },
+       {
+        "f": "upgrades: Coven Matron.desc",
+        "n": "Night Hag gains [3 Num Summons:num_summons]\nCasting this spell also summons [3:num_summons] Witches near the Night Hag\nThese Witches will mature into Night Hags after 12 turns",
+        "o": "Night Hag gains [2 Num Summons:num_summons]\nCasting this spell also summons [2:num_summons] Witches near the Night Hag\nThese Witches will mature into Night Hags after 12 turns"
+       }
+      ],
+      "Ride Drake": [
+       {
+        "f": "upgrades: Flight of the Dragons.desc",
+        "n": "When you manually cast Ride Drake, cast your other [Dragon] [Conjuration] spells nearby",
+        "o": "On cast, cast your other [Dragon] [Conjuration] spells nearby"
+       },
+       {
+        "f": "upgrades: Flight of the Dragons.level",
+        "n": "7",
+        "o": "8"
+       }
+      ],
+      "Shrapnel Blast": [
+       {
+        "f": "stats.max_charges",
+        "n": "8",
+        "o": "4"
+       }
+      ],
+      "Silver Spear": [
+       {
+        "f": "stats.max_charges",
+        "n": "15",
+        "o": "10"
+       },
+       {
+        "f": "upgrades: Astral Spear.level",
+        "n": "1",
+        "o": "2"
+       },
+       {
+        "f": "upgrades: Impalement.level",
+        "n": "2",
+        "o": "3"
+       }
+      ],
+      "Soul Wind": [
+       {
+        "f": "desc",
+        "n": "Deal [44:damage] [Dark] damage in a 3 tile wide line perpendicular to the caster\n[Undead], [Dark], and [Demon] units in the area take [Holy] damage instead of [Dark]\nSummon a Ghost near each [Living] unit in the affected area",
+        "o": "Deal [37:damage] [Dark] damage in a 3 tile wide line perpendicular to the caster\n[Undead], [Dark], and [Demon] units in the area take [Holy] damage instead of [Dark]\nSummon a Ghost near each [Living] unit in the affected area"
+       },
+       {
+        "f": "stats.damage",
+        "n": "44",
+        "o": "37"
+       },
+       {
+        "f": "stats.hp_cost",
+        "n": "100",
+        "o": "54"
+       },
+       {
+        "f": "stats.max_charges",
+        "n": "-",
+        "o": "3"
+       }
+      ],
+      "Watcher Form": [
+       {
+        "f": "upgrades: Chain Watcher Form.level",
+        "n": "7",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Holy Watcher Form.level",
+        "n": "4",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Void Watcher Form.level",
+        "n": "6",
+        "o": "5"
+       }
+      ],
+      "Wizard Replica": [
+       {
+        "f": "upgrades: Investiture.desc",
+        "n": "The Wizard Replica gains up to three of your level 1 spells and can cast them on a 3 turn cooldown",
+        "o": "The Wizard Replica gains up to three of your cantrips and can cast them on a 3 turn cooldown"
+       }
+      ],
+      "Word of Beauty": [
+       {
+        "f": "desc",
+        "n": "Heal yourself and other [Living] units to full health\nDeal [100:damage] [Lightning] damage to [Dark], [Demon] and [Undead] units\n[Arcane] units are [stunned] for [7:duration] turns",
+        "o": "Heal yourself and other [Living] units to full health\nDeal [50:damage] [Lightning] damage to [Demon] and [Undead] units\n[Arcane] units are [stunned] for [7:duration] turns"
+       },
+       {
+        "f": "stats.damage",
+        "n": "100",
+        "o": "50"
+       },
+       {
+        "f": "upgrades: Beauty of Steel",
+        "n": "removed",
+        "o": "present"
+       },
+       {
+        "f": "upgrades: Venomous Word",
+        "n": "added",
+        "o": "absent"
+       }
+      ],
+      "Word of Undeath": [
+       {
+        "f": "upgrades: Word of Dominion.desc",
+        "n": "Cast Dominate on all legal targets for it after you cast this spell\nUses Dominate's range and line of sight requirements",
+        "o": "Cast Dominate on all legal targets for it after you cast this spell\nIgnores range and line of sight requirements"
+       }
+      ]
+     },
+     "unit": {
+      "Angelic Visitor": [
+       {
+        "f": "hp",
+        "n": "400",
+        "o": "800"
+       }
+      ],
+      "Faery Empress": [
+       {
+        "f": "passives",
+        "n": "On death, afflict the killer with Fae Curse, which deals 3 [Arcane] damage each turn",
+        "o": "On death, afflict the killer with Fae Curse, which deals 10 [Arcane] damage each turn"
+       }
+      ],
+      "Flame Maw": [
+       {
+        "f": "abilities: Fire Beam.desc",
+        "n": "Beam attack\nCan be channeled for 4 turns",
+        "o": "Beam attack\nCan be channeled for up to 4 turns"
+       }
+      ],
+      "Gelid Mirror": [
+       {
+        "f": "hp",
+        "n": "285",
+        "o": "888"
+       }
+      ],
+      "Haunted Casket": [
+       {
+        "f": "resists.Fire",
+        "n": "-100",
+        "o": "-"
+       }
+      ],
+      "Ice Maw": [
+       {
+        "f": "abilities: Ice Beam.desc",
+        "n": "Beam attack\nCan be channeled for 4 turns\nApply frozen for 2 turns",
+        "o": "Beam attack\nCan be channeled for up to 4 turns\nApply frozen for 2 turns"
+       }
+      ],
+      "Idol of Piety": [
+       {
+        "f": "passives",
+        "n": "When an ally is slain by an enemy, deal [1 Holy:holy] damage to the killer\n\nThis damage increases each turn",
+        "o": "When an ally is slain by an enemy, deal [10 Holy:holy] damage to the killer\n\nThis damage increases by 1 each time an ally is slain"
+       }
+      ],
+      "Lightning Spire": [
+       {
+        "f": "hp",
+        "n": "60",
+        "o": "35"
+       }
+      ],
+      "Ophan": [
+       {
+        "f": "resists.Dark",
+        "n": "100",
+        "o": "-"
+       },
+       {
+        "f": "resists.Holy",
+        "n": "100",
+        "o": "-"
+       },
+       {
+        "f": "resists.Poison",
+        "n": "-",
+        "o": "100"
+       }
+      ],
+      "Starwhale": [
+       {
+        "f": "burrowing",
+        "n": "yes",
+        "o": "no"
+       }
+      ],
+      "The Great Pumpking": [
+       {
+        "f": "abilities: Vine Swarm Summon.desc",
+        "n": "Summon a Vine near every enemy",
+        "o": "Summon a Vine near every enemy."
+       }
+      ],
+      "Void Ancestor": [
+       {
+        "f": "abilities: Void Stare.desc",
+        "n": "Beam attack\nCan be channeled for 3 turns\nApply feared for 1 turn",
+        "o": "Beam attack\nCan be channeled for up to 3 turns\nApply feared for 1 turn"
+       },
+       {
+        "f": "hp",
+        "n": "240",
+        "o": "320"
+       },
+       {
+        "f": "passives",
+        "n": "Gain [1 SH:shields] each turn",
+        "o": "Gain [3 SH:shields] each turn"
+       }
+      ],
+      "Void Child": [
+       {
+        "f": "abilities: Void Stare.desc",
+        "n": "Beam attack\nCan be channeled for 3 turns\nApply feared for 1 turn",
+        "o": "Beam attack\nCan be channeled for up to 3 turns\nApply feared for 1 turn"
+       }
+      ],
+      "Void Elder": [
+       {
+        "f": "abilities: Void Stare.desc",
+        "n": "Beam attack\nCan be channeled for 3 turns\nApply feared for 1 turn",
+        "o": "Beam attack\nCan be channeled for up to 3 turns\nApply feared for 1 turn"
+       }
+      ],
+      "Void Saint": [
+       {
+        "f": "abilities: Isolate.desc",
+        "n": "Turns an unoccupied adjacent tile into a chasm",
+        "o": "Turns unoccupied adjacent tiles into chasms"
+       }
+      ]
+     }
+    }
    }
   },
   "live": {

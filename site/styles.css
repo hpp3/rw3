@@ -388,6 +388,24 @@ select{
   padding:0 7px;font-size:10.5px;letter-spacing:0;color:var(--text);
 }
 .rc-gone{color:var(--muted);font-style:italic;justify-content:center;text-align:center}
+/* Changed entry: the card as it reads now, with the field-level diff under it */
+.rc-change{display:flex;flex-direction:column;gap:6px}
+.rc-diff{
+  background:var(--bg2);border:1px solid var(--border);border-radius:9px;
+  padding:7px 9px;font-size:11.5px;display:flex;flex-direction:column;gap:5px;
+}
+.rc-drow{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rc-drow.long{flex-direction:column;gap:3px}
+.rc-dfield{
+  color:var(--muted);font-weight:800;font-size:10px;text-transform:uppercase;
+  letter-spacing:.5px;flex:0 0 auto;
+}
+.rc-dvals{display:flex;gap:7px;align-items:baseline;flex-wrap:wrap;min-width:0}
+.rc-drow.long .rc-dvals{flex-direction:column;gap:3px}
+.rc-dold{color:#e08a8a;text-decoration:line-through;white-space:pre-wrap}
+.rc-dnew{color:#7ee0a0;white-space:pre-wrap}
+.rc-darrow{color:var(--muted);flex:0 0 auto}
+.rc-drow.long .rc-darrow{display:none}
 
 /* Costume cards (spoiler-gated cosmetics) --------------------------------- */
 .cos-grid{grid-template-columns:repeat(auto-fill, minmax(190px, 1fr))}
