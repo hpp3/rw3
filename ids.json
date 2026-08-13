@@ -358,7 +358,13 @@
     "Warlord Banner": 355,
     "Arbiter Cage": 356,
     "Knight Cage": 357,
-    "Lava Cage": 358
+    "Lava Cage": 358,
+    "Artificer's Abacus": 359,
+    "Artificer's Hammer": 360,
+    "Artificer's Mirror": 361,
+    "Backtrackers": 362,
+    "Bishop Boots": 363,
+    "Castellan Clogs": 364
   },
   "sp": {
     "Amalgamate Slime": 0,
@@ -1350,7 +1356,12 @@
     "Word of Undeath::Death Tax": 986,
     "Word of Undeath::Hatred of Life": 987,
     "Word of Undeath::Vampiric Word": 988,
-    "Word of Undeath::Word of Dominion": 989
+    "Word of Undeath::Word of Dominion": 989,
+    "Bone Spear::Hellfire Spear": 990,
+    "Bone Spear::Osseous Recall": 991,
+    "Bone Spear::Stunning Spear": 992,
+    "Dream the Starwhale::Hungering Depths": 993,
+    "Word of Beauty::Venomous Word": 994
   },
   "spell": {
     "Amalgamate Slime": 0,

@@ -1243,6 +1243,29 @@
       "Yaldabaoth",
       "Yggdrasil"
      ]
+    },
+    "2026-08-13": {
+     "costume": [
+      "Flaming",
+      "Goblin",
+      "Hierophant",
+      "Prism",
+      "Spikeball"
+     ],
+     "equipment": [
+      "Artificer's Abacus",
+      "Artificer's Hammer",
+      "Artificer's Mirror",
+      "Backtrackers",
+      "Bishop Boots",
+      "Castellan Clogs"
+     ],
+     "unit": [
+      "Maggot Leech",
+      "Maweth",
+      "Prismancer",
+      "Sanguine Hierophant"
+     ]
     }
    },
    "baseline": {
@@ -1257,7 +1280,8 @@
     "2026-07-12": "24121930",
     "2026-07-19": "24253083",
     "2026-07-28": "24443072",
-    "2026-07-30": "24443072"
+    "2026-07-30": "24443072",
+    "2026-08-13": "24721540"
    }
   },
   "live": {
