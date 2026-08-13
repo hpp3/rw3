@@ -70,12 +70,29 @@ def _key_of(item):
 
 def _fmt(v):
     if v is None:
-        return "-"          # field absent on this side (a resist that appeared/vanished)
+        return "-"
     if isinstance(v, bool):
         return "yes" if v else "no"
     if isinstance(v, (int, float, str)):
         return str(v)
+    # Recipe slots are ["Tag", count] pairs — render them readably rather than
+    # as raw JSON (whose brackets would also be mistaken for game markup).
+    if (isinstance(v, list) and len(v) == 2
+            and isinstance(v[0], str) and isinstance(v[1], int)):
+        return f"{v[0]} x{v[1]}"
     return json.dumps(v, ensure_ascii=False, sort_keys=True)
+
+
+def _fmt_missing(peer):
+    """How to render a field that is absent on one side. The absence usually
+    encodes a real value: extract.py drops falsy resists/stats, so a missing
+    number is 0 (Ophan gaining Dark resist reads "0 -> 100", not "- -> 100").
+    A missing flag is "no"; for text there is no such value, so "-"."""
+    if isinstance(peer, bool):
+        return "no"
+    if isinstance(peer, (int, float)):
+        return "0"
+    return "-"
 
 
 def _diff_value(label, o, n, out, depth=0):
@@ -93,10 +110,12 @@ def _diff_value(label, o, n, out, depth=0):
         if depth < 2 and (o or n) and all(_key_of(i) for i in o + n):
             om = {_key_of(i): i for i in o}
             nm = {_key_of(i): i for i in n}
+            # Membership, not a value transition: `op` tells the UI to render one
+            # word ("removed"/"added") instead of a nonsensical old -> new pair.
             for k in sorted(set(om) - set(nm)):
-                out.append({"f": f"{label}: {k}", "o": "present", "n": "removed"})
+                out.append({"f": f"{label}: {k}", "op": "removed"})
             for k in sorted(set(nm) - set(om)):
-                out.append({"f": f"{label}: {k}", "o": "absent", "n": "added"})
+                out.append({"f": f"{label}: {k}", "op": "added"})
             for k in sorted(set(om) & set(nm)):
                 _diff_value(f"{label}: {k}", om[k], nm[k], out, depth + 1)
             return
@@ -104,10 +123,16 @@ def _diff_value(label, o, n, out, depth=0):
         so, sn = [_fmt(x) for x in o], [_fmt(x) for x in n]
         gone = [x for x in so if x not in sn]
         came = [x for x in sn if x not in so]
-        if gone or came:
-            out.append({"f": label, "o": "; ".join(gone) or "-", "n": "; ".join(came) or "-"})
+        if gone and came:
+            out.append({"f": label, "o": "; ".join(gone), "n": "; ".join(came)})
+        elif gone:
+            out.append({"f": label, "op": "removed", "v": "; ".join(gone)})
+        elif came:
+            out.append({"f": label, "op": "added", "v": "; ".join(came)})
         return
-    out.append({"f": label, "o": _fmt(o), "n": _fmt(n)})
+    out.append({"f": label,
+                "o": _fmt_missing(n) if o is None else _fmt(o),
+                "n": _fmt_missing(o) if n is None else _fmt(n)})
 
 
 def diff_entry(old, new):

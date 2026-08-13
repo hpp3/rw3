@@ -1324,8 +1324,8 @@
        },
        {
         "f": "recipe",
-        "n": "[\"Any\", 8]",
-        "o": "[\"Any\", 10]"
+        "n": "Any x8",
+        "o": "Any x10"
        },
        {
         "f": "recipe_cost",
@@ -1341,8 +1341,8 @@
        },
        {
         "f": "recipe",
-        "n": "[\"Any\", 7]",
-        "o": "[\"Any\", 10]"
+        "n": "Any x7",
+        "o": "Any x10"
        },
        {
         "f": "recipe_cost",
@@ -1358,8 +1358,8 @@
        },
        {
         "f": "recipe",
-        "n": "[\"Any\", 3]",
-        "o": "[\"Any\", 4]"
+        "n": "Any x3",
+        "o": "Any x4"
        },
        {
         "f": "recipe_cost",
@@ -1410,8 +1410,8 @@
        },
        {
         "f": "recipe",
-        "n": "[\"Any\", 3]",
-        "o": "[\"Any\", 1]"
+        "n": "Any x3",
+        "o": "Any x1"
        },
        {
         "f": "recipe_cost",
@@ -1427,8 +1427,8 @@
        },
        {
         "f": "recipe",
-        "n": "[\"Translocation\", 2]",
-        "o": "[\"Translocation\", 1]"
+        "n": "Translocation x2",
+        "o": "Translocation x1"
        },
        {
         "f": "recipe_cost",
@@ -1437,8 +1437,8 @@
        },
        {
         "f": "tags",
-        "n": "Translocation",
-        "o": "-"
+        "op": "added",
+        "v": "Translocation"
        }
       ],
       "Slimebirth Cantromancy": [
@@ -1467,33 +1467,27 @@
       "Bone Spear": [
        {
         "f": "upgrades: Blazing Spear",
-        "n": "removed",
-        "o": "present"
+        "op": "removed"
        },
        {
         "f": "upgrades: Stun Spear",
-        "n": "removed",
-        "o": "present"
+        "op": "removed"
        },
        {
         "f": "upgrades: Toxic Spear",
-        "n": "removed",
-        "o": "present"
+        "op": "removed"
        },
        {
         "f": "upgrades: Hellfire Spear",
-        "n": "added",
-        "o": "absent"
+        "op": "added"
        },
        {
         "f": "upgrades: Osseous Recall",
-        "n": "added",
-        "o": "absent"
+        "op": "added"
        },
        {
         "f": "upgrades: Stunning Spear",
-        "n": "added",
-        "o": "absent"
+        "op": "added"
        }
       ],
       "Call Seraph": [
@@ -1562,13 +1556,11 @@
        },
        {
         "f": "upgrades: Shatterstar",
-        "n": "removed",
-        "o": "present"
+        "op": "removed"
        },
        {
         "f": "upgrades: Hungering Depths",
-        "n": "added",
-        "o": "absent"
+        "op": "added"
        }
       ],
       "Hatebolts": [
@@ -1625,7 +1617,7 @@
       "Night Hag": [
        {
         "f": "stats.max_charges",
-        "n": "-",
+        "n": "0",
         "o": "2"
        },
        {
@@ -1688,7 +1680,7 @@
        },
        {
         "f": "stats.max_charges",
-        "n": "-",
+        "n": "0",
         "o": "3"
        }
       ],
@@ -1729,13 +1721,11 @@
        },
        {
         "f": "upgrades: Beauty of Steel",
-        "n": "removed",
-        "o": "present"
+        "op": "removed"
        },
        {
         "f": "upgrades: Venomous Word",
-        "n": "added",
-        "o": "absent"
+        "op": "added"
        }
       ],
       "Word of Undeath": [
@@ -1779,7 +1769,7 @@
        {
         "f": "resists.Fire",
         "n": "-100",
-        "o": "-"
+        "o": "0"
        }
       ],
       "Ice Maw": [
@@ -1807,16 +1797,16 @@
        {
         "f": "resists.Dark",
         "n": "100",
-        "o": "-"
+        "o": "0"
        },
        {
         "f": "resists.Holy",
         "n": "100",
-        "o": "-"
+        "o": "0"
        },
        {
         "f": "resists.Poison",
-        "n": "-",
+        "n": "0",
         "o": "100"
        }
       ],

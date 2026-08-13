@@ -404,6 +404,11 @@ select{
 .rc-drow.long .rc-dvals{flex-direction:column;gap:3px}
 .rc-dold{color:#e08a8a;text-decoration:line-through;white-space:pre-wrap}
 .rc-dnew{color:#7ee0a0;white-space:pre-wrap}
+/* Membership rows: one word, no strikethrough (nothing was replaced) */
+.rc-dop{font-weight:800;text-transform:uppercase;letter-spacing:.5px;font-size:10px}
+.rc-dop.added{color:#7ee0a0}
+.rc-dop.removed{color:#e08a8a}
+.rc-drow .rc-dop + .rc-dold{text-decoration:none}
 .rc-darrow{color:var(--muted);flex:0 0 auto}
 .rc-drow.long .rc-darrow{display:none}
 

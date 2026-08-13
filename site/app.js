@@ -1461,18 +1461,41 @@ function recentCard(kind, name) {
 // Field-level diff for a changed entry: {f: field, o: old, n: new} rows from
 // history.py. Values are game text, so they render through the same markup
 // pipeline as the cards (renderMarkup escapes as it goes).
+// A value that parses as a JSON object/array is structured data, not game text:
+// escape it, or renderMarkup would read its brackets as [markup] tokens. Game
+// text like "[Holy] allies" never parses as JSON, so it still renders coloured.
+function diffValue(s) {
+  if (typeof s === 'string' && /^[[{]/.test(s.trim())) {
+    try {
+      const v = JSON.parse(s);
+      if (v && typeof v === 'object') return esc(s);
+    } catch (e) { /* game text, fall through */ }
+  }
+  return renderMarkup(s);
+}
+
 function diffBlock(rows) {
   const box = el('div', 'rc-diff');
   box.innerHTML = (rows || []).map(r => {
     // Field paths read like "upgrades: Impalement.level" — show the leaf plainly.
-    const label = r.f || 'value';
+    const label = esc(r.f || 'value');
+    // `op` rows are membership, not a value transition: one word, one colour,
+    // no arrow — "present → removed" reads as nonsense.
+    if (r.op) {
+      const cls = r.op === 'added' ? 'rc-dnew' : 'rc-dold';
+      const val = r.v ? ` <span class="${cls}">${diffValue(r.v)}</span>` : '';
+      return `<div class="rc-drow">
+        <span class="rc-dfield">${label}</span>
+        <span class="rc-dvals"><span class="rc-dop ${esc(r.op)}">${esc(r.op)}</span>${val}</span>
+      </div>`;
+    }
     const long = (r.o || '').length + (r.n || '').length > 60;
     return `<div class="rc-drow${long ? ' long' : ''}">
-      <span class="rc-dfield">${esc(label)}</span>
+      <span class="rc-dfield">${label}</span>
       <span class="rc-dvals">
-        <span class="rc-dold">${renderMarkup(r.o)}</span>
+        <span class="rc-dold">${diffValue(r.o)}</span>
         <span class="rc-darrow">→</span>
-        <span class="rc-dnew">${renderMarkup(r.n)}</span>
+        <span class="rc-dnew">${diffValue(r.n)}</span>
       </span>
     </div>`;
   }).join('');
