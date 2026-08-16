@@ -128,6 +128,21 @@
         <label>Type</label>
         <div class="chips" id="mon-types"></div>
       </div>
+      <!-- The two halves of the game's difficulty model: the 1-9 spawn table,
+           and the coarse class the rare rosters use. "Spawns at depth" sets both
+           to that depth's real pool (see app.js inDepthPool). -->
+      <div class="control-group">
+        <label>Enemy difficulty (common enemies)</label>
+        <div class="chips" id="mon-diffs"></div>
+      </div>
+      <div class="control-group">
+        <label>Elite</label>
+        <div class="chips" id="mon-rares"></div>
+      </div>
+      <div class="control-group">
+        <label>Spawns at depth</label>
+        <select id="mon-depth"></select>
+      </div>
       <div class="control-group">
         <label>Movement</label>
         <div class="chips" id="mon-moves"></div>
@@ -140,7 +155,7 @@
         <label>Sort</label>
         <select id="mon-sort">
           <option value="name">Name A–Z</option>
-          <option value="depth">Depth ↑</option>
+          <option value="difficulty">Difficulty ↑</option>
           <option value="hp">HP ↓</option>
         </select>
       </div>

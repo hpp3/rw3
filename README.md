@@ -45,11 +45,22 @@ The static site (`site/`) lets you:
   derived essence pool. The Equipment tab's *Craftable only* toggle and build planner both read
   from this inventory. Persists across reloads.
 - **Spells** — every player spell with level, tags, stats, descriptions, and upgrades.
-- **Monsters** — the full bestiary (base spawns, evolutions, and the rare
+- **Monsters** — the full bestiary (base spawns, their alphas, and the rare
   rosters), all summonable minions, the Tavern **companions**, and the **final bosses** (the
   floor-20 roster plus Mordred's three phases), as cards with art, HP/shields/resists, movement,
-  tags, depth, and every ability and passive. Filter by tag/element, type (monster / summonable /
-  companion / boss), and text.
+  tags, difficulty, and every ability and passive. Filter by tag/element, type, and text — plus
+  two ways into the game's difficulty model:
+  - **Common 1–9 / Elite Easy–Hard** — the two spawn tables. Picking a common difficulty also
+    brings in the **alphas** that escort it (one Night Hag is placed alongside a level's Witches),
+    so every unit is reachable. Each card names its alpha both ways round: *Escorted by* and
+    *Escorts*.
+  - **Spawns at depth** — pick a rift depth (1–21) and the chips light up to show its common band,
+    the one-tier-higher extras, and its elite class. The result follows the generator's real gates, so alphas
+    stay out below depth 4, idols/super spawners/kaiju stay out below depth 7, and the miniboss
+    slot on depths 5/10/15/20 puts a kaiju on depth 5 and a hard one on depth 15. A chip that's
+    only partly in play is outlined rather than filled.
+    Editing a chip by hand drops the depth and the chips mean exactly what they say.
+    *(Not modelled: the level mutators that fire on 15% of depths 8–20.)*
 - **Cross-reference links** — when a spell, item, or monster references another spell, item, or
   unit, the name is a link: clicking it switches to the right tab, scrolls the entry into view,
   and flashes it. References are found **programmatically** by static-analysing each class's

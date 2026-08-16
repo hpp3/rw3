@@ -424,6 +424,8 @@ def extract_costumes():
 import Monsters
 import RareMonsters
 import FinalBosses
+from CommonContent import get_spawn_min_max   # rift depth -> monster-difficulty band
+from Level import LAST_LEVEL                  # deepest rift floor (21)
 
 FRAMEWORK_BASES = {'Spell', 'Equipment', 'Buff', 'Upgrade', 'Unit', 'Component', 'object'}
 IDENT_MAP = {}     # python identifier -> (display_name, kind) ; value None == ambiguous
@@ -885,7 +887,21 @@ def refs_for(instance, entry, self_name):
 # ---------------------------------------------------------------------------
 
 MONSTER_NAMES = set()   # names that belong to the bestiary
-MONSTER_DEPTH = {}      # name -> earliest spawn depth (base monsters only)
+# The middle column of Monsters.spawn_options. The game's own comment above that
+# table calls it Difficulty (1-9) and it is NOT a rift depth: difficulty 9 enters
+# the primary/secondary pool at depth 18 (and can appear as an extra elite at
+# depth 16). CommonContent.get_spawn_min_max maps a depth to the difficulty band
+# it draws from, and that table ships as data.spawn_bands so the site derives
+# depths instead of hardcoding a copy.
+MONSTER_DIFFICULTY = {}  # name -> lowest difficulty it spawns at (base monsters only)
+MONSTER_ALPHA = {}       # base monster name -> the alpha that escorts it
+MONSTER_ESCORTS = {}     # alpha name -> [base monsters it escorts]  (Dragon Mage: 6)
+RARE_INFO = {}           # name -> {group, class, min, max, tag}, from RareMonsters
+BOSS_KIND = {}           # name -> 'final' (the depth-20 roster) | 'mordred'
+# factory -> display name, filled while extract_monsters is already constructing
+# each factory once. The roles pass below reads it instead of re-instantiating:
+# a second construction would consume RNG and break main()'s seeded reproducibility.
+FAC_NAME = {}
 
 def collect_monster_factories():
     factories = {}        # factory -> earliest depth (or None)
@@ -911,6 +927,7 @@ def extract_monsters(factories):
             continue
         if not isinstance(u, Unit):
             continue
+        FAC_NAME[fac] = u.name    # for extract_spawn_roles; see FAC_NAME's note
         if register_unit(u):      # refs computed later in main()'s unit fixpoint
             # Remember the spawn factory so the fixpoint can re-derive this
             # monster's refs from its source. `_unit_name_of` returns None only for
@@ -921,8 +938,51 @@ def extract_monsters(factories):
                 _register_factory(u.name, fac)
             MONSTER_NAMES.add(u.name)
             if depth is not None:
-                cur = MONSTER_DEPTH.get(u.name)
-                MONSTER_DEPTH[u.name] = depth if cur is None else min(cur, depth)
+                cur = MONSTER_DIFFICULTY.get(u.name)
+                MONSTER_DIFFICULTY[u.name] = depth if cur is None else min(cur, depth)
+
+# ---------------------------------------------------------------------------
+# Spawn roles: the two other things Monsters.spawn_options / RareMonsters know
+# about a unit besides its difficulty number.
+#
+#  * The third column of a spawn_options row is that monster's ALPHA — when the
+#    level generator picks Witch as a rank-and-file spawn it also places exactly
+#    one Night Hag (LevelGen.add_alphas, from depth 4). It is not an evolution:
+#    nothing transforms, and the alpha is usually balanced far above the monster
+#    it escorts (Bone Shambler is difficulty 4, its alpha Lich is 8). The pairing
+#    is many-to-one — Dragon Mage escorts six different drakes — and six units
+#    hold both roles at once (Witch escorts Ghost *and* is escorted by Night Hag).
+#  * A RareMonsters entry is a 5-tuple carrying a coarse Easy/Medium/Hard class
+#    instead of a 1-9 number, plus how many spawn together and an optional tag
+#    used when the generator asks for an affinity-matched rare. Which of the six
+#    lists it is in is real data too:
+#    idols, super spawners and kaiju are locked out below depth 7.
+# ---------------------------------------------------------------------------
+RARE_GROUPS = [('MONSTER_PACKS', 'Pack'), ('IDOLS', 'Idol'),
+               ('SUPER_SPAWNERS', 'Super Spawner'), ('SPECIAL_MONSTERS', 'Special'),
+               ('WIZARDS', 'Wizard'), ('KAIJU', 'Kaiju')]
+RARE_CLASS = {RareMonsters.DIFF_EASY: 'Easy', RareMonsters.DIFF_MED: 'Medium',
+              RareMonsters.DIFF_HARD: 'Hard'}
+
+def extract_spawn_roles():
+    for entry in Monsters.spawn_options:
+        base = FAC_NAME.get(entry[0])
+        alpha = FAC_NAME.get(entry[2]) if len(entry) > 2 and entry[2] else None
+        if not base or not alpha or base == alpha:
+            continue
+        MONSTER_ALPHA.setdefault(base, alpha)
+        escorted = MONSTER_ESCORTS.setdefault(alpha, [])
+        if base not in escorted:
+            escorted.append(base)
+    for attr, label in RARE_GROUPS:
+        for fac, cls, lo, hi, tag in getattr(RareMonsters, attr, None) or []:
+            name = FAC_NAME.get(fac)
+            # No unit is in two of the six lists, so first hit wins is exact.
+            if not name or name in RARE_INFO:
+                continue
+            RARE_INFO[name] = {"group": label, "class": RARE_CLASS.get(cls, cls),
+                               "min": lo, "max": hi,
+                               "tag": tag.name if tag is not None else None}
 
 # ---------------------------------------------------------------------------
 # Companions: permanent allies bought at the Tavern (Equipment.all_companions).
@@ -968,8 +1028,12 @@ def extract_companions():
 BOSS_NAMES = set()
 
 def extract_bosses():
-    factories = list(FinalBosses.final_bosses) + [
-        FinalBosses.Mordred, FinalBosses.MordredUnbound, FinalBosses.MordredAscendant]
+    # Kept apart because they reach the board differently: the roster is rolled
+    # on depth 20 (roll_final_boss), the Mordred forms are depth 21 only.
+    roster = list(FinalBosses.final_bosses)
+    mordred = [FinalBosses.Mordred, FinalBosses.MordredUnbound, FinalBosses.MordredAscendant]
+    factories = roster + mordred
+    kind_of = {id(f): ('mordred' if f in mordred else 'final') for f in factories}
     for fac in factories:
         u = _safe_call(fac)
         if not isinstance(u, Unit):
@@ -982,6 +1046,7 @@ def extract_bosses():
             _register_ident(getattr(fac, '__name__', None), u.name, 'unit')
             _register_factory(u.name, fac)
             BOSS_NAMES.add(u.name)
+            BOSS_KIND.setdefault(u.name, kind_of[id(fac)])
 
 def summons_of(obj):
     """Return list of distinct unit names this spell/equipment/component can summon."""
@@ -1239,6 +1304,7 @@ def main():
     extract_monsters(monster_factories)         # full bestiary into UNITS
     extract_companions()                         # Tavern companions into UNITS
     extract_bosses()                             # floor-20 final bosses + Mordred phases
+    extract_spawn_roles()                        # alpha pairings + rare-list metadata
 
     # Compute every unit's refs, and card any unit it summons that isn't already
     # carded — to a fixpoint, since a summoned unit may summon others. A unit's
@@ -1288,8 +1354,16 @@ def main():
         sheet["is_monster"] = name in MONSTER_NAMES
         sheet["is_companion"] = name in COMPANION_NAMES
         sheet["pools"] = sorted(pool_of.get(name, []))
-        if name in MONSTER_DEPTH:
-            sheet["depth"] = MONSTER_DEPTH[name]
+        if name in MONSTER_DIFFICULTY:
+            sheet["difficulty"] = MONSTER_DIFFICULTY[name]
+        if name in MONSTER_ALPHA:
+            sheet["escorted_by"] = MONSTER_ALPHA[name]
+        if name in MONSTER_ESCORTS:
+            sheet["escorts"] = sorted(MONSTER_ESCORTS[name])
+        if name in RARE_INFO:
+            sheet["rare"] = RARE_INFO[name]
+        if name in BOSS_KIND:
+            sheet["boss_kind"] = BOSS_KIND[name]
     # Prune cross-refs whose target has no card (e.g. units that are never
     # surfaced), so every link resolves to a real entry.
     valid = {'spell': {s['name'] for s in spells},
@@ -1334,6 +1408,10 @@ def main():
         "costumes": costumes,
         "units": UNITS,
         "pools": POOL_MEMBERS,
+        # depth -> [min, max] monster difficulty, straight from the game's table.
+        # Shipped rather than reimplemented in app.js so the mapping can't drift
+        # out of sync when a patch retunes the curve.
+        "spawn_bands": {str(d): list(get_spawn_min_max(d)) for d in range(1, LAST_LEVEL + 1)},
         "tags": extract_tags(),
         "colors": tooltip_colors,
         "slots": list(SLOT_NAMES.values()),

@@ -515,12 +515,15 @@ function makeMonSearch(inputEl, filtersEl) {
     dd.style.display = 'block';
   }
   function renderFilters() {
-    const pools = [...MON.pools];
-    if (!pools.length) { filtersEl.classList.add('hidden'); filtersEl.innerHTML = ''; return; }
+    const bits = [];
+    if (MON.depth) {
+      bits.push(`<span class="af-chip"><span class="af-kind depth">Depth</span> ${MON.depth}<button data-af-depth="1" title="Remove">✕</button></span>`);
+    }
+    [...MON.pools].forEach(p => bits.push(
+      `<span class="af-chip"><span class="af-kind pool">Pool</span> Any ${esc(p)}<button data-af-pool="${esc(p)}" title="Remove">✕</button></span>`));
+    if (!bits.length) { filtersEl.classList.add('hidden'); filtersEl.innerHTML = ''; return; }
     filtersEl.classList.remove('hidden');
-    filtersEl.innerHTML = `<span class="af-label">Active filters:</span>` + pools.map(p =>
-      `<span class="af-chip"><span class="af-kind pool">Pool</span> Any ${esc(p)}<button data-af-pool="${esc(p)}" title="Remove">✕</button></span>`
-    ).join('');
+    filtersEl.innerHTML = `<span class="af-label">Active filters:</span>` + bits.join('');
   }
   function addPool(pool) {
     MON.pools.add(pool);
@@ -536,6 +539,7 @@ function makeMonSearch(inputEl, filtersEl) {
     if (o) { e.preventDefault(); addPool(dd._sugg[+o.dataset.i].pool); }
   });
   filtersEl.addEventListener('click', e => {
+    if (e.target.closest('[data-af-depth]')) { setMonDepth(0); renderMonsters(); return; }
     const b = e.target.closest('[data-af-pool]');
     if (b) { MON.pools.delete(b.dataset.afPool); renderFilters(); renderMonsters(); }
   });
@@ -550,10 +554,13 @@ function makeMonSearch(inputEl, filtersEl) {
 function buildChips(container, values, opts = {}) {
   container.innerHTML = '';
   const state = new Set();
+  container._chipOpts = opts;
+  container._chipState = state;
   values.forEach(v => {
     const label = opts.label ? opts.label(v) : v;
     const chip = el('button', 'chip');
     chip.dataset.val = v;
+    if (opts.title) chip.title = opts.title(v);
     if (opts.dot) {
       const d = el('span', 'dot');
       d.style.background = opts.dot(v);
@@ -561,16 +568,29 @@ function buildChips(container, values, opts = {}) {
     }
     chip.appendChild(document.createTextNode(label));
     chip.addEventListener('click', () => {
-      if (state.has(v)) { state.delete(v); chip.classList.remove('active'); chip.style.background = ''; }
-      else {
-        state.add(v); chip.classList.add('active');
-        chip.style.background = opts.activeColor ? opts.activeColor(v) : 'var(--accent)';
-      }
+      if (state.has(v)) state.delete(v); else state.add(v);
+      if (opts.onToggle) opts.onToggle(v);   // a hand-edited chip drops out of depth mode
+      syncChips(container);
       opts.onChange();
     });
     container.appendChild(chip);
   });
   return state;
+}
+// Repaint a group from its Set. Needed because the depth selector sets chips
+// programmatically; `partial` marks chips that are on but only partly in play
+// (at depth 4 the Easy class is selected, yet no giant can spawn until depth 7).
+function syncChips(container, partial) {
+  const opts = container._chipOpts || {}, state = container._chipState;
+  if (!state) return;
+  [...container.children].forEach(chip => {
+    const v = chip.dataset.val;
+    const on = state.has(v), part = on && partial && partial.has(v);
+    chip.classList.toggle('active', on && !part);
+    chip.classList.toggle('partial', !!part);
+    chip.style.background = (on && !part)
+      ? (opts.activeColor ? opts.activeColor(v) : 'var(--accent)') : '';
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1169,7 +1189,9 @@ function scrollToCard(node) {
 }
 function clearChipGroup(set, sel) {
   if (set) set.clear();
-  $$(sel + ' .chip').forEach(c => { c.classList.remove('active'); c.style.background = ''; });
+  $$(sel + ' .chip').forEach(c => {
+    c.classList.remove('active'); c.classList.remove('partial'); c.style.background = '';
+  });
 }
 // State + DOM only (no render): callers decide when to repaint, and clearFilters
 // runs before its own render pass.
@@ -1205,6 +1227,8 @@ function clearFilters(tab) {
   } else if (tab === 'monsters') {
     MON.search = ''; const i = $('#mon-search'); if (i) i.value = '';
     clearChipGroup(MON.types, '#mon-types');
+    MON.depth = 0; const ds = $('#mon-depth'); if (ds) ds.value = '0';
+    clearChipGroup(MON.diffs, '#mon-diffs'); clearChipGroup(MON.rares, '#mon-rares');
     if (MON.pools) MON.pools.clear(); if (MON._renderFilters) MON._renderFilters();
     clearChipGroup(MON.moves, '#mon-moves'); clearChipGroup(MON.tags, '#mon-tags');
   }
@@ -1244,6 +1268,46 @@ function renderAbility(a, refs, btips) {
   return `<div class="uab"><span class="uabn">${esc(a.name)}</span>${bits.length ? ` <span class="ubits">${bits.join(' · ')}</span>` : ''}${a.desc ? `<div class="udesc">${linkify(renderMarkup(a.desc), refs, btips)}</div>` : ''}</div>`;
 }
 
+// The middle column of the game's spawn table. Datasets built before the rename
+// ship it as `depth`, so the un-rebuilt branch keeps working.
+function unitDifficulty(u) { return u.difficulty != null ? u.difficulty : u.depth; }
+
+// Which rift depths can place a common difficulty: directly from the shipped
+// band or as the one-tier-higher extras added on depths 3–17.
+function difficultyDepths(diff) {
+  const bands = DATA.spawn_bands;
+  if (!bands || !diff) return '';
+  const ds = Object.keys(bands).map(Number)
+    .filter(d => (bands[d][0] <= diff && diff <= bands[d][1]) || eliteDifficulty(d) === diff)
+    .sort((a, b) => a - b);
+  if (!ds.length) return '';
+  const ranges = [];
+  let start = ds[0], end = ds[0];
+  for (const d of ds.slice(1)) {
+    if (d === end + 1) end = d;
+    else { ranges.push(start === end ? `${start}` : `${start}–${end}`); start = end = d; }
+  }
+  ranges.push(start === end ? `${start}` : `${start}–${end}`);
+  return ranges.join(', ');
+}
+
+// One ladder across both spawn tables, for the Difficulty sort:
+// commons 1-9, then the elite classes, then bosses, then everything that never
+// spawns in a rift. The 15 units whose only role is escorting someone else have
+// no rank of their own, so they sit just after the difficulty they arrive with
+// rather than falling to the bottom among the summonables.
+function monsterRank(u) {
+  const d = unitDifficulty(u);
+  if (d != null) return d;
+  if (u.rare) return 10 + Math.max(0, RARE_CLASSES.indexOf(u.rare.class));
+  if ((u.escorts || []).length) {
+    const ds = u.escorts.map(n => unitDifficulty(DATA.units[n] || {})).filter(x => x != null);
+    if (ds.length) return Math.min(...ds) + 0.5;
+  }
+  if (u.is_boss) return 13;
+  return 14;                                  // summonable + companion
+}
+
 function monsterCard(u) {
   const card = el('div', 'card mon-card');
   card.id = unitCardId(u.name);
@@ -1252,34 +1316,160 @@ function monsterCard(u) {
     .map(([t, v]) => `<span class="ures" style="color:${TAGCOLOR[t] || 'var(--muted)'}">${v}% ${esc(t)}</span>`).join('');
   const abilities = u.abilities.map(a => renderAbility(a, u.refs, u.btips)).join('');
   const passives = u.passives.map(p => `<div class="upass">${linkify(renderMarkup(p), u.refs, u.btips)}</div>`).join('');
-  const depthBadge = u.depth ? `<span class="badge">Depth ${u.depth}</span>` : '';
+  const diff = unitDifficulty(u);
+  const depths = difficultyDepths(diff);
+  const diffBadge = diff
+    ? `<span class="badge"${depths ? ` title="Spawns at depths ${depths}"` : ''}>Difficulty ${diff}</span>` : '';
+  // Two separate facts, so two badges: the class the depth bands gate on, and
+  // which of the six rosters it comes from.
+  const rareBadge = u.rare
+    ? `<span class="badge badge-rare">${esc(u.rare.class)} Elite</span>`
+      + `<span class="badge badge-group">${esc(u.rare.group)}</span>`
+      + (u.rare.max > 1
+        ? `<span class="badge badge-spawn-count">Spawns ${u.rare.min === u.rare.max ? u.rare.min : `${u.rare.min}–${u.rare.max}`} at a time</span>`
+        : '') : '';
   const typeBadge = u.is_boss ? '<span class="badge badge-boss">boss</span>'
     : u.is_companion ? '<span class="badge">companion</span>'
     : u.is_monster ? '' : '<span class="badge">summon</span>';
+  // The spawn table's alpha column, both ways round. Not an evolution: nothing
+  // transforms — one alpha is placed alongside the monsters it escorts.
+  const uref = n => `<span class="xref" data-k="unit" data-n="${esc(n)}">${esc(n)}</span>`;
+  const escorts = [
+    u.escorted_by ? `<div class="uesc"><span class="uescl">Escorted by</span> ${uref(u.escorted_by)}</div>` : '',
+    (u.escorts || []).length ? `<div class="uesc"><span class="uescl">Escorts</span> ${u.escorts.map(uref).join(', ')}</div>` : ''
+  ].join('');
   const hp = u.hp ? `${u.hp} HP` : 'HP varies';
   card.innerHTML = `
     <div class="card-head">
       ${unitSprite(u, 'mon-art')}
       <div class="card-title">
         <div class="name">${esc(u.name)}</div>
-        <div class="card-meta">${depthBadge}${typeBadge}${u.tags.map(tagPill).join('')}</div>
+        <div class="card-meta">${diffBadge}${rareBadge}${typeBadge}${u.tags.map(tagPill).join('')}</div>
         <div class="uline"><span class="uhp">❤ ${hp}</span>${u.shields ? `<span class="ush">◆ ${u.shields} SH</span>` : ''}${flags.length ? `<span class="uflags">${flags.join(' · ')}</span>` : ''}</div>
       </div>
     </div>
+    ${escorts}
     ${resists ? `<div class="uresists">${resists}</div>` : ''}
     ${abilities ? `<div class="usec">Abilities</div>${abilities}` : ''}
     ${passives ? `<div class="usec">Passives</div>${passives}` : ''}`;
   return card;
 }
 
-const MON = { search: '', types: null, pools: null, moves: null, tags: null, sort: 'name' };
+const MON = { search: '', types: null, pools: null, moves: null, tags: null,
+              diffs: null, rares: null, depth: 0, sort: 'name' };
 const MOVE_FLAG = { Flying: 'flying', Immobile: 'stationary', Burrowing: 'burrowing' };
+
+// --- What can actually spawn at a given rift depth ---------------------------
+// Mirrors the gates in LevelGenerator.__init__ rather than approximating them:
+// the depth->difficulty band (shipped as spawn_bands), the elite band one above
+// it, the alpha gate, the rare class band, the giant lockout, and the miniboss
+// slot. Deliberately NOT modelled: the level mutators that fire on 15% of depths
+// 8-20 and can replace the roster wholesale — folding those in would make almost
+// everything possible almost everywhere and the selector would stop meaning much.
+const RARE_CLASSES = ['Easy', 'Medium', 'Hard'];
+const GIANT_GROUPS = new Set(['Idol', 'Super Spawner', 'Kaiju']);   // locked below depth 7
+const MINIBOSS_GROUPS = new Set(['Super Spawner', 'Kaiju']);        // the depth%5 slot
+function depthBand(d) { return (DATA.spawn_bands || {})[d]; }
+function eliteDifficulty(d) {
+  const b = depthBand(d);                       // get_elites: max band difficulty + 1
+  return (b && d >= 3 && d <= 17) ? Math.min(b[1] + 1, 9) : null;
+}
+function depthRareClasses(d) {                  // get_rare_spawn_bounds
+  return d < 9 ? ['Easy'] : d < 13 ? ['Easy', 'Medium'] : d < 17 ? ['Medium'] : ['Hard'];
+}
+function minibossClass(d) {                     // add_miniboss: ceil(depth/5), clamped
+  return (d % 5 === 0 && d <= 20) ? RARE_CLASSES[Math.min(3, Math.ceil(d / 5)) - 1] : null;
+}
+function inDepthPool(u, d) {
+  const band = depthBand(d);
+  if (!band) return false;
+  const diff = unitDifficulty(u);
+  if (diff != null) {
+    if (diff >= band[0] && diff <= band[1]) return true;
+    if (diff === eliteDifficulty(d)) return true;
+  }
+  // An alpha rides in with the monsters it escorts, from depth 4 (add_alphas).
+  if (d >= 4 && (u.escorts || []).some(n => {
+    const e = unitDifficulty(DATA.units[n] || {});
+    return e != null && e >= band[0] && e <= band[1];
+  })) return true;
+  if (u.rare) {
+    if (d >= 4 && depthRareClasses(d).includes(u.rare.class)
+        && (d > 6 || !GIANT_GROUPS.has(u.rare.group)))
+      return true;
+    // The miniboss slot passes an explicit group, so it sidesteps both the giant
+    // lockout (a kaiju on depth 5) and the class band (Hard on depth 15).
+    if (u.rare.class === minibossClass(d) && MINIBOSS_GROUPS.has(u.rare.group)) return true;
+  }
+  if (u.boss_kind === 'final' && d === 20) return true;
+  if (u.boss_kind === 'mordred' && d === 21) return true;
+  return false;
+}
+// Which chips a depth lights, and which of them are only partly in play.
+function depthChipState(d) {
+  const band = depthBand(d), diffs = new Set(), rares = new Set(), partial = new Set();
+  if (band) for (let t = band[0]; t <= band[1]; t++) diffs.add(String(t));
+  const el = eliteDifficulty(d);
+  if (el) diffs.add(String(el));
+  const general = d >= 4 ? depthRareClasses(d) : [];
+  general.forEach(c => rares.add(c));
+  const mb = minibossClass(d);
+  if (mb) rares.add(mb);
+  rares.forEach(c => {
+    if (!general.includes(c)) partial.add(c);   // reachable only via the miniboss
+    else if (d <= 6) partial.add(c);            // giants still locked out
+  });
+  return { diffs, rares, partial };
+}
+// Selecting a depth drives the chips; the pool it filters by stays the accurate
+// one, so the chips are an indication of the depth rather than the query itself.
+function setMonDepth(d) {
+  MON.depth = d;
+  const sel = $('#mon-depth');
+  if (sel) sel.value = String(d);
+  MON.diffs.clear(); MON.rares.clear();
+  let partial = null;
+  if (d) {
+    const st = depthChipState(d);
+    st.diffs.forEach(v => MON.diffs.add(v));
+    st.rares.forEach(v => MON.rares.add(v));
+    partial = st.partial;
+  }
+  syncChips($('#mon-diffs'));
+  syncChips($('#mon-rares'), partial);
+  if (MON._renderFilters) MON._renderFilters();
+}
+// Any hand-edited difficulty chip means the user is no longer asking "what
+// spawns at depth N", so the depth drops away and the chips mean themselves.
+function dropMonDepth() {
+  if (!MON.depth) return;
+  MON.depth = 0;
+  const sel = $('#mon-depth');
+  if (sel) sel.value = '0';
+  syncChips($('#mon-rares'));      // clear any partial styling
+  if (MON._renderFilters) MON._renderFilters();
+}
 function renderMonsters() {
   const q = MON.search.toLowerCase();
   let list = Object.values(DATA.units).filter(u => {
     if (MON.types.size) {
       const ty = u.is_boss ? 'boss' : u.is_companion ? 'companion' : u.is_monster ? 'monster' : 'summon';
       if (!MON.types.has(ty)) return false;
+    }
+    // The two difficulty rows are halves of one axis, so they OR with each other
+    // (unlike the other chip groups, which AND). In depth mode the accurate pool
+    // wins outright — the lit chips can't express the giant/miniboss exceptions.
+    if (MON.depth) {
+      if (!inDepthPool(u, MON.depth)) return false;
+    } else if (MON.diffs.size || MON.rares.size) {
+      const diff = unitDifficulty(u);
+      let ok = diff != null && MON.diffs.has(String(diff));
+      if (!ok && MON.diffs.size) ok = (u.escorts || []).some(n => {
+        const e = unitDifficulty(DATA.units[n] || {});
+        return e != null && MON.diffs.has(String(e));
+      });
+      if (!ok && u.rare) ok = MON.rares.has(u.rare.class);
+      if (!ok) return false;
     }
     if (MON.pools.size) { for (const p of MON.pools) if (!(u.pools || []).includes(p)) return false; }
     if (MON.moves.size) { for (const mv of MON.moves) if (!u[MOVE_FLAG[mv]]) return false; }
@@ -1294,7 +1484,7 @@ function renderMonsters() {
   });
   const sorters = {
     name: (a, b) => a.name.localeCompare(b.name),
-    depth: (a, b) => (a.depth || 99) - (b.depth || 99) || a.name.localeCompare(b.name),
+    difficulty: (a, b) => monsterRank(a) - monsterRank(b) || a.name.localeCompare(b.name),
     hp: (a, b) => b.hp - a.hp || a.name.localeCompare(b.name),
   };
   list.sort(sorters[MON.sort]);
@@ -2471,9 +2661,36 @@ async function init() {
 
   // --- Monsters controls ---
   MON.types = buildChips($('#mon-types'), ['monster', 'summon', 'companion', 'boss'], {
-    label: t => ({ monster: 'Monster', summon: 'Summonable', companion: 'Companion', boss: 'Boss' }[t]),
+    label: t => ({ monster: 'Regular', summon: 'Summonable', companion: 'Companion', boss: 'Boss' }[t]),
+    title: t => ({ monster: 'Appears in rifts under its own power — hides summonables, companions and bosses',
+                   summon: 'Only exists when something summons it',
+                   companion: 'Permanent ally bought at the Tavern',
+                   boss: 'The depth-20 roster and Mordred' }[t]),
     onChange: renderMonsters, activeColor: () => '#fff'
   });
+  // Two halves of one axis: the 1-9 spawn table, and the coarse class the rare
+  // rosters use instead. Selecting a difficulty also brings in the alphas that
+  // escort it, so no unit is unreachable through these rows.
+  MON.diffs = buildChips($('#mon-diffs'), ['1', '2', '3', '4', '5', '6', '7', '8', '9'], {
+    onToggle: dropMonDepth, onChange: renderMonsters, activeColor: () => '#fff'
+  });
+  MON.rares = buildChips($('#mon-rares'), RARE_CLASSES, {
+    title: c => `${c} rares: packs, wizards, specials, idols, super spawners and kaiju`,
+    onToggle: dropMonDepth, onChange: renderMonsters, activeColor: () => '#fff'
+  });
+  const depthSel = $('#mon-depth');
+  if (depthSel) {
+    const last = Object.keys(DATA.spawn_bands || {}).length;
+    depthSel.innerHTML = '<option value="0">Any</option>' + Array.from({ length: last },
+      (_, i) => `<option value="${i + 1}">Depth ${i + 1}</option>`).join('');
+    depthSel.addEventListener('change', () => { setMonDepth(+depthSel.value); renderMonsters(); });
+    // A dataset built before spawn_bands existed can't answer either question,
+    // so those two controls stay out of the way rather than filtering to nothing.
+    if (!last) {
+      depthSel.closest('.control-group').classList.add('hidden');
+      const rg = $('#mon-rares'); if (rg) rg.closest('.control-group').classList.add('hidden');
+    }
+  }
   MON.pools = new Set();
   MON.moves = buildChips($('#mon-moves'), ['Flying', 'Immobile', 'Burrowing'], {
     onChange: renderMonsters, activeColor: () => '#fff'

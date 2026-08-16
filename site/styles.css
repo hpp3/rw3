@@ -76,7 +76,12 @@ select{
 }
 .chip:hover{border-color:var(--accent);color:var(--text)}
 .chip.active{color:#0c0e14;font-weight:700}
+/* On, but only partly in play: the depth selector lit it, yet some of what it
+   names can't spawn at that depth (Easy at depth 4 excludes every giant). Kept
+   outlined rather than filled so it never claims to be a plain selection. */
+.chip.partial{border-color:var(--accent);color:var(--accent);background:transparent;font-weight:700}
 .chip .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.control-group.hidden{display:none}
 
 .count{color:var(--muted);font-size:12px;margin:0 2px 8px}
 
@@ -90,6 +95,7 @@ select{
 .af-kind.mod{background:#3a2350;color:#d7a6ff}
 .af-kind.use{background:#143a45;color:#7fdcef}
 .af-kind.pool{background:#3a3410;color:#e6d27a}
+.af-kind.depth{background:#12324a;color:#8fc4ff}
 .af-chip button{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;line-height:1}
 .af-chip button:hover{background:#a33;color:#fff}
 
@@ -135,6 +141,11 @@ select{
 .badge.badge-boss{color:#ffcf5a;background:#3a2416;border-color:#7a4a1f;
   text-transform:uppercase;letter-spacing:.5px}
 .badge.slot{color:#fff;background:#2a3550;border-color:#3a4560}
+/* Rares carry an Easy/Medium/Hard class instead of a 1-9 difficulty, plus the
+   roster they came from — two separate facts, so two badges. */
+.badge.badge-rare{color:#e0b0ff;background:#2b1c3d;border-color:#553a75}
+.badge.badge-group{color:#b6a0d8;background:#221a30;border-color:#413055}
+.badge.badge-spawn-count{color:#9ed8b2;background:#172d20;border-color:#315f40}
 .badge.oncraft{color:#e7c66b;border-color:#6b5a2f;background:#2b2616}
 .badge.onpickup{color:#8fc4ff;border-color:#2f4a6b;background:#162232}
 .badge.level{color:#fff}
@@ -447,6 +458,10 @@ select{
 .mon-card .uhp{color:#ff7a7a}
 .mon-card .ush{color:#4dfdfc}
 .mon-card .uflags{color:var(--accent);font-weight:700}
+/* The spawn table's alpha pairing, both directions. */
+.mon-card .uesc{font-size:12px;margin-top:4px;color:#c2ccdd}
+.mon-card .uescl{font-size:10px;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--muted);font-weight:800;margin-right:4px}
 .mon-card .uresists{display:flex;flex-wrap:wrap;gap:7px;font-size:11.5px;font-weight:700;margin-top:2px}
 .mon-card .usec{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
   font-weight:800;margin:7px 0 3px;border-top:1px solid var(--border);padding-top:5px}

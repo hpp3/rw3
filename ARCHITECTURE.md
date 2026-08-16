@@ -178,12 +178,32 @@ link, the same accepted limitation as anywhere else; e.g. Mordred's "become Mord
 
 ## 6. The monster/unit catalog and the "passives = all buffs" subtlety
 
-`data.units` = the full bestiary (base spawns + evolutions + the rare rosters) **plus** summon-only
+`data.units` = the full bestiary (base spawns + their alphas + the rare rosters) **plus** summon-only
 minions and the Tavern companions, deduped by name. Each is a stat
 sheet built by `register_unit`. `is_monster` distinguishes bestiary vs summon-only; `is_companion`
-flags the companions; `is_boss` flags the final bosses; `depth` is the earliest spawn depth for base
-monsters. The Monsters-tab type filter is `monster` / `summon` / `companion` / `boss`, derived
-boss-first (a boss is none of the other three).
+flags the companions; `is_boss` flags the final bosses. The Monsters-tab type filter is
+`monster` / `summon` / `companion` / `boss`, derived boss-first (a boss is none of the other
+three); the `monster` chip is labelled **Regular** because it is the residual bucket, and it's
+the only control that hides the ~130 units that never spawn in a rift.
+
+**Difficulty, not depth (`extract_spawn_roles`).** `difficulty` is the middle column of
+`Monsters.spawn_options`, which the game's own comment labels `Difficulty` (1–9). It is *not* a
+rift depth — difficulty 9 enters the primary/secondary pool at depth 18 and can appear as an
+extra elite at depth 16 — and the field was called `depth` until the rename, which is where the
+mislabelled `Depth 5` badge came from. The game
+compounds this: its variables call the column `level` (`monster_lvl`, `get_spawn_min_max`) while
+`LevelGenerator.difficulty` means the rift depth. `data.spawn_bands` ships
+`CommonContent.get_spawn_min_max` for depths 1–21 so the site derives depth ranges instead of
+keeping a copy that drifts.
+
+Three more spawn-table facts ride along. `escorted_by` / `escorts` are the third column of a
+`spawn_options` row — that monster's **alpha**, one of which is placed alongside the monsters it
+escorts from depth 4 (`LevelGen.add_alphas`). It is not an evolution: nothing transforms, the
+alpha is usually balanced far above what it escorts (Bone Shambler is difficulty 4, its alpha
+Lich is 8), the pairing is many-to-one (Dragon Mage escorts six drakes), and six units hold both
+roles at once. `rare` carries a `RareMonsters` entry's coarse Easy/Medium/Hard class, its group
+(one of the six lists), how many spawn together, and any affinity tag used for matched selection.
+`boss_kind` separates the depth-20 roster from the Mordred forms, which only appear on 21.
 
 **Final bosses (`extract_bosses`):** the floor-20 encounters. Contrary to the old "no clean registry"
 note, `FinalBosses.py` *does* have one: `final_bosses` (the rollable roster) plus the three
