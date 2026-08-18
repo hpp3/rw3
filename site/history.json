@@ -1266,6 +1266,12 @@
       "Prismancer",
       "Sanguine Hierophant"
      ]
+    },
+    "2026-08-18": {
+     "costume": [
+      "Chess",
+      "Memory"
+     ]
     }
    },
    "baseline": {
@@ -1281,7 +1287,8 @@
     "2026-07-19": "24253083",
     "2026-07-28": "24443072",
     "2026-07-30": "24443072",
-    "2026-08-13": "24721540"
+    "2026-08-13": "24721540",
+    "2026-08-18": "24783609"
    },
    "changed": {
     "2026-08-13": {
@@ -1860,6 +1867,545 @@
         "f": "abilities: Isolate.desc",
         "n": "Turns an unoccupied adjacent tile into a chasm",
         "o": "Turns unoccupied adjacent tiles into chasms"
+       }
+      ]
+     }
+    },
+    "2026-08-18": {
+     "equipment": {
+      "Amulet Of Collected Agony": [
+       {
+        "f": "recipe",
+        "n": "Dark x1; Any x4",
+        "o": "Dark x2; Any x3"
+       }
+      ],
+      "Arbiter Cage": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "5"
+       }
+      ],
+      "Backtrackers": [
+       {
+        "f": "recipe",
+        "n": "Arcane x1; Any x2",
+        "o": "Arcane x2; Any x1"
+       }
+      ],
+      "Basilisk Scale Armor": [
+       {
+        "f": "desc",
+        "n": "Cast Petrify on the first [3:num_targets] enemies that target you with a spell each turn",
+        "o": "Cast Petrify on the first [2:num_targets] enemies that target you with a spell each turn"
+       }
+      ],
+      "Blizzard Beacon": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Boots of Imminent Doom": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each level, cast Seal Fate on enemies within [6:radius] tiles",
+        "o": "At the beginning of each level, cast Seal Fate on enemies within [5:radius] tiles"
+       }
+      ],
+      "Castellan Clogs": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "4"
+       }
+      ],
+      "Chalice of Dragons": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chalice of Iron": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chalice of Light": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chalice of Warp": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chelation Claw": [
+       {
+        "f": "desc",
+        "n": "When you cast a [Blood] or [Metallic] spell targeting an enemy, inflict [4:duration] turns of [hemorrhage] on them",
+        "o": "When you cast a [Blood] or [Metallic] spell targeting an enemy, inflict [3:duration] turns of [hemorrhage] on them"
+       }
+      ],
+      "Dowsing Spark": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [5:damage] [Lightning:lightning] damage to [20:num_targets] random enemies currently afflicted with [soaked]",
+        "o": "Each turn, deal [3:damage] [Lightning:lightning] damage to [10:num_targets] random enemies currently afflicted with [soaked]"
+       }
+      ],
+      "Earthwrath": [
+       {
+        "f": "desc",
+        "n": "When you cast a [Nature] or [Chaos] spell, send out tremors along the ground from the target to nearby enemies\nEach tremor deals [18:damage] [Physical] damage to the target and all units in its path\nThe number of targets is equal to the level of the spell\nThe tremors can target enemies up to [4:radius] tiles away",
+        "o": "When you cast a [Nature] or [Chaos] spell, send out tremors along the ground from the target to nearby enemies\nEach tremor deals [9:damage] [Physical] damage to the target and all units in its path\nThe number of targets is equal to the level of the spell\nThe tremors can target enemies up to [4:radius] tiles away"
+       }
+      ],
+      "Electroplasm Ampule": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Fae Toxin Pouch": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [20:damage] [Arcane:arcane] damage to [5:num_targets] random enemies currently afflicted with [poison]",
+        "o": "Each turn, deal [10:damage] [Arcane:arcane] damage to [3:num_targets] random enemies currently afflicted with [poison]"
+       }
+      ],
+      "Galvanic Focus": [
+       {
+        "f": "desc",
+        "n": "Targeting a [Metallic] or [Construct] enemy with a [Lightning] spell inflicts a debuff which reduces their [Lightning] resistance by 25%",
+        "o": "Targeting a [Metallic] or [Construct] enemy with a [Lightning] spell inflicts a debuff which reduces their [Lightning] resistance by 10%"
+       }
+      ],
+      "Glasya's Bite": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Glittering Dancer's Robes": [
+       {
+        "f": "recipe",
+        "op": "added",
+        "v": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "4"
+       }
+      ],
+      "Heavenrender": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Helm of the Host": [
+       {
+        "f": "recipe",
+        "n": "Conjuration x2",
+        "o": "Conjuration x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "7",
+        "o": "8"
+       }
+      ],
+      "Hemlock Needle": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [10:damage] [Dark:dark] damage to [10:num_targets] random enemies currently afflicted with [bleed]",
+        "o": "Each turn, deal [6:damage] [Dark:dark] damage to [5:num_targets] random enemies currently afflicted with [bleed]"
+       }
+      ],
+      "Icy Cruciform": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [25:damage] [Holy:holy] damage to [4:num_targets] random enemies currently afflicted with [frozen]",
+        "o": "Each turn, deal [15:damage] [Holy:holy] damage to [2:num_targets] random enemies currently afflicted with [frozen]"
+       }
+      ],
+      "Jade Shard": [
+       {
+        "f": "desc",
+        "n": "Each turn, enemies adjacent to your [Living] and [Nature] allies are [poisoned] for [12:duration] turns",
+        "o": "Each turn, enemies adjacent to your [Living] allies are [poisoned] for [12:duration] turns"
+       }
+      ],
+      "Knight Cage": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "5"
+       }
+      ],
+      "Lava Cage": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "5"
+       }
+      ],
+      "Mask of Nihilo": [
+       {
+        "f": "bonuses",
+        "n": "[Chaos:chaos] spells and equipment gain [1000% Damage:damage]; [Dark:dark] spells and equipment gain [1000% Damage:damage]",
+        "o": "[Chaos:chaos] spells and equipment gain [300% Damage:damage]; [Dark:dark] spells and equipment gain [300% Damage:damage]; 1000% Resist Dark"
+       },
+       {
+        "f": "desc",
+        "n": "Damage you take reduces your resistance to that damage type by the same amount",
+        "o": "Damage you take reduces this item's [Dark] resistance by the same amount"
+       },
+       {
+        "f": "recipe",
+        "n": "Chaos x5; Dark x5",
+        "o": "Chaos x3; Dark x3; Any x4"
+       }
+      ],
+      "Multicolored Rage Rod": [
+       {
+        "f": "recipe",
+        "n": "Any x6",
+        "o": "Any x7"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "8",
+        "o": "9"
+       }
+      ],
+      "Nightmare Hexbag": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [4:damage] [Dark:dark] damage to [25:num_targets] random enemies currently afflicted with [sleep]",
+        "o": "Each turn, deal [2:damage] [Dark:dark] damage to [15:num_targets] random enemies currently afflicted with [sleep]"
+       }
+      ],
+      "Plasmic Distributor": [
+       {
+        "f": "desc",
+        "n": "When allies are summoned adjacent to you, cast Vampiricism on them\nThis item can activate up to [7:num_targets] times each level\nVampiricism Bestowed: [0:blood] / [7:num_targets]",
+        "o": "When allies are summoned adjacent to you, cast Vampiricism on them\nThis item can activate up to [3:num_targets] times each level\nVampiricism Bestowed: [0:blood] / [3:num_targets]"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x1",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Prismatic Plate": [
+       {
+        "f": "recipe",
+        "n": "Metallic x1",
+        "o": "Metallic x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Quickstep Boots": [
+       {
+        "f": "recipe",
+        "n": "Translocation x2; Any x1",
+        "o": "Translocation x3"
+       }
+      ],
+      "Rain Beacon": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Rimeblight Pulverizer": [
+       {
+        "f": "desc",
+        "n": "When an enemy is unfrozen, they take [30:damage] [Poison] damage and are [poisoned] for [10:duration] turns",
+        "o": "When an enemy is unfrozen, they take [25:damage] [Poison] damage and are [poisoned] for [10:duration] turns"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x1",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Robe of Fire": [
+       {
+        "f": "bonuses",
+        "n": "[Fire:fire] spells and equipment gain [50% Damage:damage]; [Fire:fire] spells and equipment gain [50% Minion Damage:minion_damage]; 75% Resist Fire",
+        "o": "[Fire:fire] spells and equipment gain [25% Damage:damage]; [Fire:fire] spells and equipment gain [25% Minion Damage:minion_damage]; 50% Resist Fire"
+       }
+      ],
+      "Robe of Ice": [
+       {
+        "f": "bonuses",
+        "n": "[Ice:ice] spells and equipment gain [50% Damage:damage]; [Ice:ice] spells and equipment gain [50% Duration:duration]; 75% Resist Ice",
+        "o": "[Ice:ice] spells and equipment gain [25% Damage:damage]; [Ice:ice] spells and equipment gain [25% Duration:duration]; 50% Resist Ice"
+       }
+      ],
+      "Robe of Void": [
+       {
+        "f": "bonuses",
+        "n": "[Arcane:arcane] spells and equipment gain [50% Damage:damage]; [Arcane:arcane] spells and equipment gain [50% Max Charges:max_charges]; 75% Resist Arcane",
+        "o": "[Arcane:arcane] spells and equipment gain [25% Damage:damage]; [Arcane:arcane] spells and equipment gain [25% Max Charges:max_charges]; 50% Resist Arcane"
+       }
+      ],
+      "Robe of the Druids": [
+       {
+        "f": "bonuses",
+        "n": "[Nature:nature] spells and equipment gain [50% Damage:damage]",
+        "o": "[Nature:nature] spells and equipment gain [25% Damage:damage]"
+       }
+      ],
+      "Spawning Venom": [
+       {
+        "f": "recipe",
+        "n": "Nature x1",
+        "o": "Nature x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Stagnation Basin": [
+       {
+        "f": "desc",
+        "n": "When an enemy is soaked, they are [poisoned] for [10:duration] turns",
+        "o": "When an enemy is Soaked, they are [poisoned] for [10:duration] turns"
+       }
+      ],
+      "Stone Mask": [
+       {
+        "f": "desc",
+        "n": "Each turn, [petrify] an enemy in your line of sight for [10:duration] turns",
+        "o": "Each turn, [petrify] an enemy in your line of sight for [6:duration] turns"
+       }
+      ],
+      "Storm Beacon": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Storm Caller Staff": [
+       {
+        "f": "recipe",
+        "n": "Nature x1",
+        "o": "Nature x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "7",
+        "o": "8"
+       }
+      ],
+      "The Boiler": [
+       {
+        "f": "desc",
+        "n": "Each turn, all soaked enemies take [50:damage] [Fire] damage",
+        "o": "Each turn, all soaked enemies take [25:damage] [Fire] damage"
+       },
+       {
+        "f": "recipe",
+        "n": "Fire x2",
+        "o": "Fire x1"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "4"
+       }
+      ],
+      "Veilpiercer's Monocle": [
+       {
+        "f": "recipe",
+        "n": "Translocation x1",
+        "o": "Translocation x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Voodoo Doll": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each level, the [5:num_targets] enemies with the highest HP are [Voodoo Bound:blood]\nWhen you take damage, [Voodoo Bound:blood] enemies take that damage\nWhen you spend HP, [Voodoo Bound:blood] deals that much [Physical:physical] damage to enemies",
+        "o": "At the beginning of each level, the [4:num_targets] enemies with the highest HP are [Voodoo Bound:blood]\nWhen you take damage, [Voodoo Bound:blood] enemies take that damage\nWhen you spend HP, [Voodoo Bound:blood] deals that much [Physical:physical] damage to enemies"
+       }
+      ],
+      "Warlord Vestments": [
+       {
+        "f": "bonuses",
+        "n": "All spells and equipment gain [10 Minion Health:minion_health]",
+        "o": "All spells and equipment gain [8 Minion Health:minion_health]"
+       }
+      ]
+     },
+     "spell": {
+      "Cantrip Cascade": [
+       {
+        "f": "upgrades: Cantrip Burst.desc",
+        "n": "Cantrip Cascade gains [4 Radius:radius]\nInstead of a cone, Cantrip Cascade affects tiles in a [4:radius] tile burst",
+        "o": "Cantrip Cascade gains [5 Radius:radius]\nInstead of a cone, Cantrip Cascade affects tiles in a [5:radius] tile burst"
+       }
+      ],
+      "Golden Skull": [
+       {
+        "f": "upgrades: Bone Wheel",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Golden Wheel",
+        "op": "added"
+       }
+      ],
+      "Touch of Death": [
+       {
+        "f": "upgrades: Hand of Death.desc",
+        "n": "Touch of Death gains [4 Num Targets:num_targets]\nTouch of Death hits up to [4:num_targets] more targets adjacent to the caster",
+        "o": "Touch of Death gains [4 Num Targets:num_targets]\nTouch of Death hits up to [4:num_targets] more adjacent targets"
+       }
+      ]
+     },
+     "unit": {
+      "Engineer": [
+       {
+        "f": "abilities: Deploy Auto Cannons.desc",
+        "n": "Summon 3 temporary Auto Cannons",
+        "o": "Summon 2 temporary Auto Cannons"
+       }
+      ],
+      "Maggot Leech": [
+       {
+        "f": "abilities: Blood Bite.desc",
+        "n": "Apply hemorrhage for 10 turns\nHeals for damage dealt",
+        "o": "Apply bleed for 10 turns\nHeals for damage dealt"
+       }
+      ],
+      "Maweth": [
+       {
+        "f": "abilities: Devour.damage_type",
+        "op": "added",
+        "v": "Dark"
+       },
+       {
+        "f": "passives",
+        "n": "Takes an extra turn each round; When this unit takes damage, it gains 20% resistance to that damage type for 1 turn",
+        "o": "When this unit takes damage, it gains 10% resistance to that damage type for 1 turn"
+       }
+      ],
+      "Sanguine Hierophant": [
+       {
+        "f": "passives",
+        "n": "When an enemy casts a spell, inflicts 10 turns of bleed",
+        "o": "When an enemy casts a spell, inflicts 3 turns of bleed"
        }
       ]
      }
