@@ -1272,6 +1272,18 @@
       "Chess",
       "Memory"
      ]
+    },
+    "2026-09-01": {
+     "costume": [
+      "Angel Tamer",
+      "Moth"
+     ],
+     "equipment": [
+      "Shattering Frost Manual"
+     ],
+     "unit": [
+      "Steam Elemental"
+     ]
     }
    },
    "baseline": {
@@ -1288,7 +1300,8 @@
     "2026-07-28": "24443072",
     "2026-07-30": "24443072",
     "2026-08-13": "24721540",
-    "2026-08-18": "24783609"
+    "2026-08-18": "24783609",
+    "2026-09-01": "24995190"
    },
    "changed": {
     "2026-08-13": {
@@ -2406,6 +2419,156 @@
         "f": "passives",
         "n": "When an enemy casts a spell, inflicts 10 turns of bleed",
         "o": "When an enemy casts a spell, inflicts 3 turns of bleed"
+       }
+      ]
+     }
+    },
+    "2026-09-01": {
+     "equipment": {
+      "Glasya's Bite": [
+       {
+        "f": "desc",
+        "n": "When you enter a level, inflict [bleed] on enemies\nThe duration of the [bleed] is equal to the product of your [Blood] and [Chaos] masteries",
+        "o": "When you enter a level, inflict [bleed] on random enemies\nThe number of affected enemies is equal to your [Chaos] mastery\nThe duration is equal to your [Blood] mastery"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "4"
+       }
+      ],
+      "Mask of Nihilo": [
+       {
+        "f": "recipe",
+        "n": "Chaos x4; Dark x4; Any x2",
+        "o": "Chaos x5; Dark x5"
+       }
+      ]
+     },
+     "spell": {
+      "Blizzard": [
+       {
+        "f": "upgrades: Hailstorm.desc",
+        "n": "For each cloud created by Blizzard, there is a 25% chance for you to cast Icicle on it each turn",
+        "o": "For each cloud in your Blizzard, there is a 25% chance for you to cast Icicle on it each turn"
+       }
+      ],
+      "Boiling Blood": [
+       {
+        "f": "upgrades: Combustion Point.desc",
+        "n": "Boiling Blood gains [3 Damage:damage]\nBoiling Blood gains [2 Radius:radius]\nAffected units receive a damage aura that deals [3:damage] [Fire] damage to enemies within [2:radius] tiles each turn\nAffected units explode on death, dealing [30:damage] [Fire] damage to units within [2:radius] tiles",
+        "o": "Boiling Blood gains [3 Damage:damage]\nBoiling Blood gains [2 Radius:radius]\nAffected units receive a damage aura that deals [3:damage] [Fire] damage to enemies within [2:radius] tiles each turn\nOn death, affected units explode for [30:damage] [Fire] damage to units within [2:radius] tiles"
+       }
+      ],
+      "Drain Pulse": [
+       {
+        "f": "upgrades: Radius",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: World Drain",
+        "op": "added"
+       }
+      ],
+      "Lifedrain": [
+       {
+        "f": "upgrades: Blood Horizon.level",
+        "n": "2",
+        "o": "4"
+       },
+       {
+        "f": "upgrades: Life Funnel.level",
+        "n": "3",
+        "o": "5"
+       }
+      ],
+      "Lightning Storm": [
+       {
+        "f": "upgrades: Surestrike.desc",
+        "n": "Lightning Storm gains [50 Strikechance:strikechance]\nClouds summoned by Lightning Storm deal damage every turn",
+        "o": "Lightning Storm gains [50 Strikechance:strikechance]\n[Storm Clouds:lightning] deal damage every turn"
+       }
+      ],
+      "Magic Missile": [
+       {
+        "f": "upgrades: Arcane Crossfire.desc",
+        "n": "Magic Missile gains [3 Num Targets:num_targets]\nWhen you manually cast Magic Missile, up to [3:num_targets] additional missiles are fired by [Arcane] allies in line of sight of the target",
+        "o": "Magic Missile gains [2 Num Targets:num_targets]\nWhen you cast Magic Missile, up to [2:num_targets] additional missiles are fired by [Arcane] allies in line of sight of the target"
+       },
+       {
+        "f": "upgrades: Arcane Crossfire.level",
+        "n": "1",
+        "o": "3"
+       }
+      ],
+      "Rain Storm": [
+       {
+        "f": "upgrades: Acid Rain.desc",
+        "n": "Rain Storm gains [9 Damage:damage]\nThe [Rain Clouds:nature] created by this spell deal [9:damage] [Poison] damage each turn",
+        "o": "Rain Storm gains [9 Damage:damage]\nThe [Rain Clouds:nature] deal [9:damage] [Poison] damage each turn"
+       },
+       {
+        "f": "upgrades: Healing Rain.desc",
+        "n": "The [Rain Clouds:nature] created by this spell will heal the Wizard and their allies for 10 HP each turn",
+        "o": "The [Rain Clouds:nature] will heal the Wizard and their allies for 10 HP each turn"
+       }
+      ],
+      "Shatter": [
+       {
+        "f": "summons",
+        "n": "Steam Elemental",
+        "o": "Sorrow"
+       },
+       {
+        "f": "upgrades: Shattered Sorrows",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Steam Anima",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Razor Ice.desc",
+        "n": "Shatter gains [12 Duration:duration]\nShatter also inflicts [12:duration] turns of [hemorrhage]",
+        "o": "Shatter gains [6 Duration:duration]\nShatter also inflicts [6:duration] turns of [hemorrhage]"
+       }
+      ],
+      "Teleport": [
+       {
+        "f": "upgrades: Assassinate.desc",
+        "n": "Teleport gains [60 Damage:damage]\nTeleport gains [3 Duration:duration]\nIf you Teleport adjacent to an enemy who could not see your original location, attempt to assassinate them, inflicting [60:damage] [Arcane] damage and [3:duration] turns of [silence]\nIf this kills an enemy, the Teleport charge is refunded",
+        "o": "Teleport gains [60 Damage:damage]\nTeleport gains [3 Duration:duration]\nIf you Teleport adjacent to an enemy who could not see your original location, attempt to assassinate them, inflicting [60:damage] [Arcane] damage and [3:duration] turns of [silence]"
+       },
+       {
+        "f": "upgrades: Assassinate.level",
+        "n": "3",
+        "o": "4"
+       },
+       {
+        "f": "upgrades: Group Teleport.level",
+        "n": "1",
+        "o": "2"
+       }
+      ],
+      "Wave of Dread": [
+       {
+        "f": "upgrades: Wave of Tyranny.desc",
+        "n": "Wave of Dread gains [2 Range:range]\nIf Wave of Dread deals more than half of the target's max HP, they join your team",
+        "o": "If Wave of Dread deals more than half of the target's max HP, they join your team"
+       }
+      ]
+     },
+     "unit": {
+      "Void Ancestor": [
+       {
+        "f": "passives",
+        "n": "Gain [2 SH:shields] each turn",
+        "o": "Gain [1 SH:shields] each turn"
        }
       ]
      }
