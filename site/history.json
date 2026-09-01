@@ -3689,17 +3689,2190 @@
       "Yeti Shaman",
       "Yggdrasil"
      ]
+    },
+    "2026-09-01": {
+     "component": [
+      "Amaranthine Petal",
+      "Cursed Rosary",
+      "Discarded Homunculi",
+      "Familiar's Collar",
+      "Polymath's Palimpsest",
+      "Primordial Ooze",
+      "Quipu Saga",
+      "Skeleton Key",
+      "Stormsong Note",
+      "Worldstone Socket"
+     ],
+     "costume": [
+      "Amaru",
+      "Angel Tamer",
+      "Archangel",
+      "Bafflement",
+      "Big Trouble",
+      "Blood Beast",
+      "Chess",
+      "Chronomancer",
+      "Clown",
+      "Crimson",
+      "Cryomancer",
+      "Dagger",
+      "Death Mage",
+      "Dragonlord",
+      "Dream Walker",
+      "Dreamer",
+      "Eldritch",
+      "Electromancer",
+      "Enchanter",
+      "Faery",
+      "Ferromancer",
+      "Flaming",
+      "Fleshy",
+      "Friendship",
+      "Gaia",
+      "Galvanic",
+      "Gardener",
+      "Gazing",
+      "Gnome",
+      "Goblin",
+      "Gunslinger",
+      "Haetae",
+      "Hellfire",
+      "Hemomancer",
+      "Hierophant",
+      "Idol",
+      "Insanity Queen",
+      "Jormungandr",
+      "Leghead",
+      "Manamancer",
+      "Memory",
+      "Molten",
+      "Mordred",
+      "Moth",
+      "Necromancer",
+      "Observer",
+      "Oozing",
+      "Ophan",
+      "Phytomancer",
+      "Plague Doctor",
+      "Pope",
+      "Prince",
+      "Prism",
+      "Pumpkin",
+      "Pyromancer",
+      "Ringmaster",
+      "Ruinous",
+      "Sanctumancer",
+      "Scuttler",
+      "Skelemage",
+      "Skull",
+      "Skull Queen",
+      "Slime",
+      "Snow Queen",
+      "Soulbound",
+      "Spider",
+      "Spikeball",
+      "Split Wizard",
+      "The Body Electric",
+      "Turtle",
+      "Twilight",
+      "Unquenchable Flame",
+      "Ursine",
+      "Vault Seeker",
+      "Virtuous Sin",
+      "Warlord",
+      "Wizard",
+      "Wizard Rift",
+      "Wyrm",
+      "Yaldabaoth",
+      "Yggdrasil"
+     ],
+     "equipment": [
+      "Arbiter Cage",
+      "Archangel's Halo",
+      "Artificer's Abacus",
+      "Artificer's Hammer",
+      "Artificer's Mirror",
+      "Backtrackers",
+      "Bishop Boots",
+      "Castellan Clogs",
+      "Doombrand",
+      "Knight Cage",
+      "Lava Cage",
+      "Lightbinder",
+      "Shattering Frost Manual",
+      "The Haemanthus",
+      "The Lodestar",
+      "Warlord Banner"
+     ],
+     "unit": [
+      "Amaru",
+      "Crackler",
+      "Divine Hammer",
+      "Glass Seer",
+      "Gryla",
+      "Haunted Casket",
+      "Idol of Invincibility",
+      "Idol of Piety",
+      "Maggot Leech",
+      "Maweth",
+      "Orochi",
+      "Prismancer",
+      "Rainbow Slime",
+      "Sanguine Hierophant",
+      "Steam Elemental",
+      "The Body Electric",
+      "The Sparking Soul",
+      "Toad Knight",
+      "Trollet",
+      "Vampire Count Bat",
+      "Void Saint"
+     ]
     }
    },
    "baseline": {
     "component": "2026-07-06",
+    "costume": "2026-09-01",
     "equipment": "2026-07-06",
     "spell": "2026-07-06",
     "unit": "2026-07-06"
    },
    "builds": {
     "2026-07-06": "23995367",
-    "2026-07-19": "23995367"
+    "2026-07-19": "23995367",
+    "2026-09-01": "24995190"
+   },
+   "changed": {
+    "2026-09-01": {
+     "component": {
+      "Chimera Eyes": [
+       {
+        "f": "desc",
+        "n": "On Craft:\nIf the crafted equipment has the [Chaos] or [Eye] tags, Chimera Eyes grants [Eye] spells you know a random upgrade\n\nIf this component grants one or more upgrades, it is destroyed",
+        "o": "On Craft:\nIf the crafted equipment has the [Chaos] or [Eye] tags, it grants [Eye] spells you know a random upgrade"
+       }
+      ],
+      "Journeystone": [
+       {
+        "f": "desc",
+        "n": "On Craft:\nIf the crafted equipment has the [Translocation] tag, it grants +6 [range] and [max charges:max_charges] to your [Translocation] spells and equipment",
+        "o": "On Craft:\nIf the crafted equipment has the [Translocation] tag, it grants +3 [range] and [max charges:max_charges] to your [Translocation] spells and equipment"
+       }
+      ],
+      "Luminous Threads": [
+       {
+        "f": "desc",
+        "n": "On Craft:\nIf the crafted equipment grants the wearer resistances, it grants [SH:shields] equal to your [Holy] mastery at the start of each level",
+        "o": "On Craft:\nIf the crafted equipment grants resistance, it grants [SH:shields] equal to your [Holy] mastery at the start of each level"
+       }
+      ],
+      "Mithril Ore": [
+       {
+        "f": "desc",
+        "n": "On Craft:\nIf the crafted equipment has the [damage] attribute, it deals +9 damage",
+        "o": "On Craft:\nIf the crafted equipment has the [damage] attribute, it gains +9 damage"
+       }
+      ],
+      "Warlord's Skull": [
+       {
+        "f": "desc",
+        "n": "On Craft:\nIf the crafted equipment would provide bonuses to [damage], [duration], [range], or [num_targets], it provides those bonuses to [minion_damage], [minion_duration], [minion_range], or [num_summons] instead",
+        "o": "On Craft:\nIf the crafted equipment would provide bonuses to [damage], [duration], or [range], it provides those bonuses to [minion_damage], [minion_duration], and [minion_range] instead"
+       }
+      ]
+     },
+     "equipment": {
+      "Amulet Of Collected Agony": [
+       {
+        "f": "recipe",
+        "n": "Dark x1; Any x4",
+        "o": "Dark x2; Any x3"
+       }
+      ],
+      "Amulet of Undeath": [
+       {
+        "f": "desc",
+        "n": "Each turn, [Undead] allies heal [3 HP:heal]",
+        "o": "[Undead] allies heal 3 HP per turn"
+       }
+      ],
+      "Arcane Shield": [
+       {
+        "f": "desc",
+        "n": "When you manually cast an [Arcane] spell, gain [1 SH:shields]",
+        "o": "When you cast an [Arcane] spell, if you have no shields, gain [1 SH:shields]"
+       }
+      ],
+      "Artificer's Chalice": [
+       {
+        "f": "desc",
+        "n": "Picking up a Memory Orb randomly triggers the on pickup effect of one of the components used to craft Artificer's Chalice",
+        "o": "Picking up a Memory Orb randomly triggers the on pickup effect of one of the components used to craft it"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x8",
+        "o": "Any x10"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "8",
+        "o": "10"
+       }
+      ],
+      "Artificer's Rod": [
+       {
+        "f": "desc",
+        "n": "Casting spells with tags that match the components used to craft Artificer's Rod recharges it\nOnce all tag requirements are satisfied, trigger the on pickup effect of each of the components used to craft it\nCan activate once per level",
+        "o": "Casting spells with tags that match the components used to craft this item recharges it\nOnce all tag requirements are satisfied, each of the components used to craft it activates its on pickup effect\nEach activation increases the requirements to activate again sevenfold until the next level"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x7",
+        "o": "Any x10"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "7",
+        "o": "10"
+       }
+      ],
+      "Basilisk Scale Armor": [
+       {
+        "f": "desc",
+        "n": "Cast Petrify on the first [3:num_targets] enemies that target you with a spell each turn",
+        "o": "Cast Petrify on the first [2:num_targets] enemies that target you with a spell each turn"
+       }
+      ],
+      "Blizzard Beacon": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Blood Shield": [
+       {
+        "f": "desc",
+        "n": "When you cast a spell, pay [3 HP:blood] to gain [1 SH:shields]",
+        "o": "When you cast a spell, pay 3 HP to gain 1 [SH:shields]"
+       }
+      ],
+      "Bloodletter Bracers": [
+       {
+        "f": "desc",
+        "n": "For every 50 HP you spend, regain a charge of a random [Blood] spell\n[HP Spent:blood]: [0:blood]",
+        "o": "For every 50 HP you spend, regain a charge of a random [Blood] spell\nHP Spent: [0:blood]"
+       }
+      ],
+      "Bloodspike Helm": [
+       {
+        "f": "desc",
+        "n": "When you spend HP, deal that much [Physical] damage to up to [3:num_targets] enemies in your line of sight",
+        "o": "When you pay HP, deal that much [Physical] damage to up to [3:num_targets] enemies in your line of sight"
+       }
+      ],
+      "Boots of Imminent Doom": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each level, cast Seal Fate on enemies within [6:radius] tiles",
+        "o": "At the beginning of each level, cast Seal Fate on enemies within [5:radius] tiles"
+       }
+      ],
+      "Boreal Armor": [
+       {
+        "f": "desc",
+        "n": "Gain [7 SH:shields] at the beginning of each level\nWhen an enemy removes one of your shields, deal [12:damage] [Ice] damage to them",
+        "o": "Gain [3 SH:shields] at the beginning of each level\nWhen an enemy removes one of your shields, deal [12:damage] [Ice] damage to them"
+       }
+      ],
+      "Chalice of Dragons": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chalice of Iron": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chalice of Light": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chalice of Warp": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x5"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Chaos Robes": [
+       {
+        "f": "bonuses",
+        "n": "33% Resist Fire; 33% Resist Lightning; 33% Resist Physical",
+        "o": "25% Resist Fire; 25% Resist Lightning; 25% Resist Physical"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Chelation Claw": [
+       {
+        "f": "desc",
+        "n": "When you cast a [Blood] or [Metallic] spell targeting an enemy, inflict [4:duration] turns of [hemorrhage] on them",
+        "o": "When you cast a [Blood] or [Metallic] spell targeting an enemy, inflict [3:duration] turns of [hemorrhage] on them"
+       }
+      ],
+      "Conciliator's Claw": [
+       {
+        "f": "desc",
+        "n": "When you deal damage to an adjacent enemy, heal yourself and allies in your line of sight for [3 HP:heal]",
+        "o": "Dealing damage to an adjacent enemy heals you and allies in your line of sight for 1 HP"
+       }
+      ],
+      "Crackledarkener": [
+       {
+        "f": "desc",
+        "n": "When an enemy takes [Dark] damage, up to [2:num_targets] enemies in line of sight within [3:radius] tiles take that much [Lightning] damage",
+        "o": "When an enemy takes [Dark] damage, deal that much [Lightning] damage to up to [3:num_targets] units in its line of sight within [3:radius] tiles"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x5",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "8",
+        "o": "6"
+       }
+      ],
+      "Cracklevoid": [
+       {
+        "f": "desc",
+        "n": "When an enemy takes [Arcane] damage, up to [2:num_targets] enemies in line of sight within [3:radius] tiles take that much [Lightning] damage",
+        "o": "When an enemy takes [Arcane] damage, up to [2:num_targets] enemies in line of sight within [4:radius] tiles take that much [Lightning] damage"
+       }
+      ],
+      "Crimson Brooch": [
+       {
+        "f": "desc",
+        "n": "When you spend HP, it is stored in this item\nYou gain a percent damage bonus to [Fire] spells and equipment equal to the amount stored\nResets each level\n[HP Stored:blood]: [0:blood]",
+        "o": "When you pay life, it is preserved in this item\nYou gain a percent damage bonus to [Fire] spells and equipment equal to the amount stored\nResets each level\n[Preserved Life:blood]: [0:blood]"
+       }
+      ],
+      "Crisis Charm": [
+       {
+        "f": "desc",
+        "n": "On taking lethal damage, remove all debuffs and heal to full health\nDiscarded after use",
+        "o": "Removes all debuffs and restores you to full health if you would die\nDiscarded after use"
+       }
+      ],
+      "Crown of Ragnarok": [
+       {
+        "f": "desc",
+        "n": "On the 9th turn of each level, cast Earthquake, Flame Burst, and Storm Burst [3:num_targets] times",
+        "o": "On the 9th turn of each level, cast Earthquake, Flame Burst, and Storm Burst"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Crystal Oculus": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Cultist's Staff": [
+       {
+        "f": "desc",
+        "n": "Each turn, pay [1 HP:blood] to deal [Dark] [damage] equal to your missing HP to the nearest enemy",
+        "o": "Each turn, [pay 1 HP:blood] to deal [Dark] [damage] equal to your missing HP to the nearest enemy"
+       }
+      ],
+      "Dowsing Spark": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [5:damage] [Lightning:lightning] damage to [20:num_targets] random enemies currently afflicted with [soaked]",
+        "o": "Each turn, deal [3:damage] [Lightning:lightning] damage to [10:num_targets] random enemies currently afflicted with [soaked]"
+       }
+      ],
+      "Dragon Hunter's Sigil": [
+       {
+        "f": "desc",
+        "n": "For every [Dragon:dragon] unit that dies, one of your [Translocation] spells regains 1 charge\nAt the end of each level, a Rift containing [Dragon:dragon] enemies is created",
+        "o": "For every [Dragon:dragon] unit killed, one of your [Translocation] spells regains 1 charge\nAt the end of each level, a Rift containing [Dragon:dragon] enemies is created"
+       }
+      ],
+      "Earthmeld Boots": [
+       {
+        "f": "desc",
+        "n": "Each turn, heal [3 HP:heal] unless you moved",
+        "o": "Gain 2 HP each turn unless you moved"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Earthtroll Armor": [
+       {
+        "f": "desc",
+        "n": "Each turn, heal [5 HP:heal]",
+        "o": "Regenerate 5 HP each turn"
+       }
+      ],
+      "Earthwrath": [
+       {
+        "f": "desc",
+        "n": "When you cast a [Nature] or [Chaos] spell, send out tremors along the ground from the target to nearby enemies\nEach tremor deals [18:damage] [Physical] damage to the target and all units in its path\nThe number of targets is equal to the level of the spell\nThe tremors can target enemies up to [4:radius] tiles away",
+        "o": "When you cast a [Nature] or [Chaos] spell, send out tremors along the ground from the target to nearby enemies\nEach tremor deals [9:damage] [Physical] damage to the target and all units in its path\nThe number of targets is equal to the level of the spell\nThe tremors can target enemies up to [4:radius] tiles away"
+       }
+      ],
+      "Electroplasm Ampule": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Eye Helm": [
+       {
+        "f": "desc",
+        "n": "When you cast an [Eye] spell, gain [3 SH:shields], up to a max of 20",
+        "o": "When you cast an [Eye] spell, gain 3 [SH:shields], up to a max of 20"
+       }
+      ],
+      "Fae Plate": [
+       {
+        "f": "desc",
+        "n": "Gain [1 SH:shields] each turn, up to a max of 3",
+        "o": "Gain 1 [SH:shields] each turn, up to a max of 3"
+       }
+      ],
+      "Fae Toxin Pouch": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [20:damage] [Arcane:arcane] damage to [5:num_targets] random enemies currently afflicted with [poison]",
+        "o": "Each turn, deal [10:damage] [Arcane:arcane] damage to [3:num_targets] random enemies currently afflicted with [poison]"
+       }
+      ],
+      "Flagellant's Cup": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each turn, pay [1 HP:blood]\nIf you have any debuffs, remove one",
+        "o": "At the beginning of each turn, [pay 1 HP:blood]\nIf you have any debuffs, remove one"
+       }
+      ],
+      "Galvanic Armor": [
+       {
+        "f": "desc",
+        "n": "When you cast a [Metallic] spell, gain Galvanic Redirection with duration equal to the spell's level\nGalvanic Redirection redirects incoming [Lightning] damage to a random enemy in line of sight",
+        "o": "When you cast a [Metallic] spell, gain Galvanic Redirection with duration equal to the spell's level\nGalvanic Redirection redirects incoming [Lightning] damage in a beam toward a random enemy in line of sight"
+       }
+      ],
+      "Galvanic Focus": [
+       {
+        "f": "desc",
+        "n": "Targeting a [Metallic] or [Construct] enemy with a [Lightning] spell inflicts a debuff which reduces their [Lightning] resistance by 25%",
+        "o": "Targeting a [Metallic] or [Construct] enemy with a [Lightning] spell inflicts a debuff which reduces their [Lightning] resistance by 10%"
+       }
+      ],
+      "Glasya's Bite": [
+       {
+        "f": "desc",
+        "n": "When you enter a level, inflict [bleed] on enemies\nThe duration of the [bleed] is equal to the product of your [Blood] and [Chaos] masteries",
+        "o": "When you enter a level, inflict [bleed] on random enemies\nThe number of affected enemies is equal to your [Chaos] mastery\nThe duration is equal to your [Blood] mastery"
+       }
+      ],
+      "Glittering Dancer's Robes": [
+       {
+        "f": "recipe",
+        "op": "added",
+        "v": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "4"
+       }
+      ],
+      "Halo Hunter's Sigil": [
+       {
+        "f": "desc",
+        "n": "For every [Holy:holy] unit that dies, one of your [Dark] spells regains 1 charge\nAt the end of each level, a Rift containing [Holy:holy] enemies is created",
+        "o": "For every [Holy:holy] unit killed, one of your [Dark] spells regains 1 charge\nAt the end of each level, a Rift containing [Holy:holy] enemies is created"
+       }
+      ],
+      "Haunted Blood Vial": [
+       {
+        "f": "desc",
+        "n": "When a [Demon] or [Living] unit dies, heal [2 HP:heal]",
+        "o": "When a [Demon] or [Living] unit dies, heal 2 HP"
+       }
+      ],
+      "Heavenrender": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "8"
+       }
+      ],
+      "Helm of the Host": [
+       {
+        "f": "recipe",
+        "n": "Conjuration x2",
+        "o": "Conjuration x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "7",
+        "o": "8"
+       }
+      ],
+      "Hemlock Needle": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [10:damage] [Dark:dark] damage to [10:num_targets] random enemies currently afflicted with [bleed]",
+        "o": "Each turn, deal [6:damage] [Dark:dark] damage to [5:num_targets] random enemies currently afflicted with [bleed]"
+       }
+      ],
+      "Hemocorruptor": [
+       {
+        "f": "desc",
+        "n": "When your allies heal, up to [3:num_targets] enemies in line of sight within [4:radius] tiles take that much [Poison] damage",
+        "o": "When your allies heal, up to [2:num_targets] enemies in line of sight within [5:radius] tiles take that much [Poison] damage"
+       }
+      ],
+      "Icy Cruciform": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [25:damage] [Holy:holy] damage to [4:num_targets] random enemies currently afflicted with [frozen]",
+        "o": "Each turn, deal [15:damage] [Holy:holy] damage to [2:num_targets] random enemies currently afflicted with [frozen]"
+       }
+      ],
+      "Iron Legion's Banner": [
+       {
+        "f": "desc",
+        "n": "[Metallic] and [Construct] allies gain [2 SH:shields] and [10:duration] turns of [quickstep:translocation] when summoned",
+        "o": "[Metallic] and [Construct] allies gain 2 [SH:shields] and [10:duration] turns of [quickstep:translocation] when summoned"
+       }
+      ],
+      "Jade Shard": [
+       {
+        "f": "desc",
+        "n": "Each turn, enemies adjacent to your [Living] and [Nature] allies are [poisoned] for [12:duration] turns",
+        "o": "Each turn, enemies adjacent to your [Living] allies are [poisoned] for [12:duration] turns"
+       }
+      ],
+      "Mask of Nihilo": [
+       {
+        "f": "bonuses",
+        "n": "[Chaos:chaos] spells and equipment gain [1000% Damage:damage]; [Dark:dark] spells and equipment gain [1000% Damage:damage]",
+        "o": "[Chaos:chaos] spells and equipment gain [300% Damage:damage]; [Dark:dark] spells and equipment gain [300% Damage:damage]; 1000% Resist Dark"
+       },
+       {
+        "f": "desc",
+        "n": "Damage you take reduces your resistance to that damage type by the same amount",
+        "o": "Damage you take reduces this item's [Dark] resistance by the same amount"
+       },
+       {
+        "f": "recipe",
+        "n": "Chaos x4; Dark x4; Any x2",
+        "o": "Chaos x3; Dark x3; Any x4"
+       }
+      ],
+      "Mortal Hunter's Sigil": [
+       {
+        "f": "desc",
+        "n": "For every [Living:living] unit that dies, one of your [Blood] spells regains 1 charge\nAt the end of each level, a Rift containing [Living:living] enemies is created",
+        "o": "For every [Living:living] unit killed, one of your [Blood] spells regains 1 charge\nAt the end of each level, a Rift containing [Living:living] enemies is created"
+       }
+      ],
+      "Mourning Bell": [
+       {
+        "f": "desc",
+        "n": "At the end of your turn, if at least 10 creatures have died since the last toll, the bell tolls, dealing [10:damage] [Dark], [Holy], and [Physical] damage to enemies within [4:radius] tiles\nDeath Toll : 0 / 10",
+        "o": "At the end of your turn, if at least 10 creatures have died since the last toll, the bell tolls, dealing [10:damage] [Dark] and [Holy] damage to enemies within [4:radius] tiles\nDeath Toll : 0 / 10"
+       }
+      ],
+      "Multicolored Rage Rod": [
+       {
+        "f": "recipe",
+        "n": "Any x6",
+        "o": "Any x7"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "8",
+        "o": "9"
+       }
+      ],
+      "Nightmare Hexbag": [
+       {
+        "f": "desc",
+        "n": "Each turn, deal [4:damage] [Dark:dark] damage to [25:num_targets] random enemies currently afflicted with [sleep]",
+        "o": "Each turn, deal [2:damage] [Dark:dark] damage to [15:num_targets] random enemies currently afflicted with [sleep]"
+       }
+      ],
+      "Numen Censer": [
+       {
+        "f": "desc",
+        "n": "When allies are summoned, a burst of energy is released at their location\nAdjacent allies heal [7 HP:heal] while adjacent enemies take [2:damage] [Holy] and [Arcane] damage",
+        "o": "When allies are summoned, a burst of energy is released at their location\nAdjacent allies are healed for 7 HP and adjacent enemies take [2:damage] [Holy] and [Arcane] damage"
+       }
+      ],
+      "Oozing Scale Armor": [
+       {
+        "f": "desc",
+        "n": "Summon a slime of a matching type when you take damage from an enemy\nIf there is no slime which matches the damage type, summon a random slime",
+        "o": "Spawn a slime of a matching type when you take damage from an enemy\nIf there is no slime which matches the damage type, spawns a random slime"
+       }
+      ],
+      "Orb of Infinite Slaughter": [
+       {
+        "f": "desc",
+        "n": "Units explode on death, dealing [Dark] damage to adjacent units\nThe damage dealt is equal to your [Blood] mastery\nYou heal for any damage dealt by this item",
+        "o": "Units explode on death, dealing [Dark] damage to adjacent units\nThe damage dealt is equal to your [Blood] mastery\nYou are healed for any damage dealt by this item"
+       }
+      ],
+      "Plasmic Distributor": [
+       {
+        "f": "desc",
+        "n": "When allies are summoned adjacent to you, cast Vampiricism on them\nThis item can activate up to [7:num_targets] times each level\nVampiricism Bestowed: [0:blood] / [7:num_targets]",
+        "o": "When allies are summoned adjacent to you, cast Vampiricism on them\nThis item can activate up to [3:num_targets] times each level\nVampiricism Bestowed: [0:blood] / [3:num_targets]"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x1",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Prism of Shattered Sensations": [
+       {
+        "f": "desc",
+        "n": "When an enemy heals or takes damage they are [stunned] for [1:duration] turns",
+        "o": "Enemies are [stunned] for [1:duration] turns when they are healed or take damage"
+       }
+      ],
+      "Prismatic Plate": [
+       {
+        "f": "recipe",
+        "n": "Metallic x1",
+        "o": "Metallic x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Purity Oculus": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Pyrostatic Oculus": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Quickstep Boots": [
+       {
+        "f": "recipe",
+        "n": "Translocation x2; Any x1",
+        "o": "Translocation x3"
+       }
+      ],
+      "Rain Beacon": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Rimeblight Pulverizer": [
+       {
+        "f": "desc",
+        "n": "When an enemy is unfrozen, they take [30:damage] [Poison] damage and are [poisoned] for [10:duration] turns",
+        "o": "When an enemy is unfrozen, they take [25:damage] [Poison] damage and are [poisoned] for [10:duration] turns"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x1",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Robe of Fire": [
+       {
+        "f": "bonuses",
+        "n": "[Fire:fire] spells and equipment gain [50% Damage:damage]; [Fire:fire] spells and equipment gain [50% Minion Damage:minion_damage]; 75% Resist Fire",
+        "o": "[Fire:fire] spells and equipment gain [25% Damage:damage]; [Fire:fire] spells and equipment gain [25% Minion Damage:minion_damage]; 50% Resist Fire"
+       }
+      ],
+      "Robe of Ice": [
+       {
+        "f": "bonuses",
+        "n": "[Ice:ice] spells and equipment gain [50% Damage:damage]; [Ice:ice] spells and equipment gain [50% Duration:duration]; 75% Resist Ice",
+        "o": "[Ice:ice] spells and equipment gain [25% Damage:damage]; [Ice:ice] spells and equipment gain [25% Duration:duration]; 50% Resist Ice"
+       }
+      ],
+      "Robe of Storms": [
+       {
+        "f": "desc",
+        "n": "When an enemy dies to [Ice] or [Lightning] damage, gain [1 SH:shields]",
+        "o": "When an enemy takes [Ice] or [Lightning] damage, gain 1 [SH:shields] up to a max of 2"
+       },
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "5"
+       }
+      ],
+      "Robe of Void": [
+       {
+        "f": "bonuses",
+        "n": "[Arcane:arcane] spells and equipment gain [50% Damage:damage]; [Arcane:arcane] spells and equipment gain [50% Max Charges:max_charges]; 75% Resist Arcane",
+        "o": "[Arcane:arcane] spells and equipment gain [25% Damage:damage]; [Arcane:arcane] spells and equipment gain [25% Max Charges:max_charges]; 50% Resist Arcane"
+       }
+      ],
+      "Robe of the Druids": [
+       {
+        "f": "bonuses",
+        "n": "[Nature:nature] spells and equipment gain [50% Damage:damage]",
+        "o": "[Nature:nature] spells and equipment gain [25% Damage:damage]"
+       }
+      ],
+      "Robes of Virtuous Sin": [
+       {
+        "f": "desc",
+        "n": "Casting a [Dark] spell heals you\nCasting a [Holy] spell removes debuffs from you\nHealing and debuffs removed equal the highest spell level of the opposing school\n[Heal:dark]: [0:holy]\n[Debuffs Removed:holy]: [0:dark]",
+        "o": "Casting a [Dark] spell heals you\nCasting a [Holy] spell removes debuffs from you\nHealing and debuffs removed equal the highest spell level of the opposing school\n[Life Restored:dark]: [0:holy]\n[Debuffs Removed:holy]: [0:dark]"
+       }
+      ],
+      "Sandals of Virtuous Sin": [
+       {
+        "f": "desc",
+        "n": "When you take a step, deal [Dark] and [Holy] damage to enemies within [2:radius] tiles\nThe damage dealt of each type is equal to the highest known spell level of the opposing school\n[Dark Damage:dark]: [0:holy]\n[Holy Damage:holy]: [0:dark]",
+        "o": "Casting a [Dark] or [Holy] spell grants a buff for [5:duration] turns that deals damage of the opposing type to enemies within [3:radius] tiles when you take a step\nThe damage dealt by the buff is equal to the highest known spell level of the spell school matching the damage type\n[Holy]: [0:holy]\n[Dark]: [0:dark]"
+       },
+       {
+        "f": "recipe",
+        "n": "Translocation x2",
+        "o": "Translocation x1"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "5"
+       },
+       {
+        "f": "tags",
+        "op": "added",
+        "v": "Translocation"
+       }
+      ],
+      "Sanguine Frost Wand": [
+       {
+        "f": "desc",
+        "n": "When you spend HP, there is a chance to regain a charge of a random [Ice] spell\nThe chance is equal to the HP spent\nIf this fails to reward a charge, the chance accumulates until it succeeds\n[Accumulated Chance:blood]: [0%:blood]",
+        "o": "When you pay life, there is a chance to regain a charge of a random [Ice] spell\nThe chance is equal to the life paid\nIf this fails to reward a charge, the chance accumulates until it succeeds\nAccumulated Chance: 0%"
+       }
+      ],
+      "Silken Sandals": [
+       {
+        "f": "desc",
+        "n": "When you take a step, gain [1 SH:shields]",
+        "o": "When you take a step, gain 1 [SH:shields]"
+       }
+      ],
+      "Slimebirth Cantromancy": [
+       {
+        "f": "desc",
+        "n": "When [Slime] allies are summoned, they cast a random level 1 spell you know that they share a tag with",
+        "o": "When [Slime] allies are summoned, they cast a random cantrip you know that they share a tag with"
+       }
+      ],
+      "Slimecrusted Scarificator": [
+       {
+        "f": "desc",
+        "n": "Summon a Blood Slime nearby for every [10:minion_health] HP you spend\n[HP Spent:blood]: [0:blood] / [10:minion_health]",
+        "o": "Summon a Blood Slime nearby for every [10:minion_health] HP you spend\nHP: [0:blood] / [10:minion_health]"
+       }
+      ],
+      "Snow Shoes": [
+       {
+        "f": "desc",
+        "n": "When a unit is [frozen], heal [2 HP:heal]",
+        "o": "When a unit is [frozen], heal 2 HP"
+       }
+      ],
+      "Soulmail": [
+       {
+        "f": "desc",
+        "n": "When a [Living] unit dies, gain [1 SH:shields], up to a max of 4",
+        "o": "When a [Living] unit dies, gain 1 [SH:shields], up to a max of 4"
+       }
+      ],
+      "Spark Conductor": [
+       {
+        "f": "desc",
+        "n": "When [Metallic] or [Construct] allies are summoned, they gain the Galvanic Redirection buff\nGalvanic Redirection causes [Lightning] damage they would take to instead be redirected to a random enemy in their line of sight",
+        "o": "When [Metallic] or [Construct] allies are summoned, they gain the Galvanic Redirection buff\nGalvanic Redirection causes [Lightning] damage they would take to instead be redirected in a beam toward a random enemy in their line of sight"
+       }
+      ],
+      "Spawning Venom": [
+       {
+        "f": "desc",
+        "n": "When an enemy dies to [Poison] damage, summon a Giant Spider nearby",
+        "o": "When enemies are killed by [Poison] damage, summon a Giant Spider nearby"
+       },
+       {
+        "f": "recipe",
+        "n": "Nature x1",
+        "o": "Nature x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Spirit Visor": [
+       {
+        "f": "desc",
+        "n": "When you take damage, gain [1 SH:shields]",
+        "o": "When you take damage, gain 1 [SH:shields]"
+       }
+      ],
+      "Stagnation Basin": [
+       {
+        "f": "desc",
+        "n": "When an enemy is soaked, they are [poisoned] for [10:duration] turns",
+        "o": "When an enemy is Soaked, they are [poisoned] for [10:duration] turns"
+       }
+      ],
+      "Stone Mask": [
+       {
+        "f": "desc",
+        "n": "Each turn, [petrify] an enemy in your line of sight for [10:duration] turns",
+        "o": "Each turn, [petrify] an enemy in your line of sight for [6:duration] turns"
+       }
+      ],
+      "Stoneeater Amulet": [
+       {
+        "f": "desc",
+        "n": "Each turn, eat adjacent walls\nHeal [10 HP:heal] for each wall you eat",
+        "o": "Each turn, eat adjacent walls\nHeal 10 HP for each wall you eat"
+       }
+      ],
+      "Storm Beacon": [
+       {
+        "f": "recipe",
+        "n": "Any x2",
+        "o": "Any x3"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Storm Caller Staff": [
+       {
+        "f": "recipe",
+        "n": "Nature x1",
+        "o": "Nature x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "7",
+        "o": "8"
+       }
+      ],
+      "Storm Oculus": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Stormtroll Armor": [
+       {
+        "f": "desc",
+        "n": "Each turn, heal [5 HP:heal]",
+        "o": "Regenerate 5 HP each turn"
+       }
+      ],
+      "The Bloodwell": [
+       {
+        "f": "desc",
+        "n": "When a unit takes damage from [bleed], heal [1 HP:heal]",
+        "o": "Heal 1 HP when a unit takes damage from [bleed]"
+       }
+      ],
+      "The Boiler": [
+       {
+        "f": "desc",
+        "n": "Each turn, all soaked enemies take [50:damage] [Fire] damage",
+        "o": "Each turn, all soaked enemies take [25:damage] [Fire] damage"
+       },
+       {
+        "f": "recipe",
+        "n": "Fire x2",
+        "o": "Fire x1"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "5",
+        "o": "4"
+       }
+      ],
+      "Thorn Hunter's Sigil": [
+       {
+        "f": "desc",
+        "n": "For every [Nature:nature] unit that dies, one of your [Fire] spells regains 1 charge\nAt the end of each level, a Rift containing [Nature:nature] enemies is created",
+        "o": "For every [Nature:nature] unit killed, one of your [Fire] spells regains 1 charge\nAt the end of each level, a Rift containing [Nature:nature] enemies is created"
+       }
+      ],
+      "Twilight Oculus": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Vampiric Vestments": [
+       {
+        "f": "desc",
+        "n": "When a [Living] unit dies, heal [5 HP:heal]",
+        "o": "When a [Living] unit dies, heal 5 HP"
+       }
+      ],
+      "Veilpiercer's Monocle": [
+       {
+        "f": "recipe",
+        "n": "Translocation x1",
+        "o": "Translocation x2"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Vial of Ambrosia": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each level, gain [10:duration] turns of Clarity",
+        "o": "At the beginning of each level, gain immunity to [stun] effects for [10:duration] turns"
+       }
+      ],
+      "Void Hunter's Sigil": [
+       {
+        "f": "desc",
+        "n": "For every [Arcane:arcane] unit that dies, one of your [Arcane] spells regains 1 charge\nAt the end of each level, a Rift containing [Arcane:arcane] enemies is created",
+        "o": "For every [Arcane:arcane] unit killed, one of your [Arcane] spells regains 1 charge\nAt the end of each level, a Rift containing [Arcane:arcane] enemies is created"
+       }
+      ],
+      "Void Oculus": [
+       {
+        "f": "recipe",
+        "n": "Any x3",
+        "o": "Any x4"
+       },
+       {
+        "f": "recipe_cost",
+        "n": "6",
+        "o": "7"
+       }
+      ],
+      "Void Traveler's Cloak": [
+       {
+        "f": "desc",
+        "n": "When you teleport, gain [2 SH:shields]",
+        "o": "When you teleport, gain 2 [SH:shields]"
+       }
+      ],
+      "Voodoo Doll": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each level, the [5:num_targets] enemies with the highest HP are [Voodoo Bound:blood]\nWhen you take damage, [Voodoo Bound:blood] enemies take that damage\nWhen you spend HP, [Voodoo Bound:blood] deals that much [Physical:physical] damage to enemies",
+        "o": "At the beginning of each level, the [4:num_targets] enemies with the highest HP are [Voodoo Bound:blood]\nWhen you take damage, [Voodoo Bound:blood] enemies take that damage\nWhen you pay HP, [Voodoo Bound:blood] deals [Physical:physical] damage to enemies"
+       }
+      ],
+      "Warlord Vestments": [
+       {
+        "f": "bonuses",
+        "n": "All spells and equipment gain [10 Minion Health:minion_health]",
+        "o": "All spells and equipment gain [8 Minion Health:minion_health]"
+       }
+      ]
+     },
+     "spell": {
+      "Blizzard": [
+       {
+        "f": "upgrades: Hailstorm.desc",
+        "n": "For each cloud created by Blizzard, there is a 25% chance for you to cast Icicle on it each turn",
+        "o": "For each cloud in your Blizzard, there is a 25% chance for you to cast Icicle on it each turn"
+       }
+      ],
+      "Blood Bullet": [
+       {
+        "f": "upgrades: Blessed Blood.desc",
+        "n": "Blood Bullet also deals [Holy] damage\nBlood Bullet will penetrate [Dark], [Demon], and [Undead] units\nAdds the [Holy:holy] tag",
+        "o": "Blood Bullet penetrates and deals additional [Holy] damage to [Dark], [Demon], and [Undead] units\nAdds the [Holy:holy] tag"
+       },
+       {
+        "f": "upgrades: Blessed Blood.level",
+        "n": "4",
+        "o": "3"
+       }
+      ],
+      "Bloodshift": [
+       {
+        "f": "upgrades: Toxic Shift.desc",
+        "n": "Bloodshift also deals [Poison] damage",
+        "o": "Bloodshift also deals [Poison] damage\nThe [Poison] damage does not cause healing"
+       },
+       {
+        "f": "upgrades: Toxic Shift.level",
+        "n": "5",
+        "o": "4"
+       }
+      ],
+      "Boiling Blood": [
+       {
+        "f": "desc",
+        "n": "Allies' spells gain 6 [damage]\nLasts [7:duration] turns",
+        "o": "Allies gain 6 [damage] to their [Fire] and [Physical] spells\nLasts [7:duration] turns"
+       },
+       {
+        "f": "stats.hp_cost",
+        "n": "10",
+        "o": "2"
+       },
+       {
+        "f": "stats.max_charges",
+        "n": "6",
+        "o": "9"
+       },
+       {
+        "f": "upgrades: Twilight Fury",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Escalating Fury",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Combustion Point.desc",
+        "n": "Boiling Blood gains [3 Damage:damage]\nBoiling Blood gains [2 Radius:radius]\nAffected units receive a damage aura that deals [3:damage] [Fire] damage to enemies within [2:radius] tiles each turn\nAffected units explode on death, dealing [30:damage] [Fire] damage to units within [2:radius] tiles",
+        "o": "Affected units receive a [Fire] damage aura and a death explosion effect which scales with their health"
+       }
+      ],
+      "Bone Spear": [
+       {
+        "f": "upgrades: Blazing Spear",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Stun Spear",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Toxic Spear",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Hellfire Spear",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Osseous Recall",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Stunning Spear",
+        "op": "added"
+       }
+      ],
+      "Call Seraph": [
+       {
+        "f": "stats.max_charges",
+        "n": "3",
+        "o": "1"
+       },
+       {
+        "f": "stats.minion_duration",
+        "n": "20",
+        "o": "25"
+       }
+      ],
+      "Cantrip Cascade": [
+       {
+        "f": "upgrades: Cantrip Burst.desc",
+        "n": "Cantrip Cascade gains [4 Radius:radius]\nInstead of a cone, Cantrip Cascade affects tiles in a [4:radius] tile burst",
+        "o": "Cantrip Cascade gains [5 Radius:radius]\nInstead of a cone, Cantrip Cascade affects tiles in a [5:radius] tile burst"
+       }
+      ],
+      "Chill Wind": [
+       {
+        "f": "stats.max_charges",
+        "n": "3",
+        "o": "1"
+       }
+      ],
+      "Choir of Angels": [
+       {
+        "f": "upgrades: Dual Angels.desc",
+        "n": "Angelic Singers gain the [Dark] tag and can cast your Death Bolt on a 4 turn cooldown\nTheir song now heals only allies and damages only enemies\nAdds the [Dark:dark] tag",
+        "o": "Angelic Singers gain the [Dark] tag and can cast your Death Bolt on a 4 turn cooldown\nTheir song now only damages enemies\nAdds the [Dark:dark] tag"
+       }
+      ],
+      "Demonic Ritual": [
+       {
+        "f": "upgrades: Grand Ritual.level",
+        "n": "7",
+        "o": "9"
+       },
+       {
+        "f": "upgrades: Inviolate Ritual.level",
+        "n": "3",
+        "o": "4"
+       },
+       {
+        "f": "upgrades: Solomon's Binding.level",
+        "n": "1",
+        "o": "3"
+       },
+       {
+        "f": "upgrades: The Gate and the Key.level",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Dragon Breath": [
+       {
+        "f": "upgrades: Measured Breathing.desc",
+        "n": "If you do not manually cast a spell on your turn, regain a charge of Dragon Breath\nAlways Active",
+        "o": "If you do not manually cast a spell on your turn, regain a charge of Dragon Breath"
+       }
+      ],
+      "Dragon Claw": [
+       {
+        "f": "upgrades: Dragon Tutor.desc",
+        "n": "When an allied [Dragon] is summoned, replace their normal melee attack with your Dragon Claw spell\nAlways Active",
+        "o": "When an allied [Dragon] is summoned, replace their normal melee attack with your Dragon Claw spell"
+       }
+      ],
+      "Dragon Roar": [
+       {
+        "f": "upgrades: Roar of Anguish.desc",
+        "n": "The first time you take damage each turn, cast Dragon Roar\nAlways Active",
+        "o": "The first time you take damage each turn, cast Dragon Roar"
+       }
+      ],
+      "Drain Pulse": [
+       {
+        "f": "upgrades: Radius",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: World Drain",
+        "op": "added"
+       }
+      ],
+      "Dream the Starwhale": [
+       {
+        "f": "level",
+        "n": "7",
+        "o": "8"
+       },
+       {
+        "f": "requires_los",
+        "n": "no",
+        "o": "yes"
+       },
+       {
+        "f": "stats.range",
+        "n": "6",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Shatterstar",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Hungering Depths",
+        "op": "added"
+       }
+      ],
+      "Faehaunt Garden": [
+       {
+        "f": "upgrades: Fae Pupils.desc",
+        "n": "Every 3rd Butterfly summoned has its Void Beam replaced with your Void Beam and its Lightning Beam replaced with your Lightning Bolt",
+        "o": "Every 3rd Butterfly summoned has its Arcane Beam replaced with your Void Beam and its Lightning Beam replaced with your Lightning Bolt"
+       }
+      ],
+      "Frostfire Hydra": [
+       {
+        "f": "desc",
+        "n": "Summon a Frostfire Hydra",
+        "o": "Summon a temporary Frostfire Hydra"
+       },
+       {
+        "f": "stats.minion_damage",
+        "n": "8",
+        "o": "7"
+       },
+       {
+        "f": "stats.minion_duration",
+        "n": "0",
+        "o": "15"
+       },
+       {
+        "f": "stats.minion_health",
+        "n": "24",
+        "o": "16"
+       },
+       {
+        "f": "stats.minion_range",
+        "n": "5",
+        "o": "6"
+       },
+       {
+        "f": "summons",
+        "op": "added",
+        "v": "Orochi"
+       },
+       {
+        "f": "upgrades: Crystal Eyes Hydra",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Freezing Ice",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Hydra Reclamation",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Crystalline Hydra",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Double Dragon",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Orochi",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Hydra Regrowth.desc",
+        "n": "Hydras heal for any missing HP each turn",
+        "o": "Frostfire Hydras heal [16:minion_health] HP each turn"
+       },
+       {
+        "f": "upgrades: Hydra Regrowth.level",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Giant Bear": [
+       {
+        "f": "stats.minion_health",
+        "n": "100",
+        "o": "75"
+       },
+       {
+        "f": "upgrades: Mauler.desc",
+        "n": "Giant Bear gains [4 Num Targets:num_targets]\nThe bear's melee attack hits [4:num_targets] times, instead of twice",
+        "o": "Giant Bear gains [3 Num Targets:num_targets]\nThe bear's melee attack hits [3:num_targets] times, instead of twice"
+       }
+      ],
+      "Goatia Offering": [
+       {
+        "f": "upgrades: Scape Goats.desc",
+        "n": "Damage that would be dealt to you is redirected toward your [Demon] allies\nAlways Active",
+        "o": "Damage that would be dealt to you is redirected toward your [Demon] allies"
+       }
+      ],
+      "Golden Skull": [
+       {
+        "f": "upgrades: Bone Wheel",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Golden Wheel",
+        "op": "added"
+       }
+      ],
+      "Hatebolts": [
+       {
+        "f": "desc",
+        "n": "Unleash seeking bolts toward up to [4:num_targets] random enemies each turn, dealing [30:damage] [Fire] or [Dark] damage to units on the path\nCan be channeled for up to [5:max_channel] turns\nWhen you stop channeling this spell, it deals you 1 [Fire] and [Dark] damage for each remaining enemy",
+        "o": "Unleash seeking bolts toward up to [4:num_targets] random enemies each turn, dealing [14:damage] [Fire] or [Dark] damage to units on the path\nCan be channeled for up to [5:max_channel] turns\nWhen you stop channeling this spell, it deals you 1 [Fire] and [Dark] damage for each remaining enemy"
+       },
+       {
+        "f": "stats.damage",
+        "n": "30",
+        "o": "14"
+       },
+       {
+        "f": "stats.max_charges",
+        "n": "3",
+        "o": "1"
+       },
+       {
+        "f": "upgrades: Boomerang Bolts.level",
+        "n": "3",
+        "o": "4"
+       }
+      ],
+      "Ice Phoenix": [
+       {
+        "f": "upgrades: Polar Aura.level",
+        "n": "6",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Restorative Phoenix.level",
+        "n": "5",
+        "o": "4"
+       }
+      ],
+      "Lifedrain": [
+       {
+        "f": "upgrades: Blood Hexes.desc",
+        "n": "When you cast an [Enchantment] spell other than Lifedrain targeting an enemy, Lifedrain is also cast on that target\nAlways Active",
+        "o": "When you cast an [Enchantment] spell other than Lifedrain targeting an enemy, Lifedrain is also cast on that target"
+       },
+       {
+        "f": "upgrades: Blood Horizon.level",
+        "n": "2",
+        "o": "4"
+       },
+       {
+        "f": "upgrades: Life Funnel.level",
+        "n": "3",
+        "o": "5"
+       }
+      ],
+      "Lightning Spire": [
+       {
+        "f": "stats.max_charges",
+        "n": "4",
+        "o": "3"
+       },
+       {
+        "f": "stats.minion_health",
+        "n": "60",
+        "o": "35"
+       },
+       {
+        "f": "stats.range",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Lightning Storm": [
+       {
+        "f": "upgrades: Surestrike.desc",
+        "n": "Lightning Storm gains [50 Strikechance:strikechance]\nClouds summoned by Lightning Storm deal damage every turn",
+        "o": "Lightning Storm gains [50 Strikechance:strikechance]\n[Storm Clouds:lightning] deal damage every turn"
+       }
+      ],
+      "Magic Missile": [
+       {
+        "f": "upgrades: Arcane Crossfire.desc",
+        "n": "Magic Missile gains [3 Num Targets:num_targets]\nWhen you manually cast Magic Missile, up to [3:num_targets] additional missiles are fired by [Arcane] allies in line of sight of the target",
+        "o": "Magic Missile gains [2 Num Targets:num_targets]\nWhen you cast Magic Missile, up to [2:num_targets] additional missiles are fired by [Arcane] allies in line of sight of the target"
+       },
+       {
+        "f": "upgrades: Arcane Crossfire.level",
+        "n": "1",
+        "o": "3"
+       }
+      ],
+      "Moon Glaive": [
+       {
+        "f": "upgrades: Glaive Warden.desc",
+        "n": "Moon Glaive gains +1 [damage] each time a [Living] or [Nature] ally is summoned\nBonus damage lasts until next realm\nAlways Active\nAdds [Nature] tag",
+        "o": "Moon Glaive gains +1 [damage] each time a [Living] or [Nature] ally is summoned\nBonus damage lasts until next realm\nAdds [Nature] tag"
+       }
+      ],
+      "Mystic Vision": [
+       {
+        "f": "desc",
+        "n": "All spells and equipment gain 5 [range]\nLasts [6:duration] turns",
+        "o": "All spells and equipment gain 5 [range]\nLasts [8:duration] turns"
+       },
+       {
+        "f": "stats.duration",
+        "n": "6",
+        "o": "8"
+       },
+       {
+        "f": "upgrades: Truesight.desc",
+        "n": "Mystic Vision also lets you ignore line of sight requirements for casting spells",
+        "o": "Casting Mystic Vision also grants you Truesight for [3:duration] turns\nTruesight lets you ignore line of sight requirements for casting spells"
+       },
+       {
+        "f": "upgrades: Truesight.level",
+        "n": "8",
+        "o": "7"
+       }
+      ],
+      "Night Hag": [
+       {
+        "f": "stats.max_charges",
+        "n": "0",
+        "o": "2"
+       },
+       {
+        "f": "upgrades: Coven Matron.desc",
+        "n": "Night Hag gains [3 Num Summons:num_summons]\nCasting this spell also summons [3:num_summons] Witches near the Night Hag\nThese Witches will mature into Night Hags after 12 turns",
+        "o": "Night Hag gains [2 Num Summons:num_summons]\nCasting this spell also summons [2:num_summons] Witches near the Night Hag\nThese Witches will mature into Night Hags after 12 turns"
+       }
+      ],
+      "Psychic Seedling": [
+       {
+        "f": "upgrades: Mind Harvester.desc",
+        "n": "When one of your [Living] allies dies, a Brain Sapling is summoned nearby\nAlways Active",
+        "o": "When one of your [Living] allies dies, a Brain Sapling is summoned nearby"
+       }
+      ],
+      "Rain Storm": [
+       {
+        "f": "upgrades: Acid Rain.desc",
+        "n": "Rain Storm gains [9 Damage:damage]\nThe [Rain Clouds:nature] created by this spell deal [9:damage] [Poison] damage each turn",
+        "o": "Rain Storm gains [9 Damage:damage]\nThe [Rain Clouds:nature] deal [9:damage] [Poison] damage each turn"
+       },
+       {
+        "f": "upgrades: Healing Rain.desc",
+        "n": "The [Rain Clouds:nature] created by this spell will heal the Wizard and their allies for 10 HP each turn",
+        "o": "The [Rain Clouds:nature] will heal the Wizard and their allies for 10 HP each turn"
+       },
+       {
+        "f": "upgrades: Living Rain.desc",
+        "n": "Rain Storm gains [2 Num Summons:num_summons]\nRain Storm gains [40 Minion Health:minion_health]\nRain Storm gains [9 Minion Damage:minion_damage]\nEach turn, summon [2:num_summons] Water Elementals from [Rain Clouds:nature] you control\nAlways Active\nAdds the [Conjuration] tag",
+        "o": "Rain Storm gains [2 Num Summons:num_summons]\nRain Storm gains [40 Minion Health:minion_health]\nRain Storm gains [9 Minion Damage:minion_damage]\nEach turn, summon [2:num_summons] Water Elementals from [Rain Clouds:nature] you control\nAdds the [Conjuration] tag"
+       }
+      ],
+      "Ride Drake": [
+       {
+        "f": "upgrades: Flight of the Dragons.desc",
+        "n": "When you manually cast Ride Drake, cast your other [Dragon] [Conjuration] spells nearby",
+        "o": "On cast, cast your other [Dragon] [Conjuration] spells nearby"
+       },
+       {
+        "f": "upgrades: Flight of the Dragons.level",
+        "n": "7",
+        "o": "8"
+       }
+      ],
+      "Sanction": [
+       {
+        "f": "upgrades: Divine Rebuke.desc",
+        "n": "Each turn, cast Sanction on the first unsanctioned enemy that damages you\nAlways Active",
+        "o": "Each turn, cast Sanction on the first unsanctioned enemy that damages you"
+       }
+      ],
+      "Shatter": [
+       {
+        "f": "summons",
+        "n": "Steam Elemental",
+        "o": "Sorrow"
+       },
+       {
+        "f": "upgrades: Shattered Sorrows",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Steam Anima",
+        "op": "added"
+       },
+       {
+        "f": "upgrades: Razor Ice.desc",
+        "n": "Shatter gains [12 Duration:duration]\nShatter also inflicts [12:duration] turns of [hemorrhage]",
+        "o": "Shatter gains [6 Duration:duration]\nShatter also inflicts [6:duration] turns of [hemorrhage]"
+       }
+      ],
+      "Shrapnel Blast": [
+       {
+        "f": "stats.max_charges",
+        "n": "8",
+        "o": "4"
+       }
+      ],
+      "Silver Spear": [
+       {
+        "f": "stats.max_charges",
+        "n": "15",
+        "o": "10"
+       },
+       {
+        "f": "upgrades: Astral Spear.level",
+        "n": "1",
+        "o": "2"
+       },
+       {
+        "f": "upgrades: Impalement.level",
+        "n": "2",
+        "o": "3"
+       }
+      ],
+      "Soul Wind": [
+       {
+        "f": "desc",
+        "n": "Deal [44:damage] [Dark] damage in a 3 tile wide line perpendicular to the caster\n[Undead], [Dark], and [Demon] units in the area take [Holy] damage instead of [Dark]\nSummon a Ghost near each [Living] unit in the affected area",
+        "o": "Deal [37:damage] [Dark] damage in a 3 tile wide line perpendicular to the caster\n[Undead], [Dark], and [Demon] units in the area take [Holy] damage instead of [Dark]\nSummon a Ghost near each [Living] unit in the affected area"
+       },
+       {
+        "f": "stats.damage",
+        "n": "44",
+        "o": "37"
+       },
+       {
+        "f": "stats.hp_cost",
+        "n": "100",
+        "o": "54"
+       },
+       {
+        "f": "stats.max_charges",
+        "n": "0",
+        "o": "3"
+       }
+      ],
+      "Suspend Mortality": [
+       {
+        "f": "desc",
+        "n": "Target ally gains the ability to reincarnate on death",
+        "o": "Target gains the ability to reincarnate on death"
+       }
+      ],
+      "Teleport": [
+       {
+        "f": "upgrades: Assassinate.desc",
+        "n": "Teleport gains [60 Damage:damage]\nTeleport gains [3 Duration:duration]\nIf you Teleport adjacent to an enemy who could not see your original location, attempt to assassinate them, inflicting [60:damage] [Arcane] damage and [3:duration] turns of [silence]\nIf this kills an enemy, the Teleport charge is refunded",
+        "o": "Teleport gains [60 Damage:damage]\nTeleport gains [3 Duration:duration]\nIf you Teleport adjacent to an enemy who could not see your original location, attempt to assassinate them, inflicting [60:damage] [Arcane] damage and [3:duration] turns of [silence]"
+       },
+       {
+        "f": "upgrades: Assassinate.level",
+        "n": "3",
+        "o": "4"
+       },
+       {
+        "f": "upgrades: Group Teleport.level",
+        "n": "1",
+        "o": "2"
+       }
+      ],
+      "Temporal Transfusion": [
+       {
+        "f": "upgrades: Chrono Boost.desc",
+        "n": "Each turn spent channeling, reset the target's active spell cooldowns",
+        "o": "For each turn spent channeling, reduce the target's active spell cooldowns by 1"
+       },
+       {
+        "f": "upgrades: Chrono Boost.level",
+        "n": "3",
+        "o": "2"
+       },
+       {
+        "f": "upgrades: Temporal Mastery.desc",
+        "n": "Temporal Transfusion gains [5 Num Targets:num_targets]\nThe target takes [5:num_targets] extra turns instead of 3",
+        "o": "Temporal Transfusion gains [4 Num Targets:num_targets]\nThe target takes [4:num_targets] extra turns instead of 3"
+       }
+      ],
+      "Touch of Death": [
+       {
+        "f": "upgrades: Hand of Death.desc",
+        "n": "Touch of Death gains [4 Num Targets:num_targets]\nTouch of Death hits up to [4:num_targets] more targets adjacent to the caster",
+        "o": "Touch of Death gains [4 Num Targets:num_targets]\nTouch of Death hits up to [4:num_targets] more adjacent targets"
+       }
+      ],
+      "Underworld Passage": [
+       {
+        "f": "upgrades: Return to Hell.desc",
+        "n": "[Demon] enemies adjacent to your original location are killed\n\nDoes not affect giant units",
+        "o": "Adjacent [Demon] enemies are killed\n\nDoes not affect giant units"
+       }
+      ],
+      "Void Drake": [
+       {
+        "f": "upgrades: Void Mutations.desc",
+        "n": "At the beginning of each level, Void Drake gains a permanent percentage bonus to [minion_health], [minion_damage], and [minion_range]\nThe bonus is equal to your [Arcane] mastery",
+        "o": "Casting this spell grants it a permanent 10% bonus to [minion_health], [minion_damage], or [minion_range]"
+       }
+      ],
+      "Watcher Form": [
+       {
+        "f": "upgrades: Chain Watcher Form.level",
+        "n": "7",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Holy Watcher Form.level",
+        "n": "4",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Void Watcher Form.level",
+        "n": "6",
+        "o": "5"
+       }
+      ],
+      "Wave of Dread": [
+       {
+        "f": "upgrades: Wave of Tyranny.desc",
+        "n": "Wave of Dread gains [2 Range:range]\nIf Wave of Dread deals more than half of the target's max HP, they join your team",
+        "o": "If Wave of Dread deals more than half of the target's max HP, they join your team"
+       }
+      ],
+      "Wheel of Death": [
+       {
+        "f": "damage_type",
+        "op": "added",
+        "v": "Dark"
+       }
+      ],
+      "Wizard Replica": [
+       {
+        "f": "upgrades: Investiture.desc",
+        "n": "The Wizard Replica gains up to three of your level 1 spells and can cast them on a 3 turn cooldown",
+        "o": "The Wizard Replica gains up to three of your cantrips and can cast them on a 3 turn cooldown"
+       }
+      ],
+      "Word of Beauty": [
+       {
+        "f": "desc",
+        "n": "Heal yourself and other [Living] units to full health\nDeal [100:damage] [Lightning] damage to [Dark], [Demon] and [Undead] units\n[Arcane] units are [stunned] for [7:duration] turns",
+        "o": "Heal yourself and other [Living] units to full health\nDeal [50:damage] [Lightning] damage to [Demon] and [Undead] units\n[Arcane] units are [stunned] for [7:duration] turns"
+       },
+       {
+        "f": "stats.damage",
+        "n": "100",
+        "o": "50"
+       },
+       {
+        "f": "upgrades: Beauty of Steel",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Venomous Word",
+        "op": "added"
+       }
+      ],
+      "Word of Undeath": [
+       {
+        "f": "upgrades: Word of Dominion.desc",
+        "n": "Cast Dominate on all legal targets for it after you cast this spell\nUses Dominate's range and line of sight requirements",
+        "o": "Cast Dominate on all legal targets for it after you cast this spell\nIgnores range and line of sight requirements"
+       }
+      ],
+      "Wyrm Eggs": [
+       {
+        "f": "upgrades: Incubation Exposure.level",
+        "n": "3",
+        "o": "4"
+       },
+       {
+        "f": "upgrades: Radiant Eggs.level",
+        "n": "3",
+        "o": "5"
+       },
+       {
+        "f": "upgrades: Scale Harvest.desc",
+        "n": "For every 8 [Dragon] allies that die, regain a charge of Wyrm Eggs\nAlways Active",
+        "o": "For every 6 [Dragon] allies that die, regain a charge of Wyrm Eggs"
+       },
+       {
+        "f": "upgrades: Scale Harvest.level",
+        "n": "5",
+        "o": "4"
+       }
+      ]
+     },
+     "unit": {
+      "Angelic Visitor": [
+       {
+        "f": "hp",
+        "n": "400",
+        "o": "800"
+       }
+      ],
+      "Armored Polar Bear": [
+       {
+        "f": "hp",
+        "n": "100",
+        "o": "75"
+       }
+      ],
+      "Berserker": [
+       {
+        "f": "hp",
+        "n": "500",
+        "o": "250"
+       }
+      ],
+      "Blood Bear": [
+       {
+        "f": "hp",
+        "n": "100",
+        "o": "75"
+       }
+      ],
+      "Blood Slime": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slimes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slimes"
+       }
+      ],
+      "Electric Slime": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slimes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slimes"
+       }
+      ],
+      "Engineer": [
+       {
+        "f": "abilities: Deploy Auto Cannons.desc",
+        "n": "Summon 3 temporary Auto Cannons",
+        "o": "Summon 2 temporary Auto Cannons"
+       }
+      ],
+      "Fae Huntsman": [
+       {
+        "f": "abilities: Physical Bolt.desc",
+        "n": "Apply silenced for 1 turn",
+        "o": "Apply silenced for 3 turns"
+       }
+      ],
+      "Faery Empress": [
+       {
+        "f": "passives",
+        "n": "On death, afflict the killer with Fae Curse, which deals 3 [Arcane] damage each turn",
+        "o": "On death, afflict the killer with Fae Curse, which deals 10 [Arcane] damage each turn"
+       }
+      ],
+      "Flame Maw": [
+       {
+        "f": "abilities: Fire Beam.desc",
+        "n": "Beam attack\nCan be channeled for 4 turns",
+        "o": "Beam attack\nCan be channeled for up to 4 turns"
+       }
+      ],
+      "Frostfire Hydra": [
+       {
+        "f": "abilities: Fire",
+        "op": "removed"
+       },
+       {
+        "f": "abilities: Ice",
+        "op": "removed"
+       },
+       {
+        "f": "abilities: Fire Beam",
+        "op": "added"
+       },
+       {
+        "f": "abilities: Ice Beam",
+        "op": "added"
+       },
+       {
+        "f": "hp",
+        "n": "24",
+        "o": "16"
+       }
+      ],
+      "Gaia": [
+       {
+        "f": "passives",
+        "n": "When an ally dies, allies gain Gaia's Blessing for 10 turns",
+        "o": "When an ally dies, grant Gaia's Blessing to allies for 30 turns\nGaia's Blessing restores 10 HP or grants 1 SH each turn"
+       }
+      ],
+      "Gelgut": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 Gelguts",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 Gelguts"
+       }
+      ],
+      "Gelid Mirror": [
+       {
+        "f": "hp",
+        "n": "285",
+        "o": "888"
+       },
+       {
+        "f": "passives",
+        "n": "Debuffs that would be applied to this unit are instead delivered to the target of its next attack",
+        "o": "Debuffs that would be applied to this unit are instead applied to an enemy in its line of sight"
+       }
+      ],
+      "Giant Bear": [
+       {
+        "f": "hp",
+        "n": "100",
+        "o": "75"
+       }
+      ],
+      "Goatia": [
+       {
+        "f": "passives",
+        "n": "On death, deal 5 [Dark:dark] damage to units within 1 tiles",
+        "o": "On death, deal [5:damage] [Dark:dark] damage to all tiles within [1:radius] tiles"
+       }
+      ],
+      "Green Slime": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slimes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slimes"
+       }
+      ],
+      "Grey Goo": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slimes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slimes"
+       }
+      ],
+      "Head Cannon": [
+       {
+        "f": "passives",
+        "n": "On death, deal 18 [Fire:fire] damage to units within 3 tiles",
+        "o": "On death, deal [18:damage] [Fire:fire] damage to all tiles within [3:radius] tiles"
+       }
+      ],
+      "Ice Drake": [
+       {
+        "f": "abilities: Ice Breath.desc",
+        "n": "Cone attack\nInflicts [frozen] for 2 turns",
+        "o": "Cone attack\nInflicts [frozen] for [2:duration] turns"
+       }
+      ],
+      "Ice Maw": [
+       {
+        "f": "abilities: Ice Beam.desc",
+        "n": "Beam attack\nCan be channeled for 4 turns\nApply frozen for 2 turns",
+        "o": "Beam attack\nCan be channeled for up to 4 turns\nApply frozen for 2 turns"
+       }
+      ],
+      "Ice Slime": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slimes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slimes"
+       }
+      ],
+      "Ice Wyrm": [
+       {
+        "f": "abilities: Ice Breath.desc",
+        "n": "Cone attack\nInflicts [frozen] for 2 turns",
+        "o": "Cone attack\nInflicts [frozen] for [2:duration] turns"
+       }
+      ],
+      "Lava Spitter": [
+       {
+        "f": "resists.Slime",
+        "n": "0",
+        "o": "100"
+       }
+      ],
+      "Lightning Spire": [
+       {
+        "f": "hp",
+        "n": "60",
+        "o": "35"
+       }
+      ],
+      "Odin, Aesir Immortal": [
+       {
+        "f": "abilities: Gungir",
+        "op": "removed"
+       },
+       {
+        "f": "abilities: Gungnir",
+        "op": "added"
+       }
+      ],
+      "Ophan": [
+       {
+        "f": "resists.Dark",
+        "n": "100",
+        "o": "0"
+       },
+       {
+        "f": "resists.Holy",
+        "n": "100",
+        "o": "0"
+       },
+       {
+        "f": "resists.Poison",
+        "n": "0",
+        "o": "100"
+       }
+      ],
+      "Polar Bear": [
+       {
+        "f": "hp",
+        "n": "100",
+        "o": "75"
+       }
+      ],
+      "Red Slime": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slimes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slimes"
+       }
+      ],
+      "Scuttler": [
+       {
+        "f": "resists.Ice",
+        "n": "-75",
+        "o": "-50"
+       }
+      ],
+      "Slime Drake": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slime drakes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slime drakes"
+       }
+      ],
+      "Starwhale": [
+       {
+        "f": "abilities: Ice Breath.desc",
+        "n": "Cone attack\nInflicts [frozen] for 2 turns",
+        "o": "Cone attack\nInflicts [frozen] for [2:duration] turns"
+       },
+       {
+        "f": "burrowing",
+        "n": "yes",
+        "o": "no"
+       }
+      ],
+      "Sun Mage": [
+       {
+        "f": "rare.class",
+        "n": "Hard",
+        "o": "Medium"
+       }
+      ],
+      "The Gardener": [
+       {
+        "f": "hp",
+        "n": "42000",
+        "o": "40000"
+       },
+       {
+        "f": "passives",
+        "n": "Has a 75% chance each turn to spawn 3 Brain Tree; Heal allies within 8 tiles for 100 each turn",
+        "o": "Has a 50% chance each turn to spawn a Brain Tree; Heal allies within 8 tiles for 50 each turn"
+       }
+      ],
+      "The Great Pumpking": [
+       {
+        "f": "abilities: Vine Swarm Summon.desc",
+        "n": "Summon a Vine near every enemy",
+        "o": "Summon a Vine near every enemy."
+       }
+      ],
+      "Toad Priest": [
+       {
+        "f": "escorts",
+        "op": "added",
+        "v": "Toad Knight; Towering Toadbeast"
+       }
+      ],
+      "Towering Toadbeast": [
+       {
+        "f": "difficulty",
+        "n": "5",
+        "o": "6"
+       },
+       {
+        "f": "escorted_by",
+        "n": "Toad Priest",
+        "o": "-"
+       }
+      ],
+      "Venom Bear": [
+       {
+        "f": "hp",
+        "n": "100",
+        "o": "75"
+       }
+      ],
+      "Void Ancestor": [
+       {
+        "f": "abilities: Void Stare.desc",
+        "n": "Beam attack\nCan be channeled for 3 turns\nApply feared for 1 turn",
+        "o": "Beam attack\nCan be channeled for up to 3 turns\nApply feared for 1 turn"
+       },
+       {
+        "f": "hp",
+        "n": "240",
+        "o": "320"
+       },
+       {
+        "f": "passives",
+        "n": "Gain [2 SH:shields] each turn",
+        "o": "Gain [3 SH:shields] each turn"
+       }
+      ],
+      "Void Child": [
+       {
+        "f": "abilities: Void Stare.desc",
+        "n": "Beam attack\nCan be channeled for 3 turns\nApply feared for 1 turn",
+        "o": "Beam attack\nCan be channeled for up to 3 turns\nApply feared for 1 turn"
+       }
+      ],
+      "Void Elder": [
+       {
+        "f": "abilities: Void Stare.desc",
+        "n": "Beam attack\nCan be channeled for 3 turns\nApply feared for 1 turn",
+        "o": "Beam attack\nCan be channeled for up to 3 turns\nApply feared for 1 turn"
+       }
+      ],
+      "Void Slime": [
+       {
+        "f": "passives",
+        "n": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\n\nAt double original max HP, split into 2 slimes",
+        "o": "Each turn, 50% chance to heal for 10% of original max HP\nExcess raises max HP\nAt double original max HP, split into 2 slimes"
+       }
+      ],
+      "Winterbringer": [
+       {
+        "f": "abilities: Ice Breath.desc",
+        "n": "Cone attack\nInflicts [frozen] for 2 turns",
+        "o": "Cone attack\nInflicts [frozen] for [2:duration] turns"
+       }
+      ]
+     }
+    }
    }
   }
  },
