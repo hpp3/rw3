@@ -7,7 +7,9 @@ installed branch in the app manifest one level up from the install dir:
 
     <steamapps>/appmanifest_4366330.acf
       "buildid"     "24066992"           -> exact build, monotonic per push
-      "UserConfig" { "BetaKey" "beta" }  -> installed branch ("" / absent = live)
+      "UserConfig"    { "BetaKey" "beta" }  -> branch selected in Steam's UI
+      "MountedConfig" { "BetaKey" "beta" }  -> branch of the files on disk
+                                              ("" / absent / "public" = live)
 
 extract.py stamps `branch`/`branch_label`/`build_id` onto each data file and
 upserts `site/versions.json`; the frontend renders the selector from that.
@@ -31,11 +33,34 @@ def _acf_path(game_dir):
 
 
 def _acf_value(text, key):
-    # VDF lines are  "key"\t\t"value" . BetaKey lives inside the UserConfig block,
-    # but a flat search is unambiguous (only UserConfig carries a BetaKey); take
-    # the last occurrence in case Steam duplicates it.
+    # VDF lines are  "key"\t\t"value" . Take the last occurrence in case Steam
+    # duplicates a key. NOT safe for BetaKey: that appears in two separate blocks
+    # with different meanings, so read it with _block_value instead.
     m = re.findall(r'"%s"\s+"([^"]*)"' % re.escape(key), text, re.IGNORECASE)
     return m[-1].strip() if m else ""
+
+
+def _block_value(text, block, key):
+    """Read `key` from inside a specific top-level `block { ... }`. UserConfig and
+    MountedConfig are flat (language + BetaKey), so a non-greedy match to the
+    first closing brace spans exactly one block."""
+    m = re.search(r'"%s"\s*\{(.*?)\}' % re.escape(block), text, re.S | re.I)
+    return _acf_value(m.group(1), key) if m else ""
+
+
+def _acf_int(text, key):
+    try:
+        return int(_acf_value(text, key) or 0)
+    except ValueError:
+        return 0
+
+
+def _install_settled(text):
+    """True when Steam reports nothing left to fetch: StateFlags bit 4 (fully
+    installed) set, bit 2 (update required) clear, no bytes outstanding."""
+    flags = _acf_int(text, "StateFlags")
+    return (bool(flags & 4) and not (flags & 2)
+            and _acf_int(text, "BytesDownloaded") >= _acf_int(text, "BytesToDownload"))
 
 
 # Steam names for the game's DEFAULT (non-beta) branch. RW3's manifest reports
@@ -45,13 +70,27 @@ DEFAULT_BRANCH_KEYS = {"", "public", "default"}
 
 
 def branch_info(game_dir):
-    """{id,label,build_id} for the branch currently checked out in game_dir.
+    """{id,label,build_id} for the branch whose files are on disk in game_dir.
     Falls back to the 'live' branch (empty build id) if the manifest is absent."""
     beta = build = ""
     try:
         with open(_acf_path(game_dir), encoding="utf-8") as f:
             txt = f.read()
-        beta = _acf_value(txt, "BetaKey")
+        # The manifest carries TWO BetaKeys: UserConfig = the branch selected in
+        # Steam's UI, MountedConfig = the branch of the files last mounted. They
+        # diverge in two opposite situations, told apart by whether Steam
+        # considers the install settled:
+        #   not settled -> a switch is mid-download, so disk is still MountedConfig.
+        #   settled     -> the switch required no download, which happens only when
+        #                  both branches point at the same build (e.g. beta
+        #                  promoted to live). Steam never re-mounts, so
+        #                  MountedConfig goes stale while the files on disk are
+        #                  genuinely valid for the selected branch.
+        selected = _block_value(txt, "UserConfig", "BetaKey")
+        mounted = _block_value(txt, "MountedConfig", "BetaKey")
+        beta = mounted or selected
+        if selected and mounted and selected != mounted and _install_settled(txt):
+            beta = selected
         build = _acf_value(txt, "buildid")
     except OSError:
         pass
