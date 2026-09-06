@@ -1274,9 +1274,15 @@ const SHARE_ENTRY = {};        // card DOM id -> [kind, name]; filled in init()
 
 // Resolved against the current page, so the same code yields
 // http://localhost:8777/s/... in dev and https://<user>.github.io/rw3/s/...
-// in production. URL() drops the current query/hash, which is what we want.
+// in production. URL() drops the current query/hash, which is what we want —
+// the branch rides in the path instead, as an optional trailing segment
+// (share.py page_rel). Suffix, not prefix, so `s/<kind>/<slug>/` names the
+// entry identically whichever version you're reading, the default branch keeps
+// the short URL, and trimming the tail off a beta link gives you live's page
+// for the same entry rather than a differently-shaped path.
 function shareUrlFor(kind, name) {
-  return new URL(`s/${SHARE_DIR[kind]}/${slug(name)}/`, location.href).href;
+  const v = ACTIVE_VERSION && ACTIVE_VERSION.id !== defaultVersionId() ? ACTIVE_VERSION.id + '/' : '';
+  return new URL(`s/${SHARE_DIR[kind]}/${slug(name)}/${v}`, location.href).href;
 }
 const SHARE_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"/><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"/></svg>';
 const SHARE_OK_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';

@@ -659,7 +659,7 @@ the *unassigned* pool, rendered as one chip per essence held — 4× Fire = `FFF
 
 ## 19. Share links — a real page per entry, so chat clients can unfurl a card (`site/s/`)
 
-The share icon in every card's bottom-right copies `…/s/<kind>/<slug>/`, **not**
+The share icon in every card's bottom-right copies `…/s/<kind>/<slug>/[<branch>/]`, **not**
 `index.html#<card id>`. That choice is the whole feature:
 
 - **A hash never reaches the server.** The unfurling bot (Discordbot, Slack, …) only sees what
@@ -669,11 +669,37 @@ The share icon in every card's bottom-right copies `…/s/<kind>/<slug>/`, **not
   entry's first tag colour — Discord paints the embed's left stripe with it), and a picture of
   that entry's card.
 - **The page then hands the human off to the app**:
-  `location.replace("../../../" + (location.search || "") + "#e-…")`. Crawlers don't run scripts
-  so they keep the tags; a reader lands on `index.html#<card id>`, which `init()` and the
-  `hashchange` listener resolve through `SHARE_ENTRY` into an ordinary `gotoEntry()` — the same
-  tab switch, scroll and flash a cross-reference click gives. `replace` and not an assignment,
-  so the bounce doesn't sit in history and swallow the back button.
+  `location.replace("<../ per segment>" + (location.search || "?v=<branch>") + "#e-…")`. Crawlers
+  don't run scripts so they keep the tags; a reader lands on `index.html#<card id>`, which
+  `init()` and the `hashchange` listener resolve through `SHARE_ENTRY` into an ordinary
+  `gotoEntry()` — the same tab switch, scroll and flash a cross-reference click gives. `replace`
+  and not an assignment, so the bounce doesn't sit in history and swallow the back button.
+- **The embed is the picture and nothing else.** No `og:title`, no `og:description`, and no
+  `<title>` for Discord to fall back to (its title chain is `og:title` → `twitter:title` →
+  `<title>`, so leaving the last one in would put the name straight back). The card already *is*
+  the name and the stats; an embed that repeats them above the image says everything twice. What
+  stays: `og:site_name` as the one line of chrome — also insurance for a client that won't build
+  an image-only embed — `theme-color`, and `og:image:alt` carrying the full card text, which is
+  where a screen reader now finds it. The no-JS body keeps the name and a link.
+
+### Versions ride in the path, as a suffix
+
+A share link has to open the dataset you were reading, and a query string can't select a
+different static page — so the branch is part of the path. It is a **suffix**
+(`s/spell/seal-fate/beta/`), not a prefix:
+
+- `s/<kind>/<slug>/` names the entry and is byte-identical whichever version you came from; the
+  optional trailing `<branch>/` qualifies it. Lop the tail off a beta link and you get live's
+  page for the *same* entry, rather than a path whose second segment has silently changed
+  meaning from kind to branch.
+- The default branch keeps the short URL, so links already in circulation don't move.
+- `app.js` `shareUrlFor()` appends `ACTIVE_VERSION.id + '/'` when it isn't the default — the
+  client mints these, so the shape is a contract with `page_rel()` in share.py.
+- Pages are per (entry × branch), but **images are deduplicated**: `signature()` hashes each item
+  (plus the units it summons, since a summon chip draws that unit's sprite) and a non-default
+  branch whose signature matches just points `og:image` at live's existing picture. With the
+  branches in sync that is 2,296 pages and still only 1,148 images; only what actually differs,
+  or is beta-only, earns a second shot.
 
 ### The preview images are screenshots of the real card
 
@@ -690,6 +716,9 @@ card it previews, and new fields show up in previews for free.
   clipping starts (neither is guaranteed ready just because a card is on screen), and every
   screenshot passes `animations="disabled"` so the CSS idle loop (§8) lands on frame 0 —
   otherwise each rebuild would rewrite every monster image with a different frame.
+- Spell **upgrades are forced open** (`details.open = true`) before shooting. On the site they
+  collapse so they don't swamp the grid; a preview is one card with nobody to click it, and the
+  upgrade list is most of why you'd share a spell.
 - Tabs are switched via the app's own `switchTab`: `element.screenshot()` needs the card laid
   out, and an inactive `.tab-panel` is `display:none`.
 
@@ -702,7 +731,7 @@ card it previews, and new fields show up in previews for free.
 - **`site/s/` is generated and gitignored.** `build.py` writes the pages — stdlib only, so the
   external data-update automation (§11) gains no dependency and doesn't need to know the
   directory exists — and `.github/workflows/deploy.yml` re-runs `share.py --cards` to shoot the
-  images straight into the Pages artifact. ~1,150 pages plus ~80 MB of PNG per deploy, none of
+  images straight into the Pages artifact. ~2,300 pages plus ~100 MB of PNG per deploy, none of
   it in git. Every deploy regenerates both from the current `data.json`, so nothing on our side
   can go stale — but the *client* caches unfurls per URL (Discord's image proxy included), so a
   card whose stats changed can keep showing yesterday's picture in an old message for a while.
@@ -711,9 +740,9 @@ card it previews, and new fields show up in previews for free.
   even behind a custom domain), `site/CNAME`, then the `origin` remote's
   `<user>.github.io/<repo>`. Everything the page *itself* links to stays relative, so the same
   generated file works on localhost.
-- **Beta-only entries** get a page whose redirect defaults to `?v=beta`, because their card only
-  exists in that dataset (§17); live wins any slug both branches have. Ids aren't involved — a
-  share URL keys off the display name, so unlike a Guide link it doesn't survive a rename (§3).
+- Ids aren't involved — a share URL keys off the display name, so unlike a Guide link it does
+  **not** survive a rename (§3). A beta-only entry simply has no live-path page, so trimming the
+  `beta/` off its URL 404s, which is the honest answer.
 - **Costumes are excluded on purpose.** Their art sits behind an explicit per-costume reveal;
   a link preview would show it to a whole channel at once. No share button, no page, and the
   screenshot pass is scoped to the four shareable grids rather than `.card[id]`.

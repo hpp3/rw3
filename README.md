@@ -71,10 +71,12 @@ The static site (`site/`) lets you:
 - **Share links** — every equipment / component / spell / monster card has a share icon in
   its bottom-right corner that copies a link to that one entry. Opening the link switches to
   the right tab, scrolls the card into view and flashes it. Pasted into Discord (or anywhere
-  else that unfurls links) it expands into a preview of that exact card — the same thing
-  people were screenshotting by hand. See **ARCHITECTURE.md §19**. *(Costumes have no share
-  button: their art is spoiler-veiled, and a link preview would show it to everyone in the
-  channel.)*
+  else that unfurls links) it expands into a picture of that exact card — the same thing
+  people were screenshotting by hand — and nothing else: no title or description line, since
+  the card already says both. The link carries the version you were reading, so sharing from
+  **beta** opens beta (`…/s/spell/seal-fate/beta/`; live has no suffix). Spell previews show
+  the upgrade list expanded. See **ARCHITECTURE.md §19**. *(Costumes have no share button:
+  their art is spoiler-veiled, and a link preview would show it to everyone in the channel.)*
 - **Buff glossary tooltips** — named status effects that have no card of their own (e.g. an
   Alchemist's *Brewed Concoctions*) are surfaced as hover-only tooltips showing the buff's
   description. Buff references are found by the same AST analysis (a card's code must actually
@@ -141,10 +143,11 @@ switches with the header dropdown; the choice rides in the URL as a human-readab
 `site/` is a plain static folder — drop it on Cloudflare Pages / Netlify / GitHub Pages, or
 any static host. No build step is needed on the host.
 
-The one generated thing that isn't committed is `site/s/` — the share pages and their card
-preview images (~1,150 of each, ~80 MB). `.github/workflows/deploy.yml` rebuilds them into
-the Pages artifact on every deploy, so they are always in step with `data.json` and nobody
-has to commit them. To get them locally:
+The one generated thing that isn't committed is `site/s/` — a share page per entry per
+version (~2,300) plus their card preview images (~1,150, ~100 MB). Beta reuses live's picture
+wherever the card is identical, so a second version costs pages but almost no bytes.
+`.github/workflows/deploy.yml` rebuilds all of it into the Pages artifact on every deploy, so
+it is always in step with `data.json` and nobody has to commit it. To get it locally:
 
 ```sh
 pip install playwright && python -m playwright install chromium

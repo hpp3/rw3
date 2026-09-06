@@ -6,15 +6,20 @@ The site is static (GitHub Pages), so a chat client that unfurls a link only
 ever sees what the server hands back. A hash like `index.html#e-treelord-staff`
 never reaches the server, so every shared card would unfurl as the same generic
 "Rift Wizard 3 Compendium" preview. Instead every entry gets its own tiny page
-under `site/s/<kind>/<slug>/`, carrying:
+under `site/s/<kind>/<slug>/[<branch>/]`, carrying:
 
   * Open Graph tags for that one entry, and
-  * `s/img/<kind>/<slug>.png` -- a picture of that entry's actual card,
+  * `s/img/<kind>/<slug>[.<branch>].png` -- a picture of that entry's actual card,
 
 so Discord renders something like the screenshots people were already pasting
 by hand. The page then redirects a human straight into `index.html#<card id>`,
 which app.js resolves back to a gotoEntry() (right tab, scrolled to the card,
 flashing).
+
+The embed is deliberately the picture and nothing else -- no og:title, no
+og:description, no <title> to fall back to. The card already *is* the name and
+the stats, so an embed that repeats them above the image just says everything
+twice. The text stays reachable as og:image:alt.
 
 The card pictures are shot from the real site rather than redrawn here: a
 headless browser loads `index.html`, switches it into `.shotmode` (styles.css)
@@ -32,7 +37,7 @@ Usage
 into the Pages artifact, so it never has to be committed -- which also means the
 external data-update automation doesn't have to know it exists.
 """
-import argparse, html, json, os, re, shutil, struct, subprocess, sys
+import argparse, collections, hashlib, html, json, os, re, shutil, struct, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(HERE, "site")
@@ -209,26 +214,43 @@ def hex_color(rgb):
     return "#%02x%02x%02x" % (rgb[0], rgb[1], rgb[2])
 
 
-def collect(data, branch, seen, entries, clashes):
-    """Append this dataset's entries, skipping any (kind, slug) already taken.
+def signature(item, units):
+    """What the rendered card depends on, as a hash.
 
-    Live is collected first, so a beta-only item still gets a page -- one that
-    opens the site against the beta dataset (?v=beta), where its id resolves.
-    A slug already claimed by the *same* name is just the other branch shipping
-    the same entry; claimed by a different name it's a genuine collision.
+    The item itself, plus the units it summons -- a summon chip draws that
+    unit's sprite, so a unit changing shape changes the summoner's card too.
+    Used only to decide whether a non-default branch can point at the default
+    branch's already-shot picture instead of getting one of its own.
+    """
+    parts = [json.dumps(item, sort_keys=True, ensure_ascii=False)]
+    for n in item.get("summons") or []:
+        u = units.get(n)
+        if u:
+            parts.append(json.dumps({k: u.get(k) for k in ("icon", "cols", "rows")},
+                                    sort_keys=True))
+    return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()
+
+
+def collect(data, branch, entries, clashes):
+    """Append every entry in this dataset, tagged with the branch it came from.
+
+    Unlike ids (§13), a share URL keys off the display name, so the same entry
+    in two branches is two pages -- one per branch -- and the reader's active
+    version decides which one the share button copies.
     """
     tag_color = {name: info.get("color") for name, info in data["tags"]["all"].items()}
+    units = data.get("units") or {}
     groups = [("equipment", data.get("equipment") or []),
               ("spell", data.get("spells") or []),
               ("component", data.get("components") or []),
-              ("unit", list((data.get("units") or {}).values()))]
+              ("unit", list(units.values()))]
+    seen = {}
     for kind, items in groups:
         for item in items:
             sl = slug(item["name"])
             key = (kind, sl)
-            if key in seen:
-                if seen[key] != item["name"]:
-                    clashes.append((kind, sl, seen[key], item["name"]))
+            if key in seen:                       # within one dataset: a real clash
+                clashes.append((kind, sl, seen[key], item["name"]))
                 continue
             seen[key] = item["name"]
             tags = item.get("tags") or []
@@ -237,6 +259,7 @@ def collect(data, branch, seen, entries, clashes):
                 "card_id": KINDS[kind][1] + sl,
                 "desc": clip("\n".join(p for p in DESCRIBERS[kind](item) if p)),
                 "color": hex_color(tag_color.get(tags[0]) if tags else None),
+                "sig": signature(item, units),
             })
 
 
@@ -247,18 +270,16 @@ def build_entries():
         versions = json.load(open(vpath, encoding="utf-8"))
     if not versions:
         versions = [{"id": "live", "file": "data.json"}]
-    # The default branch (live, or the first listed) goes first, so its entries
-    # win the slug and every other branch only contributes what it alone has.
     default = next((v for v in versions if v["id"] == "live"), versions[0])
     ordered = [default] + [v for v in versions if v is not default]
 
-    seen, entries, clashes = {}, [], []
+    entries, clashes = [], []
     for v in ordered:
         path = os.path.join(SITE, v.get("file", "data.json"))
         if not os.path.exists(path):
             print("  ! skipping %s: %s missing" % (v["id"], v.get("file")))
             continue
-        collect(json.load(open(path, encoding="utf-8")), v["id"], seen, entries, clashes)
+        collect(json.load(open(path, encoding="utf-8")), v["id"], entries, clashes)
     # slug() is not injective in principle, and app.js keys card DOM ids off it
     # too -- so a clash is already an in-app bug (two cards, one id), and here it
     # would silently leave one entry's share button pointing at the other's page.
@@ -271,7 +292,42 @@ def build_entries():
     if blank:
         sys.exit("share.py: %d entr(ies) slug to nothing: %s"
                  % (len(blank), ", ".join(e["name"] for e in blank[:5])))
+
+    # Most of beta is byte-identical to live, and shooting a second picture of
+    # the same card would double the deploy for nothing. Reuse the default
+    # branch's image wherever the signature matches; only what actually differs
+    # (or is beta-only) gets its own shot.
+    canon = {(e["kind"], e["slug"]): e["sig"] for e in entries if e["branch"] == default["id"]}
+    for e in entries:
+        same = e["branch"] != default["id"] and canon.get((e["kind"], e["slug"])) == e["sig"]
+        e["is_default"] = e["branch"] == default["id"]
+        e["img_branch"] = default["id"] if (e["is_default"] or same) else e["branch"]
+        e["needs_shot"] = not same
     return entries, default["id"]
+
+
+# --- URL/path shapes ------------------------------------------------------
+# The branch is a *suffix*, not a prefix: `s/<kind>/<slug>/` identifies the
+# entry and is byte-identical whichever branch you came from, and the optional
+# `<branch>/` qualifies it. So the default branch keeps the short URLs already
+# in circulation, and lopping the tail off a beta link lands you on the live
+# version of the same entry instead of on a differently-shaped path. Files get
+# the same treatment as `.beta` on the basename, mirroring data.beta.json.
+# app.js's shareUrlFor() mirrors this.
+def page_rel(e):
+    d = KINDS[e["kind"]][0]
+    return "s/%s/%s/" % (d, e["slug"]) + ("" if e["is_default"] else e["branch"] + "/")
+
+
+def img_rel(e, default_branch):
+    d = KINDS[e["kind"]][0]
+    suffix = "" if e["img_branch"] == default_branch else "." + e["img_branch"]
+    return "s/img/%s/%s%s.png" % (d, e["slug"], suffix)
+
+
+def up_to_root(rel):
+    """`../` per path segment -- one deeper for a branch-suffixed page."""
+    return "../" * rel.count("/")
 
 
 # ---------------------------------------------------------------------------
@@ -282,28 +338,31 @@ PAGE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>%(title)s</title>
-<link rel="icon" type="image/png" href="../../../favicon.png">
+<link rel="icon" type="image/png" href="%(up)sfavicon.png">
 <link rel="canonical" href="%(url)s">
-<meta name="description" content="%(desc)s">
 <meta name="theme-color" content="%(color)s">
 <meta property="og:site_name" content="%(site)s">
 <meta property="og:type" content="article">
-<meta property="og:title" content="%(name)s">
-<meta property="og:description" content="%(desc)s">
 <meta property="og:url" content="%(url)s">
 <meta property="og:image" content="%(img)s">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:alt" content="%(name)s in the %(site)s">%(dims)s
+<meta property="og:image:alt" content="%(alt)s">%(dims)s
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="%(name)s">
-<meta name="twitter:description" content="%(desc)s">
 <meta name="twitter:image" content="%(img)s">
+<meta name="twitter:image:alt" content="%(alt)s">
+<!-- Deliberately NO og:title / og:description, and no <title> for them to fall
+     back to: the card picture already *is* the name and the stats, and an embed
+     that repeats them above the image just says everything twice. og:site_name
+     stays as the one line of chrome (and as something for a client that won't
+     build an image-only embed to show). The text hasn't gone anywhere a reader
+     needs it -- og:image:alt carries it for screen readers, and the body below
+     carries it for anyone without JS. -->
 <!-- Humans get bounced into the app immediately; crawlers don't run scripts, so
      they keep the tags above. replace() rather than assign() so the redirect
-     doesn't sit in history and swallow the back button. Any query already on
-     the URL wins, so a hand-edited ?v= still works. -->
-<script>location.replace("../../../" + (location.search || "%(query)s") + "#%(card)s");</script>
+     doesn't sit in history and swallow the back button. The ?v= default is what
+     carries this page's branch into the app; a query already on the URL wins,
+     so a hand-edited one still works. -->
+<script>location.replace("%(up)s" + (location.search || "%(query)s") + "#%(card)s");</script>
 <style>
   body{margin:0;background:#0c0e14;color:#dce3f0;
        font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;
@@ -317,9 +376,9 @@ PAGE = """<!DOCTYPE html>
 </head>
 <body>
 <div class="box">
-  <img src="%(img_rel)s" alt="%(name)s"%(size)s>
-  <h1>%(name)s</h1>
-  <p><a href="../../../%(query)s#%(card)s">Open in the %(site)s</a></p>
+  <img src="%(up)s%(img_path)s" alt="%(name)s"%(size)s>
+  <h1>%(name)s%(branch_note)s</h1>
+  <p><a href="%(up)s%(query)s#%(card)s">Open in the %(site)s</a></p>
 </div>
 </body>
 </html>
@@ -342,38 +401,42 @@ def write_pages(entries, base, default_branch):
     for d, _prefix in KINDS.values():
         shutil.rmtree(os.path.join(OUT, d), ignore_errors=True)   # drop stale slugs
     for e in entries:
-        d = KINDS[e["kind"]][0]
-        rel = "s/%s/%s/" % (d, e["slug"])
-        img_name = "s/img/%s/%s.png" % (d, e["slug"])
+        rel = page_rel(e)
+        img_name = img_rel(e, default_branch)
         size = png_size(os.path.join(SITE, img_name.replace("/", os.sep)))
-        # &#10; rather than a literal newline: the description rides in an
-        # attribute, and Discord honours the entity while an HTML parser can't
-        # normalise it into a space.
+        # &#10; rather than a literal newline: the alt text rides in an
+        # attribute, and an HTML parser can't normalise the entity into a space.
         esc = lambda s: html.escape(str(s), quote=True).replace("\n", "&#10;")
         fields = {
-            "title": esc("%s — %s" % (e["name"], SITE_NAME)),
             "name": esc(e["name"]),
-            "desc": esc(e["desc"]),
+            # The card text now lives only in the picture, so the alt text is
+            # where it stays reachable: name first, then everything the card
+            # says. This is what a screen reader on the embed reads out.
+            "alt": esc("%s — %s" % (e["name"], e["desc"])),
             "site": esc(SITE_NAME),
             "color": e["color"],
             "url": esc(base + "/" + rel),
             "img": esc(base + "/" + img_name),
-            "img_rel": "../../../" + img_name,
+            "img_path": img_name,
+            "up": up_to_root(rel),
             "card": esc(e["card_id"]),
-            # A branch-only entry has to open against its own dataset or its
-            # card isn't there; the default branch needs no marker.
-            "query": "" if e["branch"] == default_branch else "?v=" + esc(e["branch"]),
+            # This is what carries the page's branch into the app; the default
+            # branch needs no marker.
+            "query": "" if e["is_default"] else "?v=" + esc(e["branch"]),
+            "branch_note": "" if e["is_default"] else " <small>(%s)</small>" % esc(e["branch"]),
             # Known only once the images exist, so a pages-only run omits both
             # and lets the client measure the image itself.
             "size": ' width="%d" height="%d"' % size if size else "",
             "dims": ("\n<meta property=\"og:image:width\" content=\"%d\">"
                      "\n<meta property=\"og:image:height\" content=\"%d\">" % size) if size else "",
         }
-        path = os.path.join(SITE, "s", d, e["slug"], "index.html")
+        path = os.path.join(SITE, rel.replace("/", os.sep), "index.html")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(PAGE % fields)
-    print("  %d share pages -> site/s/<kind>/<slug>/" % len(entries))
+    per_branch = collections.Counter(e["branch"] for e in entries)
+    print("  %d share pages -> site/s/<kind>/<slug>/[<branch>/]   (%s)"
+          % (len(entries), ", ".join("%s %d" % kv for kv in sorted(per_branch.items()))))
 
 
 # ---------------------------------------------------------------------------
@@ -398,6 +461,10 @@ async () => {
     card.parentNode.insertBefore(frame, card);
     frame.appendChild(card);
   });
+  // Spell upgrades are a collapsed <details> on the site (they'd swamp the
+  // grid). A preview is a single card with nobody to click it, so open them --
+  // the upgrade list is most of what you'd share a spell for.
+  document.querySelectorAll('#sp-grid details.upgrades').forEach(d => { d.open = true; });
   const waits = [];
   document.querySelectorAll('img').forEach(img => {
     img.loading = 'eager';
@@ -433,14 +500,18 @@ def serve_site():
     return srv, srv.server_address[1]
 
 
-def render_cards(entries, limit=0):
+def render_cards(entries, default_branch, limit=0):
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
         sys.exit("share.py --cards needs playwright:\n"
                  "  pip install playwright && python -m playwright install chromium")
 
-    todo = entries[:limit] if limit else entries
+    # Only entries whose card actually differs from the default branch's need a
+    # shot of their own; the rest of beta points at live's picture (build_entries).
+    todo = [e for e in entries if e["needs_shot"]]
+    if limit:
+        todo = todo[:limit]
     shutil.rmtree(IMG, ignore_errors=True)
     srv, port = serve_site()
     made = failed = 0
@@ -469,14 +540,14 @@ def render_cards(entries, limit=0):
                             print("  ! no card for %s/%s" % (kind, e["slug"]))
                             failed += 1
                             continue
-                        out = os.path.join(IMG, KINDS[kind][0], e["slug"] + ".png")
+                        out = os.path.join(SITE, img_rel(e, default_branch).replace("/", os.sep))
                         os.makedirs(os.path.dirname(out), exist_ok=True)
                         # animations=disabled rewinds the sprite idle loop, so a
                         # rebuild doesn't rewrite every monster image with a
                         # different frame.
                         frame.screenshot(path=out, animations="disabled")
                         made += 1
-                    print("  %-9s %4d images" % (kind, len(batch)))
+                    print("  %-5s %-9s %4d images" % (branch, kind, len(batch)))
             browser.close()
     finally:
         srv.shutdown()
@@ -496,9 +567,13 @@ def main():
 
     base = (args.base or detect_base()).rstrip("/")
     entries, default_branch = build_entries()
+    reused = sum(1 for e in entries if not e["needs_shot"])
     print("== share pages for %d entries (%s) ==" % (len(entries), base))
+    if reused:
+        print("  %d non-default-branch entr(ies) reuse the %s picture (identical card)"
+              % (reused, default_branch))
     if args.cards:
-        render_cards(entries, args.limit)
+        render_cards(entries, default_branch, args.limit)
     write_pages(entries, base, default_branch)
 
 
