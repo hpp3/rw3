@@ -719,6 +719,11 @@ card it previews, and new fields show up in previews for free.
 - Spell **upgrades are forced open** (`details.open = true`) before shooting. On the site they
   collapse so they don't swamp the grid; a preview is one card with nobody to click it, and the
   upgrade list is most of why you'd share a spell.
+- For the same reason `.shotmode` hides every **control**: the share button, the ＋ Wishlist /
+  ＋ Add to pool button, and the upgrades disclosure triangle. A button rendered into a PNG can't
+  be pressed, and drawing one implies the picture is the live app. (Cross-reference links keep
+  their underline — that's the card telling you a name is a thing you can look up, not a
+  control.)
 - Tabs are switched via the app's own `switchTab`: `element.screenshot()` needs the card laid
   out, and an inactive `.tab-panel` is `display:none`.
 

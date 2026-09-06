@@ -396,6 +396,12 @@ body.shotmode main{max-width:none;padding:0}
 body.shotmode .grid{display:block}
 body.shotmode .card{width:400px}
 body.shotmode .card-share{display:none}
+/* Controls are dead pixels in a still — nobody can press a button in a PNG, and
+   showing one implies the picture is the app. Drop the add-to-wishlist/pool
+   button (which also gives the title row its full width back) and the upgrades
+   disclosure triangle, since the shot forces those details open anyway. */
+body.shotmode .add-build{display:none}
+body.shotmode .upgrades summary:before{content:none}
 /* One frame per card, wrapped around it by the renderer: the padding gives the
    shot a margin of site background, so the card's rounded corners land on the
    colour they do on the page instead of on four bare notches. */
