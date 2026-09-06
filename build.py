@@ -13,4 +13,10 @@ runpy.run_path(os.path.join(HERE, "copy_icons.py"), run_name="__main__")
 print("== verifying data.json against the game (tests.py) ==")
 if subprocess.run([sys.executable, os.path.join(HERE, "tests.py")]).returncode != 0:
     sys.exit("== BUILD FAILED: data.json does not match the game; see failures above ==")
+# Per-entry share pages (site/s/): stdlib only, so this stays runnable anywhere
+# data.json is. Their card pictures need a headless browser and are shot by the
+# deploy workflow instead (`share.py --cards`); run that by hand to preview them
+# locally.
+print("== generating share pages ==")
+subprocess.run([sys.executable, os.path.join(HERE, "share.py")], check=True)
 print("== done. serve with:  python devserver.py ==")

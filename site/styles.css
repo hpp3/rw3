@@ -365,6 +365,42 @@ select{
 .add-build:hover{border-color:var(--accent);color:#fff;background:#1d2940}
 .add-build.in{color:#7ee0a0;border-color:#2f6b45;background:#13391f}
 
+/* Per-card share button (bottom-right of every infobox) ---------------------
+   In flow rather than absolutely positioned: card text runs to the right edge
+   (monster passives, recipe chips), so an overlay would sit on top of it.
+   margin-top:auto pins it to the true bottom of grid-stretched cards. */
+.card-share{margin-top:auto;align-self:flex-end;line-height:0}
+.share-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;padding:0;border-radius:6px;cursor:pointer;
+  background:transparent;border:1px solid transparent;color:var(--muted);
+  opacity:.5;transition:opacity .12s,color .12s,border-color .12s,background .12s;
+}
+.card:hover .share-btn{opacity:1}
+.share-btn:hover{color:var(--accent);border-color:var(--border);background:var(--bg2)}
+.share-btn:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+.share-btn.copied{opacity:1;color:#7ee0a0;border-color:#2f6b45;background:#13391f}
+.share-btn.failed{opacity:1;color:#ff9a9a;border-color:#6b2f2f;background:#391313}
+
+/* Card-capture mode ---------------------------------------------------------
+   `share.py --cards` drives a headless browser over this same page and adds
+   .shotmode to <body>, then clips one screenshot per card for the link
+   previews. Strip the chrome, unstack the grid so every card sits at its
+   natural height, and pin a share-image width. The flat background (instead of
+   the fixed radial gradient) keeps the margin around every card identical. */
+body.shotmode{background:var(--bg)}
+body.shotmode header,body.shotmode footer,body.shotmode .controls,
+body.shotmode .count,body.shotmode .active-filters,body.shotmode .build,
+body.shotmode .eq-pool,body.shotmode .inventory{display:none}
+body.shotmode main{max-width:none;padding:0}
+body.shotmode .grid{display:block}
+body.shotmode .card{width:400px}
+body.shotmode .card-share{display:none}
+/* One frame per card, wrapped around it by the renderer: the padding gives the
+   shot a margin of site background, so the card's rounded corners land on the
+   colour they do on the page instead of on four bare notches. */
+body.shotmode .shot-frame{width:428px;padding:14px;background:var(--bg)}
+
 .inv-tip{font-size:11px;color:var(--muted);margin-top:8px}
 
 /* Animated unit sprites (pure CSS idle loop via background-position) */

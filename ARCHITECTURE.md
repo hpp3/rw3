@@ -9,6 +9,8 @@ a few Python scripts.
 game install (Python source + art)  ──extract.py──▶  site/data.json
                                      ──copy_icons──▶  site/icons/**          (static host)
 site/{index.html, app.js, styles.css, favicon.png, data.json, icons/}  ──▶  GitHub Pages
+                     data.json  ──share.py──▶  site/s/**   (per-entry link-preview pages,
+                                                            generated at deploy time; §19)
 ```
 
 The rest of this doc is the stuff you **can't** easily infer from reading the code, plus the
@@ -392,7 +394,10 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
   tables, since the UI module isn't importable here). Add a verifier here when a new extracted field
   has an authoritative game-render to check against.
 - Build venv deps: `tcod numpy pygame dill` (the game's runtime). Python 3.10 to match the game.
-- Deploy: `.github/workflows/deploy.yml` uploads `site/` to GitHub Pages on push to `main`. Pages had
+- Deploy: `.github/workflows/deploy.yml` runs `share.py --cards` (the only step needing anything
+  beyond the stdlib — it installs Playwright and screenshots each card for the link previews, §19)
+  and then uploads `site/` to GitHub Pages on push to `main`. Its output lands in `site/s/`, which
+  is gitignored, so nothing generated there is ever committed. Pages had
   to be enabled once via API (`gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow`)
   because the workflow's `GITHUB_TOKEN` couldn't self-enable it on a fresh repo. Git remote is **SSH**,
   which matters: the auth token lacks `workflow` scope, so an HTTPS push of workflow files would be
@@ -445,6 +450,9 @@ component inventory, component→item assignments, scroll, and active tab (`#has
 - **Optimal build allocation** (§7) — greedy is good enough; exact bin-packing wasn't worth it.
 - **Monsters' own "summons" chips** — monster cards rely on AST `refs` inline links rather than a
   separate chip row; fine because their spawn behavior is in prose/passives.
+- **Per-entry share links** — now **built** (§19): a generated page per entry so Discord unfurls
+  a picture of the actual card. Still not done: previews for *Guides* (`?g=` carries the whole
+  build in the URL, so there is nothing static to pre-render) or for costumes (spoilers).
 - **Guide freeform notes** (§15) — deliberately omitted (a single ≤40-char title is the only free
   text); prose would blow up the URL. The SP track is also a flat per-section sequence, *not* a fully
   interleaved cross-spell SP timeline — both are possible future `VER` bumps.
@@ -646,3 +654,66 @@ the *unassigned* pool, rendered as one chip per essence held — 4× Fire = `FFF
   prefers `DATA.tags.all[t].abbr`, then `TAG_ABBR`, then first-letter as a last resort.
 - **If the game adds an essence tag**, add its canonical letter to *both* maps. If you only rely on the
   first-letter fallback it may silently clash with an existing code.
+
+---
+
+## 19. Share links — a real page per entry, so chat clients can unfurl a card (`site/s/`)
+
+The share icon in every card's bottom-right copies `…/s/<kind>/<slug>/`, **not**
+`index.html#<card id>`. That choice is the whole feature:
+
+- **A hash never reaches the server.** The unfurling bot (Discordbot, Slack, …) only sees what
+  the URL returns, and on a static host that would be `index.html`'s one generic title for every
+  card anyone shared. There is no server to render per-entry tags, so they are **pre-generated**:
+  one ~3 KB page per entry carrying its own `og:*` / `twitter:*` tags, a `theme-color` (the
+  entry's first tag colour — Discord paints the embed's left stripe with it), and a picture of
+  that entry's card.
+- **The page then hands the human off to the app**:
+  `location.replace("../../../" + (location.search || "") + "#e-…")`. Crawlers don't run scripts
+  so they keep the tags; a reader lands on `index.html#<card id>`, which `init()` and the
+  `hashchange` listener resolve through `SHARE_ENTRY` into an ordinary `gotoEntry()` — the same
+  tab switch, scroll and flash a cross-reference click gives. `replace` and not an assignment,
+  so the bounce doesn't sit in history and swallow the back button.
+
+### The preview images are screenshots of the real card
+
+`share.py --cards` starts a throwaway HTTP server on `site/` (the page `fetch`es `data.json`,
+which `file://` forbids), drives headless Chromium over `index.html`, adds `body.shotmode` and
+screenshots each `.card` at `device_scale_factor=2`. **Nothing here re-draws a card** — that is
+the point. app.js's card builders stay the only renderer, so a preview cannot drift from the
+card it previews, and new fields show up in previews for free.
+
+- `.shotmode` (styles.css) strips the chrome, unstacks the grid and pins a 400 px card width.
+  The renderer wraps each card in a `.shot-frame`, so the shot carries a margin of page
+  background — a flush crop would leave the card's rounded corners as four bare notches.
+- `loading="lazy"` icons and the CSS-background sprite sheets are force-decoded before any
+  clipping starts (neither is guaranteed ready just because a card is on screen), and every
+  screenshot passes `animations="disabled"` so the CSS idle loop (§8) lands on frame 0 —
+  otherwise each rebuild would rewrite every monster image with a different frame.
+- Tabs are switched via the app's own `switchTab`: `element.screenshot()` needs the card laid
+  out, and an inactive `.tab-panel` is `display:none`.
+
+### Contracts and gotchas
+
+- **`slug()` is duplicated** in app.js and share.py deliberately: identical output on both sides
+  is what lets the client mint a share URL from a display name with no lookup table shipped. The
+  kind→directory and kind→card-id-prefix tables must also agree (`SHARE_DIR` and
+  `KIND_CARD_PREFIX` in app.js vs `KINDS` in share.py) or the links 404.
+- **`site/s/` is generated and gitignored.** `build.py` writes the pages — stdlib only, so the
+  external data-update automation (§11) gains no dependency and doesn't need to know the
+  directory exists — and `.github/workflows/deploy.yml` re-runs `share.py --cards` to shoot the
+  images straight into the Pages artifact. ~1,150 pages plus ~80 MB of PNG per deploy, none of
+  it in git. Every deploy regenerates both from the current `data.json`, so nothing on our side
+  can go stale — but the *client* caches unfurls per URL (Discord's image proxy included), so a
+  card whose stats changed can keep showing yesterday's picture in an old message for a while.
+- **`og:` URLs have to be absolute**, so share.py needs the site's base URL, in order: `--base`,
+  `$RW3_SITE_BASE` (the workflow passes `actions/configure-pages`' `base_url`, which is right
+  even behind a custom domain), `site/CNAME`, then the `origin` remote's
+  `<user>.github.io/<repo>`. Everything the page *itself* links to stays relative, so the same
+  generated file works on localhost.
+- **Beta-only entries** get a page whose redirect defaults to `?v=beta`, because their card only
+  exists in that dataset (§17); live wins any slug both branches have. Ids aren't involved — a
+  share URL keys off the display name, so unlike a Guide link it doesn't survive a rename (§3).
+- **Costumes are excluded on purpose.** Their art sits behind an explicit per-costume reveal;
+  a link preview would show it to a whole channel at once. No share button, no page, and the
+  screenshot pass is scoped to the four shareable grids rather than `.card[id]`.

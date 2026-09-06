@@ -68,6 +68,13 @@ The static site (`site/`) lets you:
   contains `SealFate`, so it links to *Seal Fate*. This avoids the false positives of matching
   names in prose (the word "Death" in "Death Bounty" is never mistaken for the Death unit).
   Summoned-unit references additionally come from the structured summon data.
+- **Share links** — every equipment / component / spell / monster card has a share icon in
+  its bottom-right corner that copies a link to that one entry. Opening the link switches to
+  the right tab, scrolls the card into view and flashes it. Pasted into Discord (or anywhere
+  else that unfurls links) it expands into a preview of that exact card — the same thing
+  people were screenshotting by hand. See **ARCHITECTURE.md §19**. *(Costumes have no share
+  button: their art is spoiler-veiled, and a link preview would show it to everyone in the
+  channel.)*
 - **Buff glossary tooltips** — named status effects that have no card of their own (e.g. an
   Alchemist's *Brewed Concoctions*) are surfaced as hover-only tooltips showing the buff's
   description. Buff references are found by the same AST analysis (a card's code must actually
@@ -126,12 +133,27 @@ switches with the header dropdown; the choice rides in the URL as a human-readab
 |------|---------|
 | `extract.py` | imports the game modules headlessly and dumps `site/data.json` (spells, equipment, components, tag colors). |
 | `copy_icons.py` | copies referenced icon PNGs into `site/icons/{spells,equipment,components}/`, lowercasing filenames for web case-sensitivity. |
-| `build.py` | runs both of the above. |
+| `share.py` | writes the per-entry share pages under `site/s/` (stdlib). `--cards` additionally screenshots every card through a headless browser for the link previews (needs `playwright`). |
+| `build.py` | runs `extract.py`, `copy_icons.py`, `tests.py`, then `share.py` (pages only). |
 
 ## Deploying
 
 `site/` is a plain static folder — drop it on Cloudflare Pages / Netlify / GitHub Pages, or
 any static host. No build step is needed on the host.
+
+The one generated thing that isn't committed is `site/s/` — the share pages and their card
+preview images (~1,150 of each, ~80 MB). `.github/workflows/deploy.yml` rebuilds them into
+the Pages artifact on every deploy, so they are always in step with `data.json` and nobody
+has to commit them. To get them locally:
+
+```sh
+pip install playwright && python -m playwright install chromium
+python share.py --cards          # ~2 min; site/s/ then mirrors what deploys
+```
+
+`share.py` needs the site's absolute URL for the Open Graph tags. It works that out from
+`site/CNAME` or the `origin` remote; override with `--base https://…` or `$RW3_SITE_BASE`
+(the workflow passes the Pages URL that way).
 
 ---
 

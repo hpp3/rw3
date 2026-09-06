@@ -29,9 +29,33 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure Pages
+        id: pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Link previews (share.py): one page + one picture of the card per entry,
+      # written into site/s/. The pictures are screenshots of the real site, so
+      # this is the only part of the build that needs a browser -- and the only
+      # reason this workflow is more than "upload site/". Nothing generated here
+      # is committed (site/s/ is gitignored), which also keeps the external
+      # data-update automation from having to know about any of it.
+      - name: Install Playwright (for the card previews)
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Build share pages + card previews
+        env:
+          # Authoritative absolute base for the og: tags (handles a custom
+          # domain); share.py falls back to the git remote if it's empty.
+          RW3_SITE_BASE: ${{ steps.pages.outputs.base_url }}
+        run: python share.py --cards
 
       - name: Upload site/ as Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -618,7 +618,8 @@ function equipmentCard(e) {
     ${desc}${bonuses}
     ${summonRow(e.summons, e.pool_summons)}
     <div class="section-label">Recipe · cost ${e.recipe_cost}</div>
-    <div class="recipe">${recipe}</div>`;
+    <div class="recipe">${recipe}</div>
+    ${shareBtn('equipment', e.name)}`;
   return card;
 }
 
@@ -1061,7 +1062,8 @@ function componentCard(c) {
       <button class="add-build${INVENTORY[c.name] ? ' in' : ''}" data-addcomp="${esc(c.name)}">${INVENTORY[c.name] ? `✓ In pool ×${INVENTORY[c.name]}` : '＋ Add to pool'}</button>
     </div>
     <div class="desc">${linkify(renderMarkup(c.desc), c.refs, c.btips)}</div>
-    ${summonRow(c.summons, c.pool_summons)}`;
+    ${summonRow(c.summons, c.pool_summons)}
+    ${shareBtn('component', c.name)}`;
   return card;
 }
 
@@ -1132,7 +1134,8 @@ function spellCard(s) {
     <div class="desc">${linkify(renderMarkup(s.desc), s.refs, s.btips)}</div>
     ${granted}
     ${stats ? `<div class="stats">${stats}</div>` : ''}
-    ${dt}${summonRow(s.summons, s.pool_summons)}${upg}`;
+    ${dt}${summonRow(s.summons, s.pool_summons)}${upg}
+    ${shareBtn('spell', s.name)}`;
   return card;
 }
 
@@ -1255,6 +1258,86 @@ function gotoEntry(kind, name) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Sharing — the per-card "copy link" button
+// ---------------------------------------------------------------------------
+// The copied URL is deliberately NOT `index.html#<card id>`: chat clients only
+// see what the server returns, and a hash never reaches it, so the whole site
+// would unfurl as one generic preview. Instead each entry has a tiny generated
+// page under `s/<kind>/<slug>/` (share.py) carrying that entry's Open Graph
+// tags + a pre-rendered picture of this very card, which then redirects to
+// `index.html#<card id>`. init() and the hashchange handler resolve that hash
+// back through gotoEntry(), so a clicked link lands exactly like an in-app
+// cross-reference: right tab, scrolled to the card, flashing.
+const SHARE_DIR = { equipment: 'equipment', spell: 'spell', unit: 'unit', component: 'component' };
+const SHARE_ENTRY = {};        // card DOM id -> [kind, name]; filled in init()
+
+// Resolved against the current page, so the same code yields
+// http://localhost:8777/s/... in dev and https://<user>.github.io/rw3/s/...
+// in production. URL() drops the current query/hash, which is what we want.
+function shareUrlFor(kind, name) {
+  return new URL(`s/${SHARE_DIR[kind]}/${slug(name)}/`, location.href).href;
+}
+const SHARE_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><line x1="8.4" y1="10.6" x2="15.6" y2="6.4"/><line x1="8.4" y1="13.4" x2="15.6" y2="17.6"/></svg>';
+const SHARE_OK_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
+// Carries kind+name on the button rather than reading them back off the card's
+// DOM id, because Recent changes strips the id from its cards (recentCard) —
+// this way the button works there too.
+function shareBtn(kind, name) {
+  const n = esc(name);
+  return `<div class="card-share"><button type="button" class="share-btn" data-share-k="${kind}" data-share-n="${n}"`
+       + ` title="Copy a link to ${n}" aria-label="Copy a link to ${n}">${SHARE_ICON}</button></div>`;
+}
+
+// -> Promise<bool>. The execCommand branch is the fallback for a non-secure
+// context (plain-http host), where navigator.clipboard is undefined.
+function copyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText)
+    return navigator.clipboard.writeText(text).then(() => true, () => false);
+  const ta = el('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (_) {}
+  ta.remove();
+  return Promise.resolve(ok);
+}
+
+function onShareClick(btn) {
+  if (btn.classList.contains('copied') || btn.classList.contains('failed')) return;  // still showing feedback
+  const kind = btn.dataset.shareK, name = btn.dataset.shareN;
+  if (!kind || !name) return;
+  copyText(shareUrlFor(kind, name)).then(ok => {
+    btn.classList.add(ok ? 'copied' : 'failed');
+    btn.innerHTML = ok ? SHARE_OK_ICON : SHARE_ICON;
+    btn.title = ok ? 'Link copied' : 'Copy failed — check clipboard permissions';
+    setTimeout(() => {
+      btn.classList.remove('copied', 'failed');
+      btn.innerHTML = SHARE_ICON;
+      btn.title = `Copy a link to ${name}`;
+    }, 1600);
+  });
+}
+
+function wireShare() {
+  // Document-level so cards rendered later (every grid repaint, and the cards
+  // Recent changes builds) are covered without re-wiring.
+  document.addEventListener('click', ev => {
+    const btn = ev.target.closest('.share-btn');
+    if (btn) onShareClick(btn);
+  });
+}
+
+// A hash that names a card ("e-treelord-staff") rather than a tab. Returns
+// whether it matched, so callers can fall through to their own default.
+function gotoHashEntry(hash) {
+  const target = SHARE_ENTRY[hash];
+  if (!target) return false;
+  gotoEntry(target[0], target[1]);
+  return true;
+}
+
 // Build the name->kind index and the linkify() that wraps references in <span class="xref">.
 function renderAbility(a, refs, btips) {
   const bits = [];
@@ -1351,7 +1434,8 @@ function monsterCard(u) {
     ${escorts}
     ${resists ? `<div class="uresists">${resists}</div>` : ''}
     ${abilities ? `<div class="usec">Abilities</div>${abilities}` : ''}
-    ${passives ? `<div class="usec">Passives</div>${passives}` : ''}`;
+    ${passives ? `<div class="usec">Passives</div>${passives}` : ''}
+    ${shareBtn('unit', u.name)}`;
   return card;
 }
 
@@ -2482,10 +2566,11 @@ function gShowMarker(sec, pos) {
 }
 function guideCopyLink(btn) {
   updateGuideUrl();
-  const url = location.href;
-  const done = ok => { const o = btn.innerHTML; btn.innerHTML = ok ? '✓ Copied!' : '⚠ Failed'; setTimeout(() => { btn.innerHTML = o; }, 1600); };
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
-  else { const ta = el('textarea'); ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} ta.remove(); done(ok); }
+  const label = btn.innerHTML;
+  copyText(location.href).then(ok => {
+    btn.innerHTML = ok ? '✓ Copied!' : '⚠ Failed';
+    setTimeout(() => { btn.innerHTML = label; }, 1600);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -2591,12 +2676,20 @@ async function init() {
   }
   for (const c of DATA.components) CP_BY_NAME[c.name] = c;
   for (const s of DATA.spells) SPELL_BY_NAME[s.name] = s;
+  // Reverse of the card DOM ids, so a share link's #e-<slug> resolves to the
+  // (kind, display name) pair gotoEntry wants. Same slug() both sides, so
+  // share.py can mint the URLs without shipping a lookup table to the client.
+  for (const e of DATA.equipment) SHARE_ENTRY['e-' + slug(e.name)] = ['equipment', e.name];
+  for (const s of DATA.spells) SHARE_ENTRY['s-' + slug(s.name)] = ['spell', s.name];
+  for (const c of DATA.components) SHARE_ENTRY['c-' + slug(c.name)] = ['component', c.name];
+  for (const n of Object.keys(UNITS)) SHARE_ENTRY[unitCardId(n)] = ['unit', n];
   buildSpLookup();
   loadBuild();
   loadGuideFromUrl();
   loadInv();
   loadAssign();
   wireTooltips();
+  wireShare();
   wireBuild();
   wireGuide();
   wireInventory();
@@ -2608,7 +2701,11 @@ async function init() {
   // there, so this won't loop with switchTab's own location.hash write).
   window.addEventListener('hashchange', () => {
     const t = location.hash.slice(1) || 'equipment';   // empty hash = the default tab
-    if (TAB_NAMES.includes(t) && t !== currentTab) switchTab(t, true);
+    if (TAB_NAMES.includes(t)) { if (t !== currentTab) switchTab(t, true); return; }
+    // Not a tab: a share link's card hash pasted into an already-open page.
+    // gotoEntry's own switchTab rewrites the hash to the tab name, which fires
+    // this listener once more and lands in the no-op branch above.
+    gotoHashEntry(t);
   });
 
   // --- Equipment controls ---
@@ -2744,6 +2841,7 @@ async function init() {
   const hash = location.hash.slice(1);
   if (guideInUrl() || hash === 'guide') switchTab('guide');
   else if (TAB_NAMES.includes(hash)) switchTab(hash);
+  else gotoHashEntry(hash);      // a share link handing us off: #e-<slug> etc.
 }
 
 init();
