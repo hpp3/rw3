@@ -111,8 +111,18 @@
         <div class="chips" id="sp-levels"></div>
       </div>
       <div class="control-group">
-        <label>Tag</label>
+        <div class="label-row">
+          <label>Include tags</label>
+          <!-- Widens the tag chips below only: a spell also matches a tag one of
+               its upgrades adds. Exclusion always reads the base tags. -->
+          <button type="button" class="toggle sm" id="sp-upgtags" aria-pressed="false"
+                  title="Also match tags a spell gains from its upgrades (e.g. Blood Bullet counts as Ice via Rime Coated Rounds)">Consider upgrades</button>
+        </div>
         <div class="chips" id="sp-tags"></div>
+        <details class="exclude-tags" id="sp-exclude">
+          <summary>Exclude tags<span class="xcount" id="sp-xcount"></span></summary>
+          <div class="chips" id="sp-xtags"></div>
+        </details>
       </div>
     </div>
     <div class="active-filters hidden" id="sp-filters"></div>

@@ -1139,13 +1139,39 @@ function spellCard(s) {
   return card;
 }
 
-const SP = { search: '', levels: null, tags: null };
+// xtags: tags to exclude (always the spell's base tags). upgTags: let the
+// positive tag chips also match tags the spell's upgrades add.
+const SP = { search: '', levels: null, tags: null, xtags: null, upgTags: false };
+// The game's upgrade tooltip line for SpellUpgrade.added_tags (text.TAG_ADD),
+// plus one hand-written "Adds [Nature] tag". Read back out of the rendered
+// markup like everything else (§2); matches added_tags on every upgrade.
+const ADDS_TAG_RE = /^Adds (?:the )?\[([^\]:]+)(?::[^\]]*)?\] tag$/gm;
+const SPELL_UPG_TAGS = new Map();   // spell -> base tags + every upgrade-added tag
+function spellTagsWithUpgrades(s) {
+  let tags = SPELL_UPG_TAGS.get(s);
+  if (!tags) {
+    tags = new Set(s.tags);
+    for (const u of s.upgrades) for (const m of u.desc.matchAll(ADDS_TAG_RE)) tags.add(m[1]);
+    SPELL_UPG_TAGS.set(s, tags);
+  }
+  return tags;
+}
+function setSpUpgTags(on) {
+  SP.upgTags = on;
+  const b = $('#sp-upgtags');
+  if (b) { b.classList.toggle('active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+}
 function renderSpells() {
   const q = SP.search.toLowerCase();
+  const xc = $('#sp-xcount'); if (xc) xc.textContent = SP.xtags.size || '';
   let list = DATA.spells.filter(s => {
     if (SP.levels.size && !SP.levels.has(s.forbidden ? 'Forbidden' : String(s.level))) return false;
     if (SP.statFilters && !passesStatFilters(s, SP.statFilters)) return false;
-    if (SP.tags.size) { for (const t of SP.tags) if (!s.tags.includes(t)) return false; }
+    if (SP.tags.size) {
+      const have = SP.upgTags ? spellTagsWithUpgrades(s) : new Set(s.tags);
+      for (const t of SP.tags) if (!have.has(t)) return false;
+    }
+    if (SP.xtags.size && s.tags.some(t => SP.xtags.has(t))) return false;
     if (q) {
       const hay = stripMarkup(s.name + ' ' + s.desc + ' ' + s.tags.join(' ') + ' ' + s.upgrades.map(u => u.name + ' ' + u.desc).join(' ') + ' ' + (s.summons || []).join(' ')).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -1219,6 +1245,7 @@ function clearFilters(tab) {
   } else if (tab === 'spells') {
     SP.search = ''; const i = $('#sp-search'); if (i) i.value = ''; SP.statFilters.length = 0;
     clearChipGroup(SP.levels, '#sp-levels'); clearChipGroup(SP.tags, '#sp-tags');
+    clearChipGroup(SP.xtags, '#sp-xtags'); setSpUpgTags(false);
     const f = $('#sp-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
   } else if (tab === 'components') {
     CP.search = ''; const i = $('#cp-search'); if (i) i.value = '';
@@ -2760,6 +2787,12 @@ async function init() {
     activeColor: t => TAGCOLOR[t] || 'var(--accent)',
     onChange: renderSpells
   });
+  SP.xtags = buildChips($('#sp-xtags'), spellTags, {
+    dot: t => TAGCOLOR[t] || 'var(--muted)',
+    activeColor: t => TAGCOLOR[t] || 'var(--accent)',
+    onChange: renderSpells
+  });
+  $('#sp-upgtags').addEventListener('click', () => { setSpUpgTags(!SP.upgTags); renderSpells(); });
   makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: () => DATA.spells, render: renderSpells });
 
   // --- Monsters controls ---

@@ -63,7 +63,7 @@ main{max-width:1320px;margin:0 auto;padding:12px}
 }
 .search:focus{outline:none;border-color:var(--accent)}
 .control-group{display:flex;flex-direction:column;gap:4px}
-.control-group>label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.control-group>label,.label-row>label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
 select{
   background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);
   padding:6px 9px;font-size:13px;cursor:pointer;
@@ -205,6 +205,23 @@ select{
 .toggle:hover{color:var(--text);border-color:var(--accent)}
 .toggle.active{background:#13391f;color:#7ee0a0;border-color:#2f6b45}
 .toggle.active::before{content:"✓ "}
+/* Compact variant sitting beside a control-group label. */
+.toggle.sm{padding:1px 8px;font-size:11px}
+.label-row{display:flex;align-items:center;gap:8px}
+
+/* Collapsible negative tag filter under the spell Tag chips. The summary reads
+   as a control-group label; the count keeps a selection visible while shut. */
+.exclude-tags{margin-top:4px}
+.exclude-tags summary{cursor:pointer;list-style:none;user-select:none;width:max-content;
+  font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.exclude-tags summary::-webkit-details-marker{display:none}
+.exclude-tags summary:before{content:"▸ ";color:var(--accent)}
+.exclude-tags[open] summary:before{content:"▾ "}
+.exclude-tags summary:hover{color:var(--text)}
+.exclude-tags .chips{margin-top:4px}
+.exclude-tags .chip.active{text-decoration:line-through}
+.xcount{margin-left:6px;padding:0 6px;border-radius:999px;background:#5a2230;color:#ffb3c0}
+.xcount:empty{display:none}
 
 /* Sliding two-way switch (equipment tag filter: item tags vs recipe tags).
    inline-grid with 1fr columns sizes BOTH options to the wider label, so the
