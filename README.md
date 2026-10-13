@@ -25,7 +25,8 @@ The static site (`site/`) lets you:
   recipe with per-tag counts. A **Craftable only** toggle restricts the list to what your
   current component inventory can make (combined with all other filters).
 - **Stat search** (Equipment & Spells) — type a stat name or synonym (e.g. `dama`, `minion hp`,
-  `charges`) and an autocomplete offers *Modifies X* (grants a bonus to that stat) and
+  `charges`) and an autocomplete offers *Modifies X* (grants a bonus to that stat — for a
+  spell, to *other* spells/equipment; upgrades that only boost the spell itself don't count) and
   *Scales with X* (has an effect that uses it), each with a result count. Selecting one clears
   the search box and adds a removable filter chip; plain text stays a substring match until you
   pick a suggestion. Stat tags are derived **programmatically** from each item's bonus dicts

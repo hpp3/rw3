@@ -234,8 +234,10 @@ STAT_KEYS = list(dict.fromkeys(
 ))
 STAT_KEYS_SET = set(STAT_KEYS)
 
-def collect_bonus_stats(obj):
-    """Stats this object *grants a bonus to* (modifies), from its bonus dicts."""
+def collect_bonus_stats(obj, skip_spell=None):
+    """Stats this object *grants a bonus to* (modifies), from its bonus dicts.
+    `skip_spell`: a spell class whose spell_bonuses entry is ignored, so a spell's
+    upgrades/buffs that boost only that spell don't count as modifying anything."""
     out = set()
     for dname in ('global_bonuses', 'global_bonuses_pct'):
         d = getattr(obj, dname, None)
@@ -244,7 +246,9 @@ def collect_bonus_stats(obj):
     for dname in ('tag_bonuses', 'tag_bonuses_pct', 'spell_bonuses', 'spell_bonuses_pct'):
         d = getattr(obj, dname, None)
         if d:
-            for inner in d.values():
+            for key, inner in d.items():
+                if skip_spell is not None and key is skip_spell:
+                    continue
                 out.update(inner.keys())
     return out
 
@@ -302,20 +306,34 @@ def buffs_with_upgrade(s, up):
 
 def spell_stat_tags(s):
     """(modifies, uses) for a spell. 'uses' = stats it has/scales with;
-    'modifies' = stats its upgrades or granted buffs add bonuses to."""
+    'modifies' = stats its upgrades or granted buffs add bonuses to for OTHER
+    spells/equipment (global, tag, or another spell's bonuses). Bonuses to the
+    spell itself don't count -- Mystic Arcanum's "Mystic Power gains 8 duration"
+    isn't Mystic Power modifying duration -- and neither do upgrades that give it
+    a stat it lacked (SpellUpgrade.new_attributes, also self-only)."""
     uses = set(getattr(s, 'stats', []))
     mods = set()
+    own = type(s)
     for up in getattr(s, 'spell_upgrades', []):
-        mods |= collect_bonus_stats(up)
-        # A SpellUpgrade to a stat the spell lacks (Occult Power's radius, Blood is
-        # Power's hp_cost) sets it as a base in new_attributes instead of a bonus
-        # in spell_bonuses -- still the upgrade modifying that stat.
-        mods |= {a for a, v in getattr(up, 'new_attributes', {}).items() if v}
+        mods |= collect_bonus_stats(up, skip_spell=own)
         for b in buffs_with_upgrade(s, up):
-            mods |= collect_bonus_stats(b)
+            mods |= collect_bonus_stats(b, skip_spell=own)
     for b in buffs_from_tooltips(s):
-        mods |= collect_bonus_stats(b)
+        mods |= collect_bonus_stats(b, skip_spell=own)
     return sorted(mods & STAT_KEYS_SET), sorted(uses & STAT_KEYS_SET)
+
+def granted_buff_stats(buffs, own=None):
+    """Stats the buffs a card's code applies grant bonuses to: refs_for's buff
+    instances (via buff_sink), which catch buffs only built inside cast/trigger
+    code and never exposed as a tooltip -- Death Bolt's Soul Battery applies
+    SoulCharge() in cast(), "+1 damage to Dark spells and equipment". Curses and
+    bonuses to `own` (the spell itself) are excluded, as in spell_stat_tags."""
+    out = set()
+    for b in buffs:
+        if getattr(b, 'buff_type', None) == BUFF_TYPE_CURSE:
+            continue
+        out |= collect_bonus_stats(b, skip_spell=own)
+    return out & STAT_KEYS_SET
 
 # ---------------------------------------------------------------------------
 # Units (summon stat sheets)
@@ -660,12 +678,10 @@ def _literal_args(call_args):
             return None
     return tuple(vals)
 
-def _describe_buff(cls, args):
-    """(display_name, {desc, color}) for a Buff subclass, or None if it has no
-    usable name/description. `args` are the literal constructor args the source
-    applies (so RegenBuff(1) vs RegenBuff(10) differ); fall back to filler args
-    when the call wasn't literal — the name/description template don't depend on
-    the values for the buffs that need this."""
+def _instantiate_buff(cls, args):
+    """An instance of Buff subclass `cls`, built with the literal constructor args
+    the source applies (so RegenBuff(1) vs RegenBuff(10) differ), falling back to
+    filler args when the call wasn't literal; None if it can't be built."""
     b = None
     if args is not None:
         try:
@@ -674,6 +690,15 @@ def _describe_buff(cls, args):
             b = None
     if b is None:
         b = _construct_buff(cls)
+    return b
+
+def _describe_buff(cls, args):
+    """(display_name, {desc, color}) for a Buff subclass, or None if it has no
+    usable name/description. Filler args are fine here: the name/description
+    template don't depend on the values for the buffs that need them."""
+    return _describe_buff_instance(_instantiate_buff(cls, args))
+
+def _describe_buff_instance(b):
     if b is None:
         return None
     name = getattr(b, 'name', None)
@@ -845,10 +870,12 @@ def pools_referenced(instance, entry):
                 hits.add(POOL_IDENTS[ident])
     return sorted(hits)
 
-def refs_for(instance, entry, self_name):
+def refs_for(instance, entry, self_name, buff_sink=None):
     """Return (refs, btips): refs = [[display_name, kind], …] this entity
     references in its code; btips = {buff_name: {desc, color}} resolved from the
-    actual class + args the source applies (so tooltips are exact, per site)."""
+    actual class + args the source applies (so tooltips are exact, per site).
+    `buff_sink`, if a list, receives every buff instance built along the way —
+    linked or not — for stat tagging (granted_buff_stats)."""
     scan_objs = _scan_objects(instance, entry)
 
     # Each name is resolved in the namespace of the source it appears in (never a
@@ -909,7 +936,10 @@ def refs_for(instance, entry, self_name):
         seen.add(name)
         out.append([name, 'unit'])
     for cls_, args in buff_hits.items():
-        info = _describe_buff(cls_, args)
+        b = _instantiate_buff(cls_, args)        # built once: buff ctors may draw on the RNG
+        if buff_sink is not None and b is not None:
+            buff_sink.append(b)
+        info = _describe_buff_instance(b)
         if not info:                             # can't describe it -> don't link it
             continue
         name, meta = info
@@ -1148,7 +1178,9 @@ def _spell_entry(s, cons, forbidden=False, granted_by=None):
             "desc": "\n".join(parts),
         })
     mod_stats, use_stats = spell_stat_tags(s)
-    refs, btips = refs_for(s, cons, s.name)
+    applied = []
+    refs, btips = refs_for(s, cons, s.name, buff_sink=applied)
+    mod_stats = sorted(set(mod_stats) | granted_buff_stats(applied, own=type(s)))
     entry = {
         "name": s.name,
         "level": s.level,
@@ -1246,7 +1278,9 @@ def extract_equipment():
         gs = getattr(e, 'spell', None)
         granted_units = set(summons_of(gs)) if isinstance(gs, Spell) else set()
         summons = [n for n in summons_of(e) if n not in granted_units]
-        refs, btips = refs_for(e, cons, e.name)
+        applied = []
+        refs, btips = refs_for(e, cons, e.name, buff_sink=applied)
+        mod_stats = sorted(set(mod_stats) | granted_buff_stats(applied))
         out.append({
             "name": e.name,
             "slot": SLOT_NAMES.get(getattr(e, 'slot', 0), "Trinket"),
