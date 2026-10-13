@@ -302,22 +302,67 @@ function renderUpgradeSheet(spellName, upgradeName) {
 // The description + color are resolved per reference site (the actual class and
 // args the source applies) and embedded on each link, so RegenBuff(1) vs
 // RegenBuff(10) each show their own value. renderBuffSheet reads them off the node.
-function renderBuffSheet(name, desc, color) {
-  const col = color ? rgb(color) : 'var(--fg)';
+// t = the btips entry: {desc, color, stack?, type?, up?, stack_up?}. stack/type are
+// the game's own labels (Buff.get_stacking_label / get_buff_type_label), absent for
+// passives and item effects — the game shows neither for those.
+function renderBuffSheet(name, t) {
+  const col = t.color ? rgb(t.color) : 'var(--fg)';
+  const badge = t.type ? t.type.toLowerCase() : 'buff';
+  const stack = t.stack
+    ? `<div class="buff-stack">Stack Type: <b>${esc(t.stack)}</b>${STACK_HOW[t.stack] ? ` <span class="muted">— ${STACK_HOW[t.stack]}</span>` : ''}${
+        (t.stack_up || []).map(([up, lbl]) => `<div class="muted">${esc(lbl)} with ${esc(up)}</div>`).join('')}</div>`
+    : '';
+  const up = t.up ? `<div class="buff-stack muted">Only with ${esc(t.up)}</div>` : '';
   return `<div class="unit-sheet buff-sheet">
     <div class="uhead">
       <div class="uhmeta">
         <div class="uname" style="color:${col}">${esc(name)}</div>
-        <div class="card-meta"><span class="badge">buff</span></div>
+        <div class="card-meta"><span class="badge">${esc(badge)}</span></div>
       </div>
     </div>
-    ${desc ? `<div class="udesc">${renderMarkup(desc)}</div>` : ''}
+    ${t.desc ? `<div class="udesc">${renderMarkup(t.desc)}</div>` : ''}${stack}${up}
   </div>`;
 }
-// Pull the embedded desc/color off a buff xref node (data-desc / data-color).
+// What re-applying does, per Unit.apply_buff (the game itself shows only the label).
+const STACK_HOW = {
+  Intensity: 'each application is a separate stack, and their effects add up',
+  Duration: 'reapplying adds the new duration to the turns left',
+  Refresh: 'reapplying keeps whichever duration is longer',
+  Replace: 'reapplying replaces the current one',
+};
+// The btips entry, embedded on each buff link/chip so every reference site shows the
+// values it actually applies (RegenBuff(1) vs RegenBuff(10)).
+function buffDataAttrs(name, t) {
+  t = t || {};
+  let a = `data-n="${esc(name)}"`;
+  if (t.desc) a += ` data-desc="${esc(t.desc)}"`;
+  if (t.color) a += ` data-color="${esc(t.color.join(','))}"`;
+  if (t.stack) a += ` data-stack="${esc(t.stack)}"`;
+  if (t.type) a += ` data-type="${esc(t.type)}"`;
+  if (t.up) a += ` data-up="${esc(t.up)}"`;
+  if (t.stack_up) a += ` data-stack-up="${esc(JSON.stringify(t.stack_up))}"`;
+  return a;
+}
 function buffSheetFromNode(node) {
-  const color = node.dataset.color ? node.dataset.color.split(',').map(Number) : null;
-  return renderBuffSheet(node.dataset.n, node.dataset.desc || '', color);
+  const d = node.dataset;
+  return renderBuffSheet(d.n, {
+    desc: d.desc || '',
+    color: d.color ? d.color.split(',').map(Number) : null,
+    stack: d.stack, type: d.type, up: d.up,
+    stack_up: d.stackUp ? JSON.parse(d.stackUp) : null,
+  });
+}
+// Every buff/debuff the card applies (extract.py card_effects). Most never appear by
+// name in the card's text ("blinds", "poisons"), so this row is where they show up.
+// Chips are .xref buff nodes, so hover/tap-to-toggle comes from the existing wiring.
+function effectsRow(effects, btips) {
+  if (!effects || !effects.length) return '';
+  const chips = effects.map(n => {
+    const t = (btips || {})[n] || {};
+    const dot = t.color ? `<i class="buff-dot" style="background:${rgb(t.color)}"></i>` : '';
+    return `<span class="xref buff-chip" data-k="buff" ${buffDataAttrs(n, t)} tabindex="0">${dot}${esc(n)}</span>`;
+  });
+  return `<div class="summon-row effects-row"><span class="section-label">Effects</span><div class="summon-chips">${chips.join('')}</div></div>`;
 }
 
 // Cross-reference linking ---------------------------------------------------
@@ -337,12 +382,8 @@ function linkify(html, refs, btips) {
   // unit. The base + plural are captured separately; the canonical name is resolved
   // per match, and non-buff kinds are still required to match case-exactly below.
   const re = new RegExp('(?<![A-Za-z])(' + names.map(escapeRegex).join('|') + ')(e?s)?(?![A-Za-z])', 'gi');
-  const buffSpan = (text, base) => {
-    const t = btips && btips[base];
-    const dd = t ? ` data-desc="${esc(t.desc)}"` : '';
-    const dc = t && t.color ? ` data-color="${esc(t.color.join(','))}"` : '';
-    return `<span class="xref" data-k="buff" data-n="${esc(base)}"${dd}${dc}>${text}</span>`;
-  };
+  const buffSpan = (text, base) =>
+    `<span class="xref" data-k="buff" ${buffDataAttrs(base, btips && btips[base])}>${text}</span>`;
   // Only touch text between tags so we never corrupt existing markup/attributes.
   // Track depth inside renderMarkup's class="mk" spans ([markup] tokens). The game
   // writes buff keywords in markup too (e.g. [Shared Pain:blood]), so being inside
@@ -617,6 +658,7 @@ function equipmentCard(e) {
     </div>
     ${desc}${bonuses}
     ${summonRow(e.summons, e.pool_summons)}
+    ${effectsRow(e.effects, e.btips)}
     <div class="section-label">Recipe · cost ${e.recipe_cost}</div>
     <div class="recipe">${recipe}</div>
     ${shareBtn('equipment', e.name)}`;
@@ -1063,6 +1105,7 @@ function componentCard(c) {
     </div>
     <div class="desc">${linkify(renderMarkup(c.desc), c.refs, c.btips)}</div>
     ${summonRow(c.summons, c.pool_summons)}
+    ${effectsRow(c.effects, c.btips)}
     ${shareBtn('component', c.name)}`;
   return card;
 }
@@ -1134,7 +1177,7 @@ function spellCard(s) {
     <div class="desc">${linkify(renderMarkup(s.desc), s.refs, s.btips)}</div>
     ${granted}
     ${stats ? `<div class="stats">${stats}</div>` : ''}
-    ${dt}${summonRow(s.summons, s.pool_summons)}${upg}
+    ${dt}${summonRow(s.summons, s.pool_summons)}${effectsRow(s.effects, s.btips)}${upg}
     ${shareBtn('spell', s.name)}`;
   return card;
 }

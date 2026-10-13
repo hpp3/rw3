@@ -80,9 +80,15 @@ The static site (`site/`) lets you:
   their art is spoiler-veiled, and a link preview would show it to everyone in the channel.)*
 - **Buff glossary tooltips** — named status effects that have no card of their own (e.g. an
   Alchemist's *Brewed Concoctions*) are surfaced as hover-only tooltips showing the buff's
-  description. Buff references are found by the same AST analysis (a card's code must actually
-  reference the buff class), so no prose false positives; buff terms get a dashed underline to
-  distinguish them from navigable links.
+  description, whether it's a buff or debuff, and its **Stack Type** (the game's own label —
+  Intensity / Duration / Refresh / Replace — plus what reapplying does; passives and item
+  effects have none, as in-game). Buff references are found by the same AST analysis (a card's
+  code must actually reference the buff class), so no prose false positives; buff terms get a
+  dashed underline to distinguish them from navigable links. Since most buffs never appear by
+  name in a card's text ("blinds", "poisons"), every spell / equipment / component card also
+  has an **Effects** row of chips listing each buff and debuff it applies — including its own
+  (Mystic Power's), upgrade-only ones (Occult Power), and component pickup buffs, which are
+  read by running the hook against an inert stand-in player.
 - **Summon stat sheets** — any spell, item, or component that summons a unit shows the
   unit(s) as chips; hovering one pops a floating stat sheet (HP, tags, resistances,
   movement, abilities with damage/range/cooldown, and passives) for every summonable unit.

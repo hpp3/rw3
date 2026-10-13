@@ -43,7 +43,7 @@ import Components
 import text
 from Level import (resolve_text, Tags, attr_colors, format_attr, tag_key, attr_key,
                    tag_label, Spell, Equipment as EquipmentBase, Component as ComponentBase,
-                   Buff as BuffBase, stat_names, BUFF_TYPE_CURSE)
+                   Buff as BuffBase, Upgrade as UpgradeBase, stat_names, BUFF_TYPE_CURSE)
 
 # ---------------------------------------------------------------------------
 # Color map: replicate RiftWizard3.tooltip_colors without importing the UI.
@@ -264,27 +264,38 @@ def buffs_from_tooltips(obj):
             pass
     return out
 
+def _described(buffs):
+    """[(buff, _describe_buff_instance(buff))], leaving the RNG as it found it (a
+    description can build things that draw from it; see buffs_with_upgrade)."""
+    st = random.getstate()
+    try:
+        return [(b, _describe_buff_instance(b)) for b in buffs]
+    finally:
+        random.setstate(st)
+
 def equipment_stat_tags(e):
-    """(modifies, uses) for a piece of equipment."""
+    """(modifies, uses, tooltip_buffs) for a piece of equipment; tooltip_buffs =
+    [(buff, description)] from its examine tooltips, for card_effects."""
     mods = collect_bonus_stats(e)
-    for b in buffs_from_tooltips(e):
+    tips = buffs_from_tooltips(e)
+    for b in tips:
         mods |= collect_bonus_stats(b)
     uses = set(getattr(e, 'stats', []))
-    return sorted(mods & STAT_KEYS_SET), sorted(uses & STAT_KEYS_SET)
+    return sorted(mods & STAT_KEYS_SET), sorted(uses & STAT_KEYS_SET), _described(tips)
 
 _MISSING = object()
 
 def buffs_with_upgrade(s, up):
-    """The buffs `s` grants once upgrade `up` is owned. Spells often build their
-    buff conditionally -- Mystic Power: `if self.get_stat('explosive_power'):
-    buff.global_bonuses['radius'] = 2` -- and with no caster get_stat() is just
-    the spell's own attribute, so the plain tooltip pass never sees those
-    bonuses. Give the spell the upgrade's attributes (as Upgrade.on_applied does
-    for new ones; existing ones get the bonus added), read the tooltips, restore.
-    The RNG is restored too: tooltips can construct units that draw from it, and
-    shifting main()'s seeded stream changes every random-stat unit after this.
-    Curses are dropped: 'modifies' means the player gains the bonus, and a debuff
-    on enemies (Twilight Gaze's Shrouded Twilight range penalty) is not that."""
+    """[(buff, description)] for the buffs `s` grants once upgrade `up` is owned.
+    Spells often build their buff conditionally -- Mystic Power: `if
+    self.get_stat('explosive_power'): buff.global_bonuses['radius'] = 2` -- and
+    with no caster get_stat() is just the spell's own attribute, so the plain
+    tooltip pass never sees those bonuses. Give the spell the upgrade's attributes
+    (as Upgrade.on_applied does for new ones; existing ones get the bonus added),
+    read the tooltips, restore. Descriptions are taken before restoring, so they
+    read the upgraded stats. The RNG is restored too: tooltips can construct units
+    that draw from it, and shifting main()'s seeded stream changes every
+    random-stat unit after this."""
     changes = dict(getattr(up, 'new_attributes', {}))
     for attr, amt in getattr(up, 'spell_bonuses', {}).get(type(s), {}).items():
         changes[attr] = getattr(s, attr, 0) + amt
@@ -295,7 +306,7 @@ def buffs_with_upgrade(s, up):
     try:
         for a, v in changes.items():
             setattr(s, a, v)
-        return [b for b in buffs_from_tooltips(s) if b.buff_type != BUFF_TYPE_CURSE]
+        return [(b, _describe_buff_instance(b)) for b in buffs_from_tooltips(s)]
     finally:
         for a, v in saved.items():
             if v is _MISSING:
@@ -305,31 +316,128 @@ def buffs_with_upgrade(s, up):
         random.setstate(st)
 
 def spell_stat_tags(s):
-    """(modifies, uses) for a spell. 'uses' = stats it has/scales with;
-    'modifies' = stats its upgrades or granted buffs add bonuses to for OTHER
+    """(modifies, uses, tooltip_buffs) for a spell. 'uses' = stats it has/scales
+    with; 'modifies' = stats its upgrades or granted buffs add bonuses to for OTHER
     spells/equipment (global, tag, or another spell's bonuses). Bonuses to the
     spell itself don't count -- Mystic Arcanum's "Mystic Power gains 8 duration"
     isn't Mystic Power modifying duration -- and neither do upgrades that give it
-    a stat it lacked (SpellUpgrade.new_attributes, also self-only)."""
+    a stat it lacked (SpellUpgrade.new_attributes, also self-only). Nor do curses
+    an upgrade adds: 'modifies' means the player gains the bonus, and a debuff on
+    enemies (Twilight Gaze's Shrouded Twilight range penalty) is not that.
+    tooltip_buffs = [(buff, description, upgrade name or None)] from the examine
+    tooltips, base and per upgrade, for card_effects."""
     uses = set(getattr(s, 'stats', []))
     mods = set()
     own = type(s)
+    tips = []
     for up in getattr(s, 'spell_upgrades', []):
         mods |= collect_bonus_stats(up, skip_spell=own)
-        for b in buffs_with_upgrade(s, up):
-            mods |= collect_bonus_stats(b, skip_spell=own)
-    for b in buffs_from_tooltips(s):
+        for b, info in buffs_with_upgrade(s, up):
+            tips.append((b, info, up.name))
+            if b.buff_type != BUFF_TYPE_CURSE:
+                mods |= collect_bonus_stats(b, skip_spell=own)
+    base = buffs_from_tooltips(s)
+    for b in base:
         mods |= collect_bonus_stats(b, skip_spell=own)
-    return sorted(mods & STAT_KEYS_SET), sorted(uses & STAT_KEYS_SET)
+    tips = [(b, info, None) for b, info in _described(base)] + tips
+    return sorted(mods & STAT_KEYS_SET), sorted(uses & STAT_KEYS_SET), tips
+
+def card_effects(btips, applied, tooltip_buffs=()):
+    """Names of every buff/debuff a card applies, for its Effects row. Most never
+    appear by name in the card's text ("blinds", "poisons"), and refs_for doesn't
+    link a buff named like the card itself (Mystic Power's own buff), so without
+    this row they're invisible. Sources: refs_for's AST-found buffs (`applied`,
+    via buff_sink) and the examine-tooltip instances (`tooltip_buffs`: base, then
+    per upgrade). A tooltip instance comes out of the game's own builder fully
+    configured (get_vision_buff sets stack_type after constructing), so its
+    stack/type override the AST instance's class defaults. A buff that only exists
+    with an upgrade is tagged `up`; one an upgrade makes stack differently under
+    the same name gets `stack_up` [[upgrade, label]] (Eye of Ice's Ice Array).
+    Spell upgrades and equipment are Buff subclasses too, but not statuses.
+    Writes the merged meta into btips (in place) so every chip has a tooltip and
+    inline links show the same stack type."""
+    def status(b, info):
+        return info and not isinstance(b, (UpgradeBase, EquipmentBase))
+    # A card that renames a buff at the call site (Healing Light: RegenBuff(5)
+    # named "Rejuvenation") still shows up to the AST under the class's default
+    # name ("Regeneration"); with the configured instance in hand, drop that.
+    configured = {}
+    for b, info, _up in tooltip_buffs:
+        if status(b, info):
+            configured.setdefault(type(b), set()).add(info[0])
+    metas = {}
+    for b, info in applied:
+        if status(b, info):
+            if info[0] not in configured.get(type(b), {info[0]}):
+                continue
+            metas.setdefault(info[0], dict(info[1]))
+    for b, info, up in tooltip_buffs:
+        if not status(b, info):
+            continue
+        name, meta = info
+        cur = metas.get(name)
+        if cur is None:
+            metas[name] = dict(meta, **({"up": up} if up else {}))
+        elif up is None:
+            for k in ("stack", "type"):
+                if k in meta: cur[k] = meta[k]
+                else: cur.pop(k, None)
+        elif "up" in cur:
+            continue                             # first upgrade that adds it wins
+        elif meta.get("stack") and meta.get("stack") != cur.get("stack"):
+            su = cur.setdefault("stack_up", [])
+            if [up, meta["stack"]] not in su:
+                su.append([up, meta["stack"]])
+    btips.update(metas)
+    return sorted(metas)
+
+class _Inert:
+    """Stand-in for whatever a component hook touches: every attribute, call or
+    item is the same inert object, which iterates as empty and is falsy, so the
+    hook can neither act on anything real nor loop on it."""
+    def __getattr__(self, name): return self
+    def __call__(self, *a, **k): return self
+    def __getitem__(self, key): return self
+    def __iter__(self): return iter(())
+    def __bool__(self): return False
+    def __len__(self): return 0
+
+class _RecordingPlayer(_Inert):
+    def __init__(self):
+        self.applied = []
+    def apply_buff(self, buff, duration=0, *a, **k):
+        self.applied.append(buff)
+
+def component_hook_buffs(cons, hooks):
+    """Buffs a component's on_pickup/on_craft applies to the player, as actually
+    configured. These hooks build a buff and then rename/restack it at the call
+    site (Shielding Shard: ShieldRegenBuff(20), name = "Shielding Shard",
+    stack_type = STACK_INTENSITY), which the AST only sees as the class default.
+    Each hook runs on a fresh instance against inert stand-ins (anything past the
+    apply_buff that needs a real player just raises, which is fine); RNG restored."""
+    out = []
+    st = random.getstate()
+    try:
+        for hook in hooks:
+            p = _RecordingPlayer()
+            try:
+                getattr(cons(), hook)(p, _Inert())
+            except Exception:
+                pass
+            out.extend(p.applied)
+    finally:
+        random.setstate(st)
+    return out
 
 def granted_buff_stats(buffs, own=None):
     """Stats the buffs a card's code applies grant bonuses to: refs_for's buff
-    instances (via buff_sink), which catch buffs only built inside cast/trigger
-    code and never exposed as a tooltip -- Death Bolt's Soul Battery applies
-    SoulCharge() in cast(), "+1 damage to Dark spells and equipment". Curses and
-    bonuses to `own` (the spell itself) are excluded, as in spell_stat_tags."""
+    (instance, description) pairs (via buff_sink), which catch buffs only built
+    inside cast/trigger code and never exposed as a tooltip -- Death Bolt's Soul
+    Battery applies SoulCharge() in cast(), "+1 damage to Dark spells and
+    equipment". Curses and bonuses to `own` (the spell itself) are excluded, as
+    in spell_stat_tags."""
     out = set()
-    for b in buffs:
+    for b, _info in buffs:
         if getattr(b, 'buff_type', None) == BUFF_TYPE_CURSE:
             continue
         out |= collect_bonus_stats(b, skip_spell=own)
@@ -708,7 +816,18 @@ def _describe_buff_instance(b):
     if not desc:
         return None
     col = getattr(b, 'color', None)
-    return name, {"desc": desc, "color": to_tup(col) if isinstance(col, Color) else None}
+    meta = {"desc": desc, "color": to_tup(col) if isinstance(col, Color) else None}
+    # The game's own labels, exactly as its examine panel shows them: "Stack Type:
+    # Intensity/Duration/Refresh/Replace" and Buff/Debuff. Both are None for
+    # passives and item effects, which the game doesn't label either.
+    for key, meth in (("stack", "get_stacking_label"), ("type", "get_buff_type_label")):
+        try:
+            v = getattr(b, meth)()
+        except Exception:
+            v = None
+        if v:
+            meta[key] = v
+    return name, meta
 
 def _construct_buff(cls):
     """Instantiate a Buff for its name/description. Many buffs need constructor
@@ -874,8 +993,9 @@ def refs_for(instance, entry, self_name, buff_sink=None):
     """Return (refs, btips): refs = [[display_name, kind], …] this entity
     references in its code; btips = {buff_name: {desc, color}} resolved from the
     actual class + args the source applies (so tooltips are exact, per site).
-    `buff_sink`, if a list, receives every buff instance built along the way —
-    linked or not — for stat tagging (granted_buff_stats)."""
+    `buff_sink`, if a list, receives (instance, _describe_buff_instance result) for
+    every buff built along the way — linked or not, self-named included — for
+    stat tagging (granted_buff_stats) and the Effects row (card_effects)."""
     scan_objs = _scan_objects(instance, entry)
 
     # Each name is resolved in the namespace of the source it appears in (never a
@@ -937,9 +1057,9 @@ def refs_for(instance, entry, self_name, buff_sink=None):
         out.append([name, 'unit'])
     for cls_, args in buff_hits.items():
         b = _instantiate_buff(cls_, args)        # built once: buff ctors may draw on the RNG
-        if buff_sink is not None and b is not None:
-            buff_sink.append(b)
         info = _describe_buff_instance(b)
+        if buff_sink is not None and b is not None:
+            buff_sink.append((b, info))
         if not info:                             # can't describe it -> don't link it
             continue
         name, meta = info
@@ -1177,10 +1297,11 @@ def _spell_entry(s, cons, forbidden=False, granted_by=None):
             "level": getattr(u, 'level', 0),
             "desc": "\n".join(parts),
         })
-    mod_stats, use_stats = spell_stat_tags(s)
+    mod_stats, use_stats, tip_buffs = spell_stat_tags(s)
     applied = []
     refs, btips = refs_for(s, cons, s.name, buff_sink=applied)
     mod_stats = sorted(set(mod_stats) | granted_buff_stats(applied, own=type(s)))
+    effects = card_effects(btips, applied, tip_buffs)
     entry = {
         "name": s.name,
         "level": s.level,
@@ -1196,6 +1317,7 @@ def _spell_entry(s, cons, forbidden=False, granted_by=None):
         "pool_summons": pools_referenced(s, cons),
         "refs": refs,
         "btips": btips,
+        "effects": effects,
         "mod_stats": mod_stats,
         "use_stats": use_stats,
         "icon": asset_filename(s.get_asset()),
@@ -1269,7 +1391,7 @@ def extract_equipment():
             recipe.append([tag.name, int(amt)])
         desc = rtext(e.get_description() or "", fmt=e.fmt_dict())
         bonus_lines = render_bonus_lines(e)
-        mod_stats, use_stats = equipment_stat_tags(e)
+        mod_stats, use_stats, tip_buffs = equipment_stat_tags(e)
         # A SpellBook/staff delegates its examine tooltips to the spell it grants,
         # so summons_of(e) picks up the SPELL's summons (e.g. Word of Chaos's
         # Chaos Spirit) and misattributes them to the book. Those belong to the
@@ -1281,6 +1403,7 @@ def extract_equipment():
         applied = []
         refs, btips = refs_for(e, cons, e.name, buff_sink=applied)
         mod_stats = sorted(set(mod_stats) | granted_buff_stats(applied))
+        effects = card_effects(btips, applied, [(b, i, None) for b, i in tip_buffs])
         out.append({
             "name": e.name,
             "slot": SLOT_NAMES.get(getattr(e, 'slot', 0), "Trinket"),
@@ -1293,6 +1416,7 @@ def extract_equipment():
             "pool_summons": pools_referenced(e, cons),
             "refs": refs,
             "btips": btips,
+            "effects": effects,
             "mod_stats": mod_stats,
             "use_stats": use_stats,
             "icon": asset_filename(e.get_asset()),
@@ -1317,7 +1441,11 @@ def extract_components():
             tier = tier_of.get(cons, len(c.tags))
             has_craft = type(c).on_craft is not ComponentBase.on_craft
             has_pickup = type(c).on_pickup is not ComponentBase.on_pickup
-            refs, btips = refs_for(c, cons, c.name)
+            applied = []
+            refs, btips = refs_for(c, cons, c.name, buff_sink=applied)
+            hooks = [h for h, has in (('on_pickup', has_pickup), ('on_craft', has_craft)) if has]
+            hooked = [(b, i, None) for b, i in _described(component_hook_buffs(cons, hooks))]
+            effects = card_effects(btips, applied, hooked)
             out.append({
                 "name": c.name,
                 "tags": [t.name for t in c.tags],
@@ -1331,6 +1459,7 @@ def extract_components():
                 "pool_summons": pools_referenced(c, cons),
                 "refs": refs,
                 "btips": btips,
+                "effects": effects,
                 "icon": asset_filename(c.get_asset()),
             })
     out.sort(key=lambda d: (d["tier"], d["name"]))
@@ -1442,7 +1571,7 @@ def main():
     valid = {'spell': {s['name'] for s in spells},
              'equipment': {e['name'] for e in equipment},
              'unit': set(UNITS.keys())}
-    def finalize(entity_name, refs, btips):
+    def finalize(entity_name, refs, btips, effects=()):
         kept = []
         for r in refs:
             if r[1] == 'buff':
@@ -1455,10 +1584,14 @@ def main():
                     kept.append(r)
             elif r[0] in valid.get(r[1], ()):
                 kept.append(r)
-        keep_buffs = {r[0] for r in kept if r[1] == 'buff'}
+        # The Effects row lists every buff the card applies, including ones the
+        # rule above won't inline-link (Poison Sting still applies Poison), so
+        # keep their tooltips too.
+        keep_buffs = {r[0] for r in kept if r[1] == 'buff'} | set(effects)
         return kept, {n: v for n, v in btips.items() if n in keep_buffs}
     for it in spells + equipment + components:
-        it['refs'], it['btips'] = finalize(it['name'], it['refs'], it.get('btips', {}))
+        it['refs'], it['btips'] = finalize(it['name'], it['refs'], it.get('btips', {}),
+                                           it.get('effects', ()))
     for name, sheet in UNITS.items():
         sheet['refs'], sheet['btips'] = finalize(name, sheet['refs'], sheet.get('btips', {}))
     # Stable integer ids for shareable build URLs (append-only; see ids.py).

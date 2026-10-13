@@ -54,7 +54,7 @@ KINDS = [("spells", "spell"), ("equipment", "equipment"),
 # ---------------------------------------------------------------------------
 # Derived/plumbing fields: an id shuffle or a new cross-ref is not a balance
 # change, so comparing them would report noise on every build.
-DERIVED = {"id", "sp_id", "icon", "has_icon", "refs", "btips",
+DERIVED = {"id", "sp_id", "icon", "has_icon", "refs", "btips", "effects",
            "mod_stats", "use_stats", "pools", "pool_summons"}
 
 # A single build that rewrites more than this share of a kind is extraction
