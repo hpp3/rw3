@@ -228,6 +228,11 @@ function wireTooltips() {
   });
   document.addEventListener('scroll', hideTip, true);
 }
+// Equipment's "Attributes:" section, as the game's examine panel lists it.
+function attrPills(attrs) {
+  const pills = Object.entries(attrs || {}).map(([k, v]) => `<span class="stat">${STAT_LABEL[k] || k} <b>${v}</b></span>`).join('');
+  return pills ? `<div class="stats" style="margin-top:6px">${pills}</div>` : '';
+}
 function renderEquipSheet(name) {
   const e = EQ_BY_NAME[name];
   if (!e) return `<div class="unit-sheet"><div class="uname">${esc(name)}</div></div>`;
@@ -241,7 +246,7 @@ function renderEquipSheet(name) {
         <div class="card-meta"><span class="badge slot">${esc(e.slot)}</span>${e.tags.map(tagPill).join('')}</div>
       </div>
     </div>
-    ${desc}${bonuses}
+    ${desc}${bonuses}${attrPills(e.attributes)}
   </div>`;
 }
 function renderComponentSheet(name) {
@@ -306,7 +311,7 @@ function renderUpgradeSheet(spellName, upgradeName) {
 // the game's own labels (Buff.get_stacking_label / get_buff_type_label), absent for
 // passives and item effects — the game shows neither for those.
 function renderBuffSheet(name, t) {
-  const col = t.color ? rgb(t.color) : 'var(--fg)';
+  const col = t.color ? rgb(t.color) : '#fff';
   const badge = t.type ? t.type.toLowerCase() : 'buff';
   // Worded as the game's examine panel words it ("Stack Type: Intensity").
   const stack = t.stack
@@ -353,7 +358,8 @@ function effectsRow(effects, btips) {
   if (!effects || !effects.length) return '';
   const chips = effects.map(n => {
     const t = (btips || {})[n] || {};
-    const dot = t.color ? `<i class="buff-dot" style="background:${rgb(t.color)}"></i>` : '';
+    // No color set: white, as the game's Buff.get_tooltip_color falls back to.
+    const dot = `<i class="buff-dot" style="background:${t.color ? rgb(t.color) : '#fff'}"></i>`;
     return `<span class="xref buff-chip" data-k="buff" ${buffDataAttrs(n, t)} tabindex="0">${dot}${esc(n)}</span>`;
   });
   return `<div class="summon-row effects-row"><span class="section-label">Effects</span><div class="summon-chips">${chips.join('')}</div></div>`;
@@ -650,7 +656,7 @@ function equipmentCard(e) {
       </div>
       <button class="add-build${WISH.has(e.name) ? ' in' : ''}" data-add="${esc(e.name)}">${WISH.has(e.name) ? '✓ Added' : '＋ Wishlist'}</button>
     </div>
-    ${desc}${bonuses}
+    ${desc}${bonuses}${attrPills(e.attributes)}
     ${summonRow(e.summons, e.pool_summons)}
     ${effectsRow(e.effects, e.btips)}
     <div class="section-label">Recipe · cost ${e.recipe_cost}</div>

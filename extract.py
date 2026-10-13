@@ -843,6 +843,12 @@ def _construct_buff(cls):
     return None
 
 def _buff_text(b):
+    """A buff's examine text, assembled the way RiftWizard3.draw_examine_upgrade
+    does for any Buff: the auto-generated stat-bonus and resist lines first, then
+    its prose. Both, not either -- Petrified is "Cannot act" AND its resists, and
+    pure-stat buffs (Conductivity: -100% Lightning resist) have only the lines.
+    upgrade_bonus_lines is the mirror of that routine's auto-generated part."""
+    prose = ""
     for meth in ('get_description', 'get_tooltip'):
         f = getattr(b, meth, None)
         if not f:
@@ -857,20 +863,15 @@ def _buff_text(b):
                 # real spell). That description is an artifact, not real text.
                 if re.search(r'(?<![A-Za-z])None(?![A-Za-z])', rendered):
                     return ""
-                return rendered
+                prose = rendered
+                break
         except Exception:
             continue
-    # No prose: fall back to the buff's mechanical effect lines (resists / stat
-    # bonuses). Many status buffs are pure stat effects with no get_description —
-    # e.g. Conductivity is just -100% Lightning resist — and the game builds their
-    # tooltip from these the same way it does for equipment (render_bonus_lines).
     try:
-        lines = render_bonus_lines(b)
-        if lines:
-            return "\n".join(lines)
+        lines = upgrade_bonus_lines(b)
     except Exception:
-        pass
-    return ""
+        lines = []
+    return "\n".join(lines + ([prose] if prose else []))
 
 
 _MISSING = object()   # distinct-from-None sentinel for dict lookups
@@ -1391,6 +1392,10 @@ def extract_equipment():
             recipe.append([tag.name, int(amt)])
         desc = rtext(e.get_description() or "", fmt=e.fmt_dict())
         bonus_lines = render_bonus_lines(e)
+        # The examine panel's "Attributes:" section (draw_examine_upgrade): every
+        # TT_ATTRS stat the item has, in the game's order, shown even if the prose
+        # never mentions it (Acanthine Armillary's vines: minion HP/damage/range).
+        attributes = {a: e.get_stat(a) for a in TT_ATTRS if hasattr(e, a)}
         mod_stats, use_stats, tip_buffs = equipment_stat_tags(e)
         # A SpellBook/staff delegates its examine tooltips to the spell it grants,
         # so summons_of(e) picks up the SPELL's summons (e.g. Word of Chaos's
@@ -1412,6 +1417,7 @@ def extract_equipment():
             "recipe_cost": sum(a for _, a in recipe),
             "desc": desc,
             "bonuses": bonus_lines,
+            "attributes": attributes,
             "summons": summons,
             "pool_summons": pools_referenced(e, cons),
             "refs": refs,
