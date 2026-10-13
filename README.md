@@ -80,9 +80,8 @@ The static site (`site/`) lets you:
   their art is spoiler-veiled, and a link preview would show it to everyone in the channel.)*
 - **Buff glossary tooltips** — named status effects that have no card of their own (e.g. an
   Alchemist's *Brewed Concoctions*) are surfaced as hover-only tooltips showing the buff's
-  description, whether it's a buff or debuff, and its **Stack Type** (the game's own label —
-  Intensity / Duration / Refresh / Replace — plus what reapplying does; passives and item
-  effects have none, as in-game). Buff references are found by the same AST analysis (a card's
+  description, whether it's a buff or debuff, and its **Stack Type** (the game's own label:
+  Intensity / Duration / Refresh / Replace; passives and item effects have none, as in-game). Buff references are found by the same AST analysis (a card's
   code must actually reference the buff class), so no prose false positives; buff terms get a
   dashed underline to distinguish them from navigable links. Since most buffs never appear by
   name in a card's text ("blinds", "poisons"), every spell / equipment / component card also

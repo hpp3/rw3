@@ -308,11 +308,12 @@ function renderUpgradeSheet(spellName, upgradeName) {
 function renderBuffSheet(name, t) {
   const col = t.color ? rgb(t.color) : 'var(--fg)';
   const badge = t.type ? t.type.toLowerCase() : 'buff';
+  // Worded as the game's examine panel words it ("Stack Type: Intensity").
   const stack = t.stack
-    ? `<div class="buff-stack">Stack Type: <b>${esc(t.stack)}</b>${STACK_HOW[t.stack] ? ` <span class="muted">— ${STACK_HOW[t.stack]}</span>` : ''}${
-        (t.stack_up || []).map(([up, lbl]) => `<div class="muted">${esc(lbl)} with ${esc(up)}</div>`).join('')}</div>`
+    ? `<div class="buff-stack">Stack Type: ${esc(t.stack)}${
+        (t.stack_up || []).map(([up, lbl]) => `<div class="muted">${esc(up)}: ${esc(lbl)}</div>`).join('')}</div>`
     : '';
-  const up = t.up ? `<div class="buff-stack muted">Only with ${esc(t.up)}</div>` : '';
+  const up = t.up ? `<div class="buff-stack muted">Requires ${esc(t.up)}</div>` : '';
   return `<div class="unit-sheet buff-sheet">
     <div class="uhead">
       <div class="uhmeta">
@@ -323,13 +324,6 @@ function renderBuffSheet(name, t) {
     ${t.desc ? `<div class="udesc">${renderMarkup(t.desc)}</div>` : ''}${stack}${up}
   </div>`;
 }
-// What re-applying does, per Unit.apply_buff (the game itself shows only the label).
-const STACK_HOW = {
-  Intensity: 'each application is a separate stack, and their effects add up',
-  Duration: 'reapplying adds the new duration to the turns left',
-  Refresh: 'reapplying keeps whichever duration is longer',
-  Replace: 'reapplying replaces the current one',
-};
 // The btips entry, embedded on each buff link/chip so every reference site shows the
 // values it actually applies (RegenBuff(1) vs RegenBuff(10)).
 function buffDataAttrs(name, t) {
