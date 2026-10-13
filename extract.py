@@ -20,6 +20,7 @@ class _StubModule(types.ModuleType):
 sys.modules.setdefault('SteamAdapter', _StubModule('SteamAdapter'))
 
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
+GAME = os.environ.get("RW3_GAME_DIR") or GAME  # override, e.g. a SteamCMD install on macOS
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 import ids as ids_mod  # stable append-only id assignment (HERE-relative; safe before chdir)

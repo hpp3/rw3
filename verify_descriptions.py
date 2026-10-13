@@ -24,6 +24,7 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
+GAME = os.environ.get("RW3_GAME_DIR") or GAME  # override, e.g. a SteamCMD install on macOS
 import gameinfo  # HERE-relative; import before chdir
 # Compare against the data file for whichever branch is currently checked out.
 DATA_FILE = gameinfo.data_filename(gameinfo.branch_info(GAME)["id"])

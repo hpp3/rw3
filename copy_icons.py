@@ -9,6 +9,7 @@ import os, json, shutil
 import gameinfo
 
 GAME = r"E:\SteamLibrary\steamapps\common\Rift Wizard 3"
+GAME = os.environ.get("RW3_GAME_DIR") or GAME  # override, e.g. a SteamCMD install on macOS
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(HERE, "site")
 DATA_FILE = gameinfo.data_filename(gameinfo.branch_info(GAME)["id"])

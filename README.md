@@ -107,7 +107,9 @@ python -m venv .venv
 
 The build reads **only** from the game install dir
 (`E:\SteamLibrary\steamapps\common\Rift Wizard 3`, set at the top of `extract.py` /
-`copy_icons.py`) and writes only into `site/`. Update that path if your install differs.
+`copy_icons.py`) and writes only into `site/`. Update that path if your install differs,
+or set `RW3_GAME_DIR` to override it without editing the scripts (e.g. a SteamCMD install on
+macOS: `~/Library/Application Support/Steam/steamapps/common/Rift Wizard 3`).
 
 ### Live vs beta versions
 
