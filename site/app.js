@@ -1511,6 +1511,7 @@ function monsterCard(u) {
     ${resists ? `<div class="uresists">${resists}</div>` : ''}
     ${abilities ? `<div class="usec">Abilities</div>${abilities}` : ''}
     ${passives ? `<div class="usec">Passives</div>${passives}` : ''}
+    ${effectsRow(u.effects, u.btips)}
     ${shareBtn('unit', u.name)}`;
   return card;
 }

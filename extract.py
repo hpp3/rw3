@@ -1518,7 +1518,8 @@ def main():
         inst = _safe_call(fac) if fac else None
         if inst is None:
             return None
-        refs, btips = refs_for(inst, fac, name)
+        applied = []
+        refs, btips = refs_for(inst, fac, name, buff_sink=applied)
         # (Summons a unit's abilities make are picked up by refs_for's namespace
         # resolution — `SimpleSummon(CopperImp)` names CopperImp in the source. We
         # deliberately don't fall back to summons_of here: it constructs the
@@ -1530,7 +1531,10 @@ def main():
         # u.buffs (e.g. the Alchemist's Brewed Concoctions), so they stay.
         own = {getattr(b, 'name', None) for b in getattr(inst, 'buffs', [])}
         refs = [r for r in refs if not (r[1] == 'buff' and r[0] in own)]
-        return refs, btips, pools_referenced(inst, fac)
+        # Effects row: what its abilities/triggers apply (Poison, Stun, an ally's
+        # Berserk), minus those same own buffs, which Passives already shows.
+        effects = [n for n in card_effects(btips, applied) if n not in own]
+        return refs, btips, pools_referenced(inst, fac), effects
 
     queue = list(UNITS.keys())
     while queue:
@@ -1540,7 +1544,8 @@ def main():
         got = compute_unit_refs(name)
         if got is None:
             continue
-        UNITS[name]["refs"], UNITS[name]["btips"], UNITS[name]["pool_summons"] = got
+        (UNITS[name]["refs"], UNITS[name]["btips"], UNITS[name]["pool_summons"],
+         UNITS[name]["effects"]) = got
         for r in UNITS[name]["refs"]:
             if r[1] == 'unit' and r[0] not in UNITS:
                 nf = UNIT_FACTORY.get(r[0])
@@ -1593,7 +1598,8 @@ def main():
         it['refs'], it['btips'] = finalize(it['name'], it['refs'], it.get('btips', {}),
                                            it.get('effects', ()))
     for name, sheet in UNITS.items():
-        sheet['refs'], sheet['btips'] = finalize(name, sheet['refs'], sheet.get('btips', {}))
+        sheet['refs'], sheet['btips'] = finalize(name, sheet['refs'], sheet.get('btips', {}),
+                                                 sheet.get('effects', ()))
     # Stable integer ids for shareable build URLs (append-only; see ids.py).
     # Mutates ids.json on disk — it MUST be committed alongside data.json.
     idmap = ids_mod.load_ids()
