@@ -1284,6 +1284,31 @@
      "unit": [
       "Steam Elemental"
      ]
+    },
+    "2026-10-12": {
+     "component": [
+      "Ball Lightning"
+     ],
+     "equipment": [
+      "Acanthine Armillary",
+      "Constellation Cloak",
+      "Crown of Ea",
+      "Death Fob",
+      "Empyrean Astrolabe",
+      "Flame of Findias",
+      "Glaive of Gorias",
+      "Masseter's Mace",
+      "Mazer of Murias",
+      "Tzango's Cleaver"
+     ],
+     "spell": [
+      "Orb of Explosions",
+      "Orb of Reflection"
+     ],
+     "unit": [
+      "Orb of Explosions",
+      "Orb of Reflection"
+     ]
     }
    },
    "baseline": {
@@ -1301,7 +1326,8 @@
     "2026-07-30": "24443072",
     "2026-08-13": "24721540",
     "2026-08-18": "24783609",
-    "2026-09-01": "24995190"
+    "2026-09-01": "24995190",
+    "2026-10-12": "25891047"
    },
    "changed": {
     "2026-08-13": {
@@ -2569,6 +2595,246 @@
         "f": "passives",
         "n": "Gain [2 SH:shields] each turn",
         "o": "Gain [1 SH:shields] each turn"
+       }
+      ]
+     }
+    },
+    "2026-10-12": {
+     "equipment": {
+      "Aetherlord Staff": [
+       {
+        "f": "desc",
+        "n": "When you cast a level 4 or higher [Arcane] spell, summon a Void Elder nearby",
+        "o": "When you cast a level 5 or higher [Arcane] spell, summon a Void Elder nearby"
+       }
+      ],
+      "Armor of Nanuk": [
+       {
+        "f": "desc",
+        "n": "At the beginning of each level, summon [3:num_summons] Armored Polar Bears",
+        "o": "At the beginning of each level, summon [2:num_summons] Armored Polar Bears"
+       }
+      ],
+      "Backtrackers": [
+       {
+        "f": "recipe",
+        "n": "Translocation x1; Any x3",
+        "o": "Translocation x2; Any x2"
+       }
+      ],
+      "Orb Controller's Mitts": [
+       {
+        "f": "desc",
+        "n": "Casting an [Orb] spell to relocate it refunds the spell's charge and causes it to take an extra turn",
+        "o": "Casting an [Orb] spell to relocate it refunds the spell's charge"
+       }
+      ],
+      "Orrery of the Unnamed One": [
+       {
+        "f": "bonuses",
+        "n": "[Orb:orb] spells and equipment gain [1000% Minion Health:minion_health]",
+        "o": "[Orb:orb] spells and equipment gain [100% Minion Health:minion_health]"
+       }
+      ]
+     },
+     "spell": {
+      "Blinding Light": [
+       {
+        "f": "upgrades: Halting Light.desc",
+        "n": "[Stuns] affected enemies for [2:duration] turns",
+        "o": "[Stuns] affected enemies for [2 turn:duration] turns"
+       }
+      ],
+      "Death Clock": [
+       {
+        "f": "upgrades: Ritual of Mortality",
+        "op": "removed"
+       },
+       {
+        "f": "upgrades: Ritual of Acceleration",
+        "op": "added"
+       }
+      ],
+      "Demonic Ritual": [
+       {
+        "f": "stats.hp_cost",
+        "n": "33",
+        "o": "66"
+       },
+       {
+        "f": "upgrades: Grand Ritual.level",
+        "n": "6",
+        "o": "7"
+       },
+       {
+        "f": "upgrades: Inviolate Ritual.level",
+        "n": "2",
+        "o": "3"
+       },
+       {
+        "f": "upgrades: The Gate and the Key.level",
+        "n": "4",
+        "o": "5"
+       }
+      ],
+      "Fireball": [
+       {
+        "f": "stats.max_charges",
+        "n": "14",
+        "o": "12"
+       }
+      ],
+      "Heavenly Blast": [
+       {
+        "f": "stats.max_charges",
+        "n": "12",
+        "o": "10"
+       },
+       {
+        "f": "upgrades: Judgement.desc",
+        "n": "Holy Blast deals triple damage to enemies at full health",
+        "o": "Holy Blast deals double damage to enemies at full health"
+       },
+       {
+        "f": "upgrades: Shield.desc",
+        "n": "Affected allies gain [3 SH:shields]",
+        "o": "Affected allies gain [2 SH:shields]"
+       },
+       {
+        "f": "upgrades: Spirit Bind.desc",
+        "n": "Heavenly Blast gains [4 Minion Health:minion_health]\nHeavenly Blast gains [2 Minion Damage:minion_damage]\nHeavenly Blast gains [3 Minion Range:minion_range]\nHeavenly Blast gains [12 Minion Duration:minion_duration]\nSlain enemies are raised as temporary Holy Ghosts",
+        "o": "Heavenly Blast gains [4 Minion Health:minion_health]\nHeavenly Blast gains [2 Minion Damage:minion_damage]\nHeavenly Blast gains [3 Minion Range:minion_range]\nHeavenly Blast gains [7 Minion Duration:minion_duration]\nSlain enemies are raised as temporary Holy Ghosts"
+       }
+      ],
+      "Iceball": [
+       {
+        "f": "upgrades: Fae Ball.desc",
+        "n": "Iceball gains [9 Minion Health:minion_health]\nIceball gains [2 Minion Damage:minion_damage]\nIceball gains [4 Minion Range:minion_range]\nWhen you cast Iceball, summon an Ice Faery for every 3 enemies it damages\nAdds the [Conjuration:conjuration] tag",
+        "o": "Iceball gains [9 Minion Health:minion_health]\nIceball gains [2 Minion Damage:minion_damage]\nIceball gains [4 Minion Range:minion_range]\nWhen you cast Iceball, summon an Ice Faery for every 4 enemies it damages\nAdds the [Conjuration:conjuration] tag"
+       }
+      ],
+      "Icicle": [
+       {
+        "f": "stats.max_charges",
+        "n": "16",
+        "o": "14"
+       }
+      ],
+      "Lifedrain": [
+       {
+        "f": "stats.max_charges",
+        "n": "18",
+        "o": "16"
+       }
+      ],
+      "Lightning Bolt": [
+       {
+        "f": "stats.max_charges",
+        "n": "16",
+        "o": "14"
+       }
+      ],
+      "Magic Missile": [
+       {
+        "f": "upgrades: Arcane Crossfire.desc",
+        "n": "Magic Missile gains [3 Num Targets:num_targets]\nWhen you manually cast Magic Missile, up to [3:num_targets] [Arcane] allies in line of sight of the target cast Magic Missile at the target",
+        "o": "Magic Missile gains [3 Num Targets:num_targets]\nWhen you manually cast Magic Missile, up to [3:num_targets] additional missiles are fired by [Arcane] allies in line of sight of the target"
+       }
+      ],
+      "Pyrostatic Curse": [
+       {
+        "f": "upgrades: Resistance Melting.desc",
+        "n": "Pyrostatic Curse removes 50% [Fire] and [Lightning] resist from affected targets",
+        "o": "Pyrostatic Curse removes [50% Fire:fire] resist from affected targets"
+       }
+      ],
+      "Ruinous Offering": [
+       {
+        "f": "desc",
+        "n": "Empower one of your other spells at the cost of your life\nGain a stacking [33%:blood] bonus to the attributes of another [Chaos] or [Blood] spell you know\nLasts [12:duration] turns",
+        "o": "Empower one of your other spells at the cost of your life\nGain a stacking [25%:blood] bonus to the attributes of another [Chaos] or [Blood] spell you know\nLasts [12:duration] turns"
+       },
+       {
+        "f": "stats.hp_cost",
+        "n": "33",
+        "o": "50"
+       },
+       {
+        "f": "upgrades: Blessing of Ruin.level",
+        "n": "6",
+        "o": "7"
+       },
+       {
+        "f": "upgrades: Panoply of Ruin.level",
+        "n": "1",
+        "o": "2"
+       },
+       {
+        "f": "upgrades: Ruinous Gate.level",
+        "n": "2",
+        "o": "3"
+       },
+       {
+        "f": "upgrades: Sanguine Renewal.level",
+        "n": "5",
+        "o": "6"
+       }
+      ],
+      "Scourge": [
+       {
+        "f": "upgrades: Ascension.desc",
+        "n": "When a Scourged [Demon] dies, cast a random [Holy] [Conjuration] spell you know at that location",
+        "o": "When a Scourged [Demon] dies, casts a random [Holy] [Conjuration] you know at that location"
+       }
+      ],
+      "Teleport": [
+       {
+        "f": "upgrades: Assassinate.desc",
+        "n": "Teleport gains [60 Damage:damage]\nTeleport gains [3 Duration:duration]\nIf you Teleport adjacent to an enemy who could not see your original location, attempt to assassinate them, inflicting [60:damage] [Arcane] damage and [3:duration] turns of [silence]\nIf Teleport kills an enemy, the Teleport charge is refunded",
+        "o": "Teleport gains [60 Damage:damage]\nTeleport gains [3 Duration:duration]\nIf you Teleport adjacent to an enemy who could not see your original location, attempt to assassinate them, inflicting [60:damage] [Arcane] damage and [3:duration] turns of [silence]\nIf this kills an enemy, the Teleport charge is refunded"
+       },
+       {
+        "f": "upgrades: Group Teleport.desc",
+        "n": "Teleport gains [10 Num Targets:num_targets]\nAlso teleports up to [10:num_targets] random allies to locations near the destination",
+        "o": "Teleport gains [10 Num Targets:num_targets]\nAlso teleports up to [10:num_targets] allies to locations near the destination"
+       }
+      ],
+      "Temporal Transfusion": [
+       {
+        "f": "upgrades: Ritual of Haste.level",
+        "n": "4",
+        "o": "8"
+       }
+      ]
+     },
+     "unit": {
+      "Bat Dragon": [
+       {
+        "f": "hp",
+        "n": "48",
+        "o": "38"
+       },
+       {
+        "f": "resists.Dark",
+        "n": "75",
+        "o": "50"
+       }
+      ],
+      "Eagle": [
+       {
+        "f": "abilities: Claw.damage",
+        "n": "5",
+        "o": "6"
+       },
+       {
+        "f": "abilities: Dive.damage",
+        "n": "5",
+        "o": "6"
+       },
+       {
+        "f": "hp",
+        "n": "22",
+        "o": "18"
        }
       ]
      }

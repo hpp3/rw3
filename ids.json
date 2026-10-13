@@ -365,7 +365,17 @@
     "Backtrackers": 362,
     "Bishop Boots": 363,
     "Castellan Clogs": 364,
-    "Shattering Frost Manual": 365
+    "Shattering Frost Manual": 365,
+    "Acanthine Armillary": 366,
+    "Constellation Cloak": 367,
+    "Crown of Ea": 368,
+    "Death Fob": 369,
+    "Empyrean Astrolabe": 370,
+    "Flame of Findias": 371,
+    "Glaive of Gorias": 372,
+    "Masseter's Mace": 373,
+    "Mazer of Murias": 374,
+    "Tzango's Cleaver": 375
   },
   "sp": {
     "Amalgamate Slime": 0,
@@ -1365,7 +1375,18 @@
     "Word of Beauty::Venomous Word": 994,
     "Golden Skull::Golden Wheel": 995,
     "Drain Pulse::World Drain": 996,
-    "Shatter::Steam Anima": 997
+    "Shatter::Steam Anima": 997,
+    "Death Clock::Ritual of Acceleration": 998,
+    "Orb of Explosions": 999,
+    "Orb of Explosions::Crossfire": 1000,
+    "Orb of Explosions::Detonator": 1001,
+    "Orb of Explosions::Motion Sensors": 1002,
+    "Orb of Explosions::Supercritical": 1003,
+    "Orb of Reflection": 1004,
+    "Orb of Reflection::Cursed Reflection": 1005,
+    "Orb of Reflection::Inverted Mirror": 1006,
+    "Orb of Reflection::Prismatic Reflection": 1007,
+    "Orb of Reflection::Shattered Orb": 1008
   },
   "spell": {
     "Amalgamate Slime": 0,
@@ -1553,6 +1574,8 @@
     "Wheel of Death": 182,
     "Wizard Replica": 183,
     "Wolf": 184,
-    "Wyrm Eggs": 185
+    "Wyrm Eggs": 185,
+    "Orb of Explosions": 186,
+    "Orb of Reflection": 187
   }
 }
