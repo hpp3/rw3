@@ -43,7 +43,7 @@ import Components
 import text
 from Level import (resolve_text, Tags, attr_colors, format_attr, tag_key, attr_key,
                    tag_label, Spell, Equipment as EquipmentBase, Component as ComponentBase,
-                   Buff as BuffBase, stat_names)
+                   Buff as BuffBase, stat_names, BUFF_TYPE_CURSE)
 
 # ---------------------------------------------------------------------------
 # Color map: replicate RiftWizard3.tooltip_colors without importing the UI.
@@ -268,6 +268,38 @@ def equipment_stat_tags(e):
     uses = set(getattr(e, 'stats', []))
     return sorted(mods & STAT_KEYS_SET), sorted(uses & STAT_KEYS_SET)
 
+_MISSING = object()
+
+def buffs_with_upgrade(s, up):
+    """The buffs `s` grants once upgrade `up` is owned. Spells often build their
+    buff conditionally -- Mystic Power: `if self.get_stat('explosive_power'):
+    buff.global_bonuses['radius'] = 2` -- and with no caster get_stat() is just
+    the spell's own attribute, so the plain tooltip pass never sees those
+    bonuses. Give the spell the upgrade's attributes (as Upgrade.on_applied does
+    for new ones; existing ones get the bonus added), read the tooltips, restore.
+    The RNG is restored too: tooltips can construct units that draw from it, and
+    shifting main()'s seeded stream changes every random-stat unit after this.
+    Curses are dropped: 'modifies' means the player gains the bonus, and a debuff
+    on enemies (Twilight Gaze's Shrouded Twilight range penalty) is not that."""
+    changes = dict(getattr(up, 'new_attributes', {}))
+    for attr, amt in getattr(up, 'spell_bonuses', {}).get(type(s), {}).items():
+        changes[attr] = getattr(s, attr, 0) + amt
+    if not changes:
+        return []
+    saved = {a: s.__dict__.get(a, _MISSING) for a in changes}
+    st = random.getstate()
+    try:
+        for a, v in changes.items():
+            setattr(s, a, v)
+        return [b for b in buffs_from_tooltips(s) if b.buff_type != BUFF_TYPE_CURSE]
+    finally:
+        for a, v in saved.items():
+            if v is _MISSING:
+                delattr(s, a)
+            else:
+                setattr(s, a, v)
+        random.setstate(st)
+
 def spell_stat_tags(s):
     """(modifies, uses) for a spell. 'uses' = stats it has/scales with;
     'modifies' = stats its upgrades or granted buffs add bonuses to."""
@@ -275,6 +307,8 @@ def spell_stat_tags(s):
     mods = set()
     for up in getattr(s, 'spell_upgrades', []):
         mods |= collect_bonus_stats(up)
+        for b in buffs_with_upgrade(s, up):
+            mods |= collect_bonus_stats(b)
     for b in buffs_from_tooltips(s):
         mods |= collect_bonus_stats(b)
     return sorted(mods & STAT_KEYS_SET), sorted(uses & STAT_KEYS_SET)
