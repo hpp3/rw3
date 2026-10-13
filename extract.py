@@ -307,6 +307,10 @@ def spell_stat_tags(s):
     mods = set()
     for up in getattr(s, 'spell_upgrades', []):
         mods |= collect_bonus_stats(up)
+        # A SpellUpgrade to a stat the spell lacks (Occult Power's radius, Blood is
+        # Power's hp_cost) sets it as a base in new_attributes instead of a bonus
+        # in spell_bonuses -- still the upgrade modifying that stat.
+        mods |= {a for a, v in getattr(up, 'new_attributes', {}).items() if v}
         for b in buffs_with_upgrade(s, up):
             mods |= collect_bonus_stats(b)
     for b in buffs_from_tooltips(s):
