@@ -209,9 +209,9 @@ select{
 .toggle.sm{padding:1px 8px;font-size:11px}
 .label-row{display:flex;align-items:center;gap:8px}
 
-/* Collapsible tag filters under the spell Tag chips (exclude tags, summoned-unit
-   tags). The summary reads as a control-group label; the count keeps a
-   selection visible while shut. */
+/* Collapsible tag filters under a tab's Tag chips (spell exclude tags, and
+   summoned-unit tags on Spells and Equipment). The summary reads as a
+   control-group label; the count keeps a selection visible while shut. */
 .fold-tags{margin-top:4px}
 .fold-tags summary{cursor:pointer;list-style:none;user-select:none;width:max-content;
   font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
@@ -555,7 +555,7 @@ body.shotmode .shot-frame{width:428px;padding:14px;background:var(--bg)}
 }
 .summon-chip:hover,.summon-chip:focus{border-color:var(--accent2);color:#fff;outline:none}
 .summon-chip .chip-sprite{--d:18px}
-/* The summon (or pool) that satisfies the Spells tab's "Summons unit with tag" filter. */
+/* The summon (or pool) that satisfies a "Summons unit with tag" filter. */
 .summon-chip.match,.pool-chip.match{border-color:#2f6b45;box-shadow:0 0 0 1px #2f6b45;color:#7ee0a0}
 /* Effects row: every buff/debuff a card applies. Chips are .xref buff nodes (for
    the tooltip wiring), so undo the inline-link underline and look like a chip. */

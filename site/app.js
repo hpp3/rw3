@@ -96,6 +96,44 @@ function summonRow(summons, poolSummons) {
   if (!chips.length) return '';
   return `<div class="summon-row"><span class="section-label">Summons</span><div class="summon-chips">${chips.join('')}</div></div>`;
 }
+// --- "Summons unit with tag" filter (Spells and Equipment tabs) ---
+// The units a spell/item can put on the board: its summon chips (which already
+// include upgrade-unlocked summons, §5) plus every member of a random pool it
+// draws from — Summon Wizard can roll a Nature wizard, so it "can summon" one.
+const SUMMON_UNITS = new Map();
+function summonUnits(entry) {
+  let units = SUMMON_UNITS.get(entry);
+  if (!units) {
+    const names = new Set(entry.summons || []);
+    for (const p of entry.pool_summons || []) for (const n of DATA.pools[p] || []) names.add(n);
+    units = [...names].map(n => UNITS[n]).filter(Boolean);
+    SUMMON_UNITS.set(entry, units);
+  }
+  return units;
+}
+function unitHasTags(u, tags) {
+  for (const t of tags) if (!u.tags.includes(t)) return false;
+  return true;
+}
+// One unit the entry can summon carries every tag in `tags`.
+const summonsTagged = (entry, tags) => summonUnits(entry).some(u => unitHasTags(u, tags));
+// Outline the summon / pool chips that satisfy the active filter, so it's
+// visible *why* a card matched (Darkness is in for Nature via Werewolf).
+function markSummonMatches(card, tags) {
+  const hit = n => UNITS[n] && unitHasTags(UNITS[n], tags);
+  card.querySelectorAll('.summon-chip').forEach(c => c.classList.toggle('match', !!hit(c.dataset.unit)));
+  card.querySelectorAll('.pool-chip').forEach(c => c.classList.toggle('match', (DATA.pools[c.dataset.pool] || []).some(hit)));
+}
+// The filter's chips: only tags some unit summonable from `entries` carries.
+function buildSummonTagChips(container, entries, noun, onChange) {
+  const tags = [...new Set(entries.flatMap(e => summonUnits(e).flatMap(u => u.tags)))].sort();
+  return buildChips(container, tags, {
+    dot: t => TAGCOLOR[t] || 'var(--muted)',
+    activeColor: t => TAGCOLOR[t] || 'var(--accent)',
+    title: t => `${noun} that can summon a ${t} unit`,
+    onChange
+  });
+}
 // One steps() keyframe per distinct idle-frame count (idle loops at 5fps).
 function injectSpriteKeyframes() {
   const sheets = [...Object.values(UNITS), ...((DATA && DATA.costumes) || [])];
@@ -668,12 +706,14 @@ function equipmentCard(e) {
 // tagMode: how the tag chips are read. 'item' = the finished item carries the
 // tag; 'recipe' = the tag is consumed to craft it. They are genuinely different
 // sets (Helm of Hexes crafts from Dark but is tagged only Enchantment).
-const EQ = { search: '', slots: null, tags: null, sort: 'cost', craftableOnly: false, statFilters: [], tagMode: 'item' };
+// sumTags: tags one unit the item can summon must carry (independent of tagMode).
+const EQ = { search: '', slots: null, tags: null, sumTags: null, sort: 'cost', craftableOnly: false, statFilters: [], tagMode: 'item' };
 const EQ_TAG_MODE_DEFAULT = 'item';
 function renderEquipment() {
   const q = EQ.search.toLowerCase();
   const slots = EQ.slots, tags = EQ.tags;
   const pool = EQ.craftableOnly ? inventoryEssences() : null;
+  const sc = $('#eq-sumcount'); if (sc) sc.textContent = EQ.sumTags.size || '';
   let list = DATA.equipment.filter(e => {
     if (slots.size && !slots.has(e.slot)) return false;
     if (EQ.statFilters && !passesStatFilters(e, EQ.statFilters)) return false;
@@ -682,6 +722,7 @@ function renderEquipment() {
       const have = EQ.tagMode === 'recipe' ? new Set(e.recipe.map(r => r[0])) : new Set(e.tags);
       for (const t of tags) if (!have.has(t)) return false;
     }
+    if (EQ.sumTags.size && !summonsTagged(e, EQ.sumTags)) return false;
     if (q) {
       const hay = stripMarkup(e.name + ' ' + e.desc + ' ' + e.bonuses.join(' ') + ' ' + e.tags.join(' ') + ' ' + e.slot + ' ' + (e.summons || []).join(' ')).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -703,7 +744,11 @@ function renderEquipment() {
       : 'No equipment matches those filters.';
     grid.appendChild(el('div', 'empty', msg));
   }
-  list.forEach(e => grid.appendChild(equipmentCard(e)));
+  list.forEach(e => {
+    const card = equipmentCard(e);
+    if (EQ.sumTags.size) markSummonMatches(card, EQ.sumTags);
+    grid.appendChild(card);
+  });
   const suffix = EQ.craftableOnly ? ' craftable' : '';
   $('#eq-count').textContent = `${list.length} of ${DATA.equipment.length} items${suffix}`;
 }
@@ -1200,32 +1245,6 @@ function spellTagsWithUpgrades(s) {
   }
   return tags;
 }
-// The units a spell can put on the board, for the "Summons unit with tag" filter:
-// its summon chips (which already include upgrade-unlocked summons, §5) plus
-// every member of a random pool it draws from — Summon Wizard can roll a
-// Nature wizard, so it "can summon" one.
-const SPELL_SUMMON_UNITS = new Map();
-function spellSummonUnits(s) {
-  let units = SPELL_SUMMON_UNITS.get(s);
-  if (!units) {
-    const names = new Set(s.summons || []);
-    for (const p of s.pool_summons || []) for (const n of DATA.pools[p] || []) names.add(n);
-    units = [...names].map(n => UNITS[n]).filter(Boolean);
-    SPELL_SUMMON_UNITS.set(s, units);
-  }
-  return units;
-}
-function unitHasTags(u, tags) {
-  for (const t of tags) if (!u.tags.includes(t)) return false;
-  return true;
-}
-// Outline the summon / pool chips that satisfy the active summon-tag filter, so
-// it's visible *why* a spell matched (Darkness is in for Nature via Werewolf).
-function markSummonMatches(card) {
-  const hit = n => UNITS[n] && unitHasTags(UNITS[n], SP.sumTags);
-  card.querySelectorAll('.summon-chip').forEach(c => c.classList.toggle('match', !!hit(c.dataset.unit)));
-  card.querySelectorAll('.pool-chip').forEach(c => c.classList.toggle('match', (DATA.pools[c.dataset.pool] || []).some(hit)));
-}
 function setSpUpgTags(on) {
   SP.upgTags = on;
   const b = $('#sp-upgtags');
@@ -1243,7 +1262,7 @@ function renderSpells() {
       for (const t of SP.tags) if (!have.has(t)) return false;
     }
     if (SP.xtags.size && s.tags.some(t => SP.xtags.has(t))) return false;
-    if (SP.sumTags.size && !spellSummonUnits(s).some(u => unitHasTags(u, SP.sumTags))) return false;
+    if (SP.sumTags.size && !summonsTagged(s, SP.sumTags)) return false;
     if (q) {
       const hay = stripMarkup(s.name + ' ' + s.desc + ' ' + s.tags.join(' ') + ' ' + s.upgrades.map(u => u.name + ' ' + u.desc).join(' ') + ' ' + (s.summons || []).join(' ')).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -1255,7 +1274,7 @@ function renderSpells() {
   if (!list.length) grid.appendChild(el('div', 'empty', 'No spells match.'));
   list.forEach(s => {
     const card = spellCard(s);
-    if (SP.sumTags.size) markSummonMatches(card);
+    if (SP.sumTags.size) markSummonMatches(card, SP.sumTags);
     grid.appendChild(card);
   });
   $('#sp-count').textContent = `${list.length} of ${DATA.spells.length} spells`;
@@ -1316,6 +1335,7 @@ function clearFilters(tab) {
     EQ.search = ''; const i = $('#eq-search'); if (i) i.value = ''; EQ.statFilters.length = 0;
     EQ.craftableOnly = false; const b = $('#eq-craftable'); if (b) b.classList.remove('active');
     clearChipGroup(EQ.slots, '#eq-slots'); clearChipGroup(EQ.tags, '#eq-tags');
+    clearChipGroup(EQ.sumTags, '#eq-sumtags');
     setEqTagMode(EQ_TAG_MODE_DEFAULT);
     const f = $('#eq-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
   } else if (tab === 'spells') {
@@ -2825,6 +2845,7 @@ async function init() {
     activeColor: t => TAGCOLOR[t] || 'var(--accent)',
     onChange: renderEquipment
   });
+  EQ.sumTags = buildSummonTagChips($('#eq-sumtags'), DATA.equipment, 'Equipment', renderEquipment);
   const tagmode = $('#eq-tagmode');
   if (tagmode) tagmode.addEventListener('click', ev => {
     const btn = ev.target.closest('.seg-opt');
@@ -2869,14 +2890,7 @@ async function init() {
     activeColor: t => TAGCOLOR[t] || 'var(--accent)',
     onChange: renderSpells
   });
-  // Only tags some summonable unit actually carries.
-  const summonTags = [...new Set(DATA.spells.flatMap(s => spellSummonUnits(s).flatMap(u => u.tags)))].sort();
-  SP.sumTags = buildChips($('#sp-sumtags'), summonTags, {
-    dot: t => TAGCOLOR[t] || 'var(--muted)',
-    activeColor: t => TAGCOLOR[t] || 'var(--accent)',
-    title: t => `Spells that can summon a ${t} unit`,
-    onChange: renderSpells
-  });
+  SP.sumTags = buildSummonTagChips($('#sp-sumtags'), DATA.spells, 'Spells', renderSpells);
   $('#sp-upgtags').addEventListener('click', () => { setSpUpgTags(!SP.upgTags); renderSpells(); });
   makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: () => DATA.spells, render: renderSpells });
 

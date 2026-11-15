@@ -163,11 +163,12 @@ and handles dynamic construction that AST can't. Summon chips in the UI link via
 So unit cross-links have two sources: structured `summons` (chips) and AST `refs` (inline links in
 prose). Both feed the same `units` catalog.
 
-The Spells tab's collapsed **"Summons unit with tag"** filter (`spellSummonUnits`) reads `summons`
-(which already includes upgrade-unlocked summons, e.g. Wolf's Werewolf) **plus every member of
-each `pool_summons` pool**, because a random pick still "can summon" it — so Summon Wizard matches
-almost any tag. All selected tags must be on **one** unit. This is deliberately not the spell's
-own tag: Nature-tagged Poison Sting summons nothing, while Darkness (not Nature) summons Werewolf.
+The collapsed **"Summons unit with tag"** filter on the Spells and Equipment tabs (`summonUnits`)
+reads an entry's `summons` (which already includes upgrade-unlocked summons, e.g. Wolf's Werewolf)
+**plus every member of each `pool_summons` pool**, because a random pick still "can summon" it — so
+Summon Wizard matches almost any tag. All selected tags must be on **one** unit. This is
+deliberately not the entry's own tag: Nature-tagged Poison Sting summons nothing, while Darkness
+(not Nature) summons Werewolf. On Equipment it is also independent of the item-vs-recipe tag switch.
 
 A monster can also summon/transform into units from **inside its ability-spell classes _or_ its buff
 classes** — `BatBreath.per_square_effect` does `self.summon(Bat())`; Snow Queen's `SnowQueenUnseated`

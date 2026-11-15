@@ -60,6 +60,13 @@
                   title="Show equipment whose recipe consumes the selected tag">Recipe uses tag</button>
         </div>
         <div class="chips" id="eq-tags"></div>
+        <!-- Matches the tags of the units an item can summon, not its own or its
+             recipe's tags (the switch above doesn't apply). All selected tags
+             must be on one unit. Same filter as the Spells tab's. -->
+        <details class="fold-tags" id="eq-summon">
+          <summary title="Equipment that can summon a unit with every selected tag">Summons unit with tag<span class="xcount inc" id="eq-sumcount"></span></summary>
+          <div class="chips" id="eq-sumtags"></div>
+        </details>
       </div>
       <div class="control-group">
         <label>Components</label>
