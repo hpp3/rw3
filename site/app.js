@@ -1183,8 +1183,9 @@ function spellCard(s) {
 }
 
 // xtags: tags to exclude (always the spell's base tags). upgTags: let the
-// positive tag chips also match tags the spell's upgrades add.
-const SP = { search: '', levels: null, tags: null, xtags: null, upgTags: false };
+// positive tag chips also match tags the spell's upgrades add. sumTags: tags a
+// unit the spell can summon must carry (all of them, on that one unit).
+const SP = { search: '', levels: null, tags: null, xtags: null, sumTags: null, upgTags: false };
 // The game's upgrade tooltip line for SpellUpgrade.added_tags (text.TAG_ADD),
 // plus one hand-written "Adds [Nature] tag". Read back out of the rendered
 // markup like everything else (§2); matches added_tags on every upgrade.
@@ -1199,6 +1200,32 @@ function spellTagsWithUpgrades(s) {
   }
   return tags;
 }
+// The units a spell can put on the board, for the "Summons unit with tag" filter:
+// its summon chips (which already include upgrade-unlocked summons, §5) plus
+// every member of a random pool it draws from — Summon Wizard can roll a
+// Nature wizard, so it "can summon" one.
+const SPELL_SUMMON_UNITS = new Map();
+function spellSummonUnits(s) {
+  let units = SPELL_SUMMON_UNITS.get(s);
+  if (!units) {
+    const names = new Set(s.summons || []);
+    for (const p of s.pool_summons || []) for (const n of DATA.pools[p] || []) names.add(n);
+    units = [...names].map(n => UNITS[n]).filter(Boolean);
+    SPELL_SUMMON_UNITS.set(s, units);
+  }
+  return units;
+}
+function unitHasTags(u, tags) {
+  for (const t of tags) if (!u.tags.includes(t)) return false;
+  return true;
+}
+// Outline the summon / pool chips that satisfy the active summon-tag filter, so
+// it's visible *why* a spell matched (Darkness is in for Nature via Werewolf).
+function markSummonMatches(card) {
+  const hit = n => UNITS[n] && unitHasTags(UNITS[n], SP.sumTags);
+  card.querySelectorAll('.summon-chip').forEach(c => c.classList.toggle('match', !!hit(c.dataset.unit)));
+  card.querySelectorAll('.pool-chip').forEach(c => c.classList.toggle('match', (DATA.pools[c.dataset.pool] || []).some(hit)));
+}
 function setSpUpgTags(on) {
   SP.upgTags = on;
   const b = $('#sp-upgtags');
@@ -1207,6 +1234,7 @@ function setSpUpgTags(on) {
 function renderSpells() {
   const q = SP.search.toLowerCase();
   const xc = $('#sp-xcount'); if (xc) xc.textContent = SP.xtags.size || '';
+  const sc = $('#sp-sumcount'); if (sc) sc.textContent = SP.sumTags.size || '';
   let list = DATA.spells.filter(s => {
     if (SP.levels.size && !SP.levels.has(s.forbidden ? 'Forbidden' : String(s.level))) return false;
     if (SP.statFilters && !passesStatFilters(s, SP.statFilters)) return false;
@@ -1215,6 +1243,7 @@ function renderSpells() {
       for (const t of SP.tags) if (!have.has(t)) return false;
     }
     if (SP.xtags.size && s.tags.some(t => SP.xtags.has(t))) return false;
+    if (SP.sumTags.size && !spellSummonUnits(s).some(u => unitHasTags(u, SP.sumTags))) return false;
     if (q) {
       const hay = stripMarkup(s.name + ' ' + s.desc + ' ' + s.tags.join(' ') + ' ' + s.upgrades.map(u => u.name + ' ' + u.desc).join(' ') + ' ' + (s.summons || []).join(' ')).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -1224,7 +1253,11 @@ function renderSpells() {
   const grid = $('#sp-grid');
   grid.innerHTML = '';
   if (!list.length) grid.appendChild(el('div', 'empty', 'No spells match.'));
-  list.forEach(s => grid.appendChild(spellCard(s)));
+  list.forEach(s => {
+    const card = spellCard(s);
+    if (SP.sumTags.size) markSummonMatches(card);
+    grid.appendChild(card);
+  });
   $('#sp-count').textContent = `${list.length} of ${DATA.spells.length} spells`;
 }
 
@@ -1288,7 +1321,7 @@ function clearFilters(tab) {
   } else if (tab === 'spells') {
     SP.search = ''; const i = $('#sp-search'); if (i) i.value = ''; SP.statFilters.length = 0;
     clearChipGroup(SP.levels, '#sp-levels'); clearChipGroup(SP.tags, '#sp-tags');
-    clearChipGroup(SP.xtags, '#sp-xtags'); setSpUpgTags(false);
+    clearChipGroup(SP.xtags, '#sp-xtags'); clearChipGroup(SP.sumTags, '#sp-sumtags'); setSpUpgTags(false);
     const f = $('#sp-filters'); if (f) { f.classList.add('hidden'); f.innerHTML = ''; }
   } else if (tab === 'components') {
     CP.search = ''; const i = $('#cp-search'); if (i) i.value = '';
@@ -2834,6 +2867,14 @@ async function init() {
   SP.xtags = buildChips($('#sp-xtags'), spellTags, {
     dot: t => TAGCOLOR[t] || 'var(--muted)',
     activeColor: t => TAGCOLOR[t] || 'var(--accent)',
+    onChange: renderSpells
+  });
+  // Only tags some summonable unit actually carries.
+  const summonTags = [...new Set(DATA.spells.flatMap(s => spellSummonUnits(s).flatMap(u => u.tags)))].sort();
+  SP.sumTags = buildChips($('#sp-sumtags'), summonTags, {
+    dot: t => TAGCOLOR[t] || 'var(--muted)',
+    activeColor: t => TAGCOLOR[t] || 'var(--accent)',
+    title: t => `Spells that can summon a ${t} unit`,
     onChange: renderSpells
   });
   $('#sp-upgtags').addEventListener('click', () => { setSpUpgTags(!SP.upgTags); renderSpells(); });

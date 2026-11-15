@@ -119,9 +119,16 @@
                   title="Also match tags a spell gains from its upgrades (e.g. Blood Bullet counts as Ice via Rime Coated Rounds)">Consider upgrades</button>
         </div>
         <div class="chips" id="sp-tags"></div>
-        <details class="exclude-tags" id="sp-exclude">
+        <details class="fold-tags exclude-tags" id="sp-exclude">
           <summary>Exclude tags<span class="xcount" id="sp-xcount"></span></summary>
           <div class="chips" id="sp-xtags"></div>
+        </details>
+        <!-- Matches the tags of the units a spell can summon (its summon chips,
+             upgrade-unlocked ones included, plus random-pool members), not the
+             spell's own tags. All selected tags must be on one unit. -->
+        <details class="fold-tags" id="sp-summon">
+          <summary title="Spells that can summon a unit with every selected tag">Summons unit with tag<span class="xcount inc" id="sp-sumcount"></span></summary>
+          <div class="chips" id="sp-sumtags"></div>
         </details>
       </div>
     </div>

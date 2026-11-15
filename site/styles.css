@@ -209,18 +209,20 @@ select{
 .toggle.sm{padding:1px 8px;font-size:11px}
 .label-row{display:flex;align-items:center;gap:8px}
 
-/* Collapsible negative tag filter under the spell Tag chips. The summary reads
-   as a control-group label; the count keeps a selection visible while shut. */
-.exclude-tags{margin-top:4px}
-.exclude-tags summary{cursor:pointer;list-style:none;user-select:none;width:max-content;
+/* Collapsible tag filters under the spell Tag chips (exclude tags, summoned-unit
+   tags). The summary reads as a control-group label; the count keeps a
+   selection visible while shut. */
+.fold-tags{margin-top:4px}
+.fold-tags summary{cursor:pointer;list-style:none;user-select:none;width:max-content;
   font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
-.exclude-tags summary::-webkit-details-marker{display:none}
-.exclude-tags summary:before{content:"▸ ";color:var(--accent)}
-.exclude-tags[open] summary:before{content:"▾ "}
-.exclude-tags summary:hover{color:var(--text)}
-.exclude-tags .chips{margin-top:4px}
+.fold-tags summary::-webkit-details-marker{display:none}
+.fold-tags summary:before{content:"▸ ";color:var(--accent)}
+.fold-tags[open] summary:before{content:"▾ "}
+.fold-tags summary:hover{color:var(--text)}
+.fold-tags .chips{margin-top:4px}
 .exclude-tags .chip.active{text-decoration:line-through}
 .xcount{margin-left:6px;padding:0 6px;border-radius:999px;background:#5a2230;color:#ffb3c0}
+.xcount.inc{background:#13391f;color:#7ee0a0}
 .xcount:empty{display:none}
 
 /* Sliding two-way switch (equipment tag filter: item tags vs recipe tags).
@@ -553,6 +555,8 @@ body.shotmode .shot-frame{width:428px;padding:14px;background:var(--bg)}
 }
 .summon-chip:hover,.summon-chip:focus{border-color:var(--accent2);color:#fff;outline:none}
 .summon-chip .chip-sprite{--d:18px}
+/* The summon (or pool) that satisfies the Spells tab's "Summons unit with tag" filter. */
+.summon-chip.match,.pool-chip.match{border-color:#2f6b45;box-shadow:0 0 0 1px #2f6b45;color:#7ee0a0}
 /* Effects row: every buff/debuff a card applies. Chips are .xref buff nodes (for
    the tooltip wiring), so undo the inline-link underline and look like a chip. */
 .xref.buff-chip{
