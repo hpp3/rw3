@@ -18,12 +18,16 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+# Two jobs, as in GitHub's Pages starter workflow, not one. With upload and
+# deploy as back-to-back steps, deploy-pages asked for the artifact one second
+# after upload finished, before GitHub had registered it, and failed with "No
+# artifacts named github-pages". Re-running that job then uploaded a second copy
+# and failed with "Multiple artifacts". Here the job boundary gives the upload
+# time to register, and "Re-run failed jobs" repeats only `deploy`, which reuses
+# the one artifact `build` already made.
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,6 +66,13 @@ jobs:
         with:
           path: site
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
