@@ -94,6 +94,53 @@ select{
 .control-group.hidden{display:none}
 
 .count{color:var(--muted);font-size:12px;margin:0 2px 8px}
+/* Count line + the Cards/Compact switch at its right end (Spells, Equipment). */
+.count-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;margin:0 2px 8px;min-height:26px}
+.count-row .count{margin:0}
+.view-toggle{display:flex;align-items:center;gap:7px}
+.vt-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.segmented[data-mode="compact"] .seg-thumb{transform:translateX(100%)}
+
+/* Compact view: one band per SP cost / recipe cost / slot, fixed-width chips,
+   and a preview pane holding the entry's full card (hover previews, click pins). */
+.cv{display:flex;gap:12px;align-items:flex-start}
+.cv.hidden,.grid.hidden{display:none}
+.cv-list{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.cv-band{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;background:var(--bg2);border:1px solid #232a3b;border-radius:10px}
+.cv-gutter{width:74px;flex:none;padding-top:4px}
+.cv-glabel{font-size:15px;font-weight:800;color:#fff;line-height:1.1;white-space:nowrap}
+.cv-gcount{font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+.cv-chips{flex:1;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:5px 6px}
+.cv-chip{display:flex;align-items:center;gap:7px;height:32px;padding:0 8px 0 4px;min-width:0;
+  border:1px solid var(--border);border-radius:7px;background:#0f131c;color:var(--text);
+  font:inherit;text-align:left;cursor:pointer}
+.cv-chip:hover{background:#1d2333;border-color:var(--accent)}
+.cv-chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.cv-chip.flash{animation:cardflash 3.1s ease-out}
+.cv-ic{width:24px;height:24px;flex:none;image-rendering:pixelated;object-fit:contain}
+.cv-ic.ph{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+.cv-name{flex:0 1 auto;min-width:0;font-weight:650;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv-pin{display:none;flex:none;width:14px;height:14px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 1.75h4M6.75 1.75v4.1L4.6 8.9h6.8L9.25 5.85v-4.1z' fill='%235aa9ff' stroke='%235aa9ff' stroke-width='1.3' stroke-linejoin='round'/%3E%3Cpath d='M8 8.9v5.35' fill='none' stroke='%235aa9ff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
+.cv-chip.pinned .cv-pin,.cv-pane-head .cv-pin{display:block}
+.cv-fill{flex:1 1 0}
+.cv-tags{flex:none;font-family:Consolas,ui-monospace,monospace;font-weight:700;font-size:13px;letter-spacing:1px;white-space:nowrap}
+.cv-pane{flex:1 1 340px;max-width:400px;min-width:0;display:flex;flex-direction:column;gap:6px;
+  position:sticky;top:calc(var(--hdr-h, 96px) + 10px);max-height:calc(100vh - var(--hdr-h, 96px) - 20px);overflow:auto}
+.cv-pane:empty{display:none}
+.cv-pane-head{display:flex;align-items:center;gap:7px;min-height:22px;padding:0 2px;
+  font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.cv-unpin{margin-left:auto;background:var(--bg2);border:1px solid var(--border);color:var(--text);
+  border-radius:6px;padding:1px 9px;font:inherit;font-size:11.5px;font-weight:700;text-transform:none;letter-spacing:0;cursor:pointer}
+.cv-unpin:hover{border-color:var(--accent)}
+.cv-pane .card{border-color:#3a4560}
+/* Too narrow for list + pane side by side: the pane becomes a sheet over the
+   bottom of the screen, shown only while something is pinned (tap = pin). */
+@media (max-width:940px){
+  .cv-pane{position:fixed;left:8px;right:8px;bottom:8px;top:auto;max-width:none;max-height:62vh;z-index:40;
+    display:none;padding:8px;background:var(--bg);border:1px solid var(--accent2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+  .cv-pane.open{display:flex}
+}
 
 /* Active stat filters + autocomplete */
 .active-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px}
@@ -419,7 +466,7 @@ select{
    the fixed radial gradient) keeps the margin around every card identical. */
 body.shotmode{background:var(--bg)}
 body.shotmode header,body.shotmode footer,body.shotmode .controls,
-body.shotmode .count,body.shotmode .active-filters,body.shotmode .build,
+body.shotmode .count,body.shotmode .count-row,body.shotmode .cv,body.shotmode .active-filters,body.shotmode .build,
 body.shotmode .eq-pool,body.shotmode .inventory{display:none}
 body.shotmode main{max-width:none;padding:0}
 body.shotmode .grid{display:block}

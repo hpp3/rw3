@@ -795,3 +795,46 @@ because the subset is applied first (`spPool()` / `eqPool()` replace `DATA.spell
 - **Cross-references** to an entry outside the subset (`gotoEntry`) don't navigate. The
   badge briefly says "<name> isn't in this subset" instead, since the card can't appear.
   Hover sheets still work. Other tabs (Components, Monsters, Guide, Recent) ignore `r`.
+
+---
+
+## 21. Compact view — Cards | Compact on the Spells and Equipment tabs
+
+Made for subset links (§20): with a run's 50-odd spells and 90-odd items, the card grid is too
+tall to take in at a glance. Designed on a mockup canvas first. The chosen board was "C3": bands
+of fixed-width chips beside a preview pane.
+
+- **Switch:** a `.segmented` pill at the right end of each tab's count line (`.count-row`), the
+  same component as Equipment's tag-mode switch. `applyView(tab)` syncs the switch and swaps
+  `#xx-grid` for `#xx-compact`. The renderers filter and sort exactly as before, then hand the
+  list to either the card grid or `renderCompact`, so every filter, search and sort applies to
+  both views.
+- **Bands** (`compactGroups`):
+  - Spells: one band per SP cost, with Forbidden last; names A–Z inside a band.
+  - Equipment follows the Sort select: recipe cost bands ("4 comp.", ascending or descending),
+    slot bands, or a single "A–Z" band.
+  - Each band's left gutter shows its label and a count.
+- **Chips** (`chipHtml`): a 24px icon, the name (ellipsised), and the tag letters right-aligned
+  in their tag colours (`tagAbbr`, the game's shop letters). Equipment shows its own tags, not
+  its recipe's.
+- **Preview pane:** shows the pinned entry, else the hovered one, else the first listed. It
+  holds the entry's full card from `spellCard` / `equipmentCard`, so it can never drift from
+  Cards view. Every card control (Wishlist, share, upgrade `<details>`, summon sheets,
+  tooltips, xrefs) is delegated at the document level, so it works in the pane unwired.
+  - Hover uses an 80ms intent delay, so sweeping the mouse across chips on the way to the pane
+    doesn't swap the card.
+  - Click pins (a pin icon after the chip's name; "Pinned · Unpin" in the pane head). Clicking
+    the chip again, or Unpin, releases it. Pins are per tab and transient.
+  - The pane is sticky under the sticky header. `syncHeaderHeight()` keeps `--hdr-h` current
+    via ResizeObserver, resize, and every compact render (a ResizeObserver doesn't fire for a
+    page that isn't painting).
+  - At ≤940px there's no room beside the bands: the pane becomes a sheet over the bottom of the
+    screen, shown only while something is pinned (a tap pins).
+- **DOM ids:** chips carry the cards' ids (`s-`/`e-<slug>`), and the pane's card drops its id.
+  So `gotoEntry` and share-link hashes land on the chip (scroll + flash), and `gotoEntry` pins
+  it. Only one view's DOM exists at a time, so ids stay unique.
+- **Persistence:** the view is a per-tab viewer preference in localStorage (`rw3_view`, set only
+  when the viewer clicks the switch). A tab with no saved choice opens Compact when the page was
+  opened on a subset link that restricts that tab (`VIEW_DEFAULT`, fixed at load), else Cards.
+  share.py's headless browser has no saved choice and no `r`, so it still shoots the card grid.
+  `.shotmode` hides the count row and the compact container regardless.

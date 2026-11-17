@@ -739,17 +739,18 @@ function renderEquipment() {
   list.sort(sorters[EQ.sort]);
   const grid = $('#eq-grid');
   grid.innerHTML = '';
-  if (!list.length) {
-    const msg = (EQ.craftableOnly && Object.keys(INVENTORY).length === 0)
-      ? 'Add components on the <a class="tablink" data-goto="components">Components tab</a> to see what you can craft.'
-      : `No equipment${restrictedEq() ? ' in this subset' : ''} matches those filters.`;
-    grid.appendChild(el('div', 'empty', msg));
+  const msg = list.length ? '' : (EQ.craftableOnly && Object.keys(INVENTORY).length === 0)
+    ? 'Add components on the <a class="tablink" data-goto="components">Components tab</a> to see what you can craft.'
+    : `No equipment${restrictedEq() ? ' in this subset' : ''} matches those filters.`;
+  if (applyView('equipment')) renderCompact('equipment', list, msg);
+  else {
+    if (msg) grid.appendChild(el('div', 'empty', msg));
+    list.forEach(e => {
+      const card = equipmentCard(e);
+      if (EQ.sumTags.size) markSummonMatches(card, EQ.sumTags);
+      grid.appendChild(card);
+    });
   }
-  list.forEach(e => {
-    const card = equipmentCard(e);
-    if (EQ.sumTags.size) markSummonMatches(card, EQ.sumTags);
-    grid.appendChild(card);
-  });
   const suffix = (EQ.craftableOnly ? ' craftable' : '') + (restrictedEq() ? ' in this subset' : '');
   $('#eq-count').textContent = `${list.length} of ${all.length} items${suffix}`;
 }
@@ -1273,12 +1274,16 @@ function renderSpells() {
   });
   const grid = $('#sp-grid');
   grid.innerHTML = '';
-  if (!list.length) grid.appendChild(el('div', 'empty', restrictedSp() ? 'No spells in this subset match.' : 'No spells match.'));
-  list.forEach(s => {
-    const card = spellCard(s);
-    if (SP.sumTags.size) markSummonMatches(card, SP.sumTags);
-    grid.appendChild(card);
-  });
+  const msg = list.length ? '' : restrictedSp() ? 'No spells in this subset match.' : 'No spells match.';
+  if (applyView('spells')) renderCompact('spells', list, msg);
+  else {
+    if (msg) grid.appendChild(el('div', 'empty', msg));
+    list.forEach(s => {
+      const card = spellCard(s);
+      if (SP.sumTags.size) markSummonMatches(card, SP.sumTags);
+      grid.appendChild(card);
+    });
+  }
   $('#sp-count').textContent = `${list.length} of ${all.length} spells${restrictedSp() ? ' in this subset' : ''}`;
 }
 
@@ -1382,7 +1387,10 @@ function gotoEntry(kind, name) {
   if (!document.getElementById(id)) { clearFilters(tab); TAB_RENDER[tab](); }
   requestAnimationFrame(() => {
     const node = document.getElementById(id);
-    if (node) { scrollToCard(node); flashCard(node); }
+    if (!node) return;
+    scrollToCard(node); flashCard(node);
+    // Compact view: the id is a chip's; pin it so the pane shows the full card.
+    if (node.classList.contains('cv-chip')) pinCompact(tab, name);
   });
 }
 
@@ -2830,6 +2838,185 @@ function clearRestrict() {
 }
 
 // ---------------------------------------------------------------------------
+// Compact view (Spells / Equipment) — a Cards | Compact switch on the count line.
+// Compact lists the filtered, sorted entries as one-line chips (icon, name, tag
+// letters) in bands: SP cost for spells; recipe cost, or slot, or one A–Z band
+// for equipment, following the Sort select. A preview pane beside the bands
+// shows the hovered entry's FULL card (built by spellCard/equipmentCard, so it
+// can't drift from the Cards view; every card control is document-delegated, so
+// Wishlist, share, upgrades, summon sheets and cross-links all work in it).
+// Clicking a chip pins it (a pin icon after its name); Unpin or clicking it
+// again lets the pane follow the mouse again. Chips carry the cards' DOM ids
+// (s-/e-<slug>), so gotoEntry and share-link hashes land on the chip and pin it.
+// The choice of view is a per-tab viewer preference in localStorage; a tab
+// with no saved choice opens Compact when the page was opened on a subset link
+// (?r=, §20) that restricts it, else Cards.
+// ---------------------------------------------------------------------------
+const VIEW_KEY = 'rw3_view';
+let VIEW_PREF = {};                       // tab -> 'cards' | 'compact' (only once picked)
+let VIEW_DEFAULT = { spells: 'cards', equipment: 'cards' };
+const CV = { spells: { pin: null, hover: null, list: [] }, equipment: { pin: null, hover: null, list: [] } };
+const CV_IDS = { spells: ['#sp-grid', '#sp-compact', '#sp-cv-list', '#sp-cv-pane'],
+                 equipment: ['#eq-grid', '#eq-compact', '#eq-cv-list', '#eq-cv-pane'] };
+
+function loadViewPref() {
+  try { VIEW_PREF = JSON.parse(localStorage.getItem(VIEW_KEY) || '{}') || {}; } catch (e) { VIEW_PREF = {}; }
+}
+function saveViewPref() { try { localStorage.setItem(VIEW_KEY, JSON.stringify(VIEW_PREF)); } catch (e) {} }
+const viewOf = tab => (VIEW_PREF[tab] === 'compact' || VIEW_PREF[tab] === 'cards') ? VIEW_PREF[tab] : VIEW_DEFAULT[tab];
+function setView(tab, view) {
+  if (viewOf(tab) === view) return;
+  VIEW_PREF[tab] = view;
+  saveViewPref();
+  TAB_RENDER[tab]();
+}
+// Sync the switch and which container shows; true when the tab is compact.
+function applyView(tab) {
+  const compact = viewOf(tab) === 'compact';
+  const box = document.querySelector(`.view-toggle[data-tab="${tab}"]`);
+  if (box) {
+    box.querySelector('.segmented').dataset.mode = compact ? 'compact' : 'cards';
+    box.querySelectorAll('.seg-opt').forEach(b => {
+      const on = b.dataset.view === (compact ? 'compact' : 'cards');
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  const [grid, cv, list, pane] = CV_IDS[tab].map(s => $(s));
+  grid.classList.toggle('hidden', compact);
+  cv.classList.toggle('hidden', !compact);
+  if (!compact) { list.innerHTML = ''; pane.innerHTML = ''; CV[tab].list = []; }
+  else syncHeaderHeight();
+  return compact;
+}
+
+function compactGroups(tab, list) {
+  const groups = [], byKey = new Map();
+  const add = (key, label, item) => {
+    let g = byKey.get(key);
+    if (!g) { g = { key, label, items: [] }; byKey.set(key, g); groups.push(g); }
+    g.items.push(item);
+  };
+  if (tab === 'spells') {
+    for (const s of list) add(s.forbidden ? 1e9 : s.level, s.forbidden ? 'Forbidden' : `${s.level} SP`, s);
+    groups.sort((a, b) => a.key - b.key);
+    for (const g of groups) g.items.sort((a, b) => a.name.localeCompare(b.name));
+  } else {
+    // The list is already in Sort order; bands follow it in order of first appearance.
+    for (const e of list) {
+      if (EQ.sort === 'slot') add(e.slot, e.slot, e);
+      else if (EQ.sort === 'name') add('az', 'A–Z', e);
+      else add(e.recipe_cost, `${e.recipe_cost} comp.`, e);
+    }
+  }
+  const noun = tab === 'spells' ? ['spell', 'spells'] : ['item', 'items'];
+  for (const g of groups) g.count = `${g.items.length} ${noun[g.items.length === 1 ? 0 : 1]}`;
+  return groups;
+}
+function chipHtml(tab, x) {
+  const cat = tab === 'spells' ? 'spells' : 'equipment';
+  const id = (tab === 'spells' ? 's-' : 'e-') + slug(x.name);
+  const pinned = CV[tab].pin === x.name;
+  const icon = x.has_icon === false
+    ? '<span class="cv-ic ph">✦</span>'
+    : `<img class="cv-ic" loading="lazy" src="icons/${cat}/${esc(x.icon)}${IV}" alt="">`;
+  const tags = (x.tags || []).map(t => `<span style="color:${TAGCOLOR[t] || 'var(--muted)'}" title="${esc(t)}">${esc(tagAbbr(t))}</span>`).join('');
+  return `<button type="button" class="cv-chip${pinned ? ' pinned' : ''}" id="${id}" data-cv-name="${esc(x.name)}" aria-pressed="${pinned}">`
+    + `${icon}<span class="cv-name">${esc(x.name)}</span><span class="cv-pin" role="img" aria-label="Pinned"></span>`
+    + `<span class="cv-fill"></span><span class="cv-tags">${tags}</span></button>`;
+}
+function renderCompact(tab, list, emptyMsg) {
+  const [, , listEl] = CV_IDS[tab].map(s => $(s));
+  const st = CV[tab];
+  st.list = list;
+  if (st.hover && !list.some(x => x.name === st.hover)) st.hover = null;
+  listEl.innerHTML = list.length
+    ? compactGroups(tab, list).map(g =>
+        `<section class="cv-band" aria-label="${esc(g.label)}"><div class="cv-gutter"><div class="cv-glabel">${esc(g.label)}</div>`
+        + `<div class="cv-gcount">${g.count}</div></div><div class="cv-chips">${g.items.map(x => chipHtml(tab, x)).join('')}</div></section>`
+      ).join('')
+    : `<div class="empty">${emptyMsg}</div>`;
+  renderPane(tab);
+}
+// The pane shows the pinned entry, else the hovered one, else the first listed.
+function renderPane(tab) {
+  const st = CV[tab];
+  const pane = $(CV_IDS[tab][3]);
+  const spells = tab === 'spells';
+  const name = st.pin || st.hover || (st.list[0] && st.list[0].name);
+  const entry = name && (spells ? SPELL_BY_NAME : EQ_BY_NAME)[name];
+  pane.classList.toggle('open', !!st.pin);
+  if (!entry) { pane.innerHTML = ''; delete pane.dataset.shown; return; }
+  const card = spells ? spellCard(entry) : equipmentCard(entry);
+  card.removeAttribute('id');               // the chip owns the entry's DOM id
+  const sum = spells ? SP.sumTags : EQ.sumTags;
+  if (sum.size) markSummonMatches(card, sum);
+  pane.innerHTML = st.pin
+    ? `<div class="cv-pane-head"><span class="cv-pin" aria-hidden="true"></span>Pinned<button type="button" class="cv-unpin" data-cv-unpin>Unpin</button></div>`
+    : `<div class="cv-pane-head">Hover ${spells ? 'a spell' : 'an item'} · click to pin</div>`;
+  pane.appendChild(card);
+  pane.dataset.shown = entry.name;
+}
+function pinCompact(tab, name) {
+  const st = CV[tab];
+  st.pin = name;
+  const listEl = $(CV_IDS[tab][2]);
+  listEl.querySelectorAll('.cv-chip.pinned').forEach(c => { c.classList.remove('pinned'); c.setAttribute('aria-pressed', 'false'); });
+  if (name) {
+    const chip = [...listEl.querySelectorAll('.cv-chip')].find(c => c.dataset.cvName === name);
+    if (chip) { chip.classList.add('pinned'); chip.setAttribute('aria-pressed', 'true'); }
+  }
+  renderPane(tab);
+}
+function hoverCompact(tab, name) {
+  const st = CV[tab];
+  if (st.hover === name) return;
+  st.hover = name;
+  if (!st.pin && $(CV_IDS[tab][3]).dataset.shown !== name) renderPane(tab);
+}
+function wireCompact() {
+  document.querySelectorAll('.view-toggle').forEach(box => box.addEventListener('click', e => {
+    const b = e.target.closest('[data-view]');
+    if (b) setView(box.dataset.tab, b.dataset.view);
+  }));
+  for (const tab of ['spells', 'equipment']) {
+    const [, , listEl, pane] = CV_IDS[tab].map(s => $(s));
+    // Hover intent: sweeping the mouse across chips on the way to the pane
+    // shouldn't swap the card under it, so a chip previews after a short rest.
+    let timer = null;
+    listEl.addEventListener('mouseover', e => {
+      const chip = e.target.closest('.cv-chip');
+      clearTimeout(timer);
+      if (chip) timer = setTimeout(() => hoverCompact(tab, chip.dataset.cvName), 80);
+    });
+    listEl.addEventListener('mouseleave', () => clearTimeout(timer));
+    listEl.addEventListener('focusin', e => {
+      const chip = e.target.closest('.cv-chip');
+      if (chip) hoverCompact(tab, chip.dataset.cvName);
+    });
+    listEl.addEventListener('click', e => {
+      const chip = e.target.closest('.cv-chip');
+      if (!chip) return;
+      const name = chip.dataset.cvName;
+      CV[tab].hover = name;
+      pinCompact(tab, CV[tab].pin === name ? null : name);
+    });
+    pane.addEventListener('click', e => { if (e.target.closest('[data-cv-unpin]')) pinCompact(tab, null); });
+  }
+  syncHeaderHeight();
+  const header = document.querySelector('header');
+  if (window.ResizeObserver) new ResizeObserver(syncHeaderHeight).observe(header);
+  window.addEventListener('resize', syncHeaderHeight);
+}
+// Keep the sticky pane clear of the sticky header, whatever its height (the
+// subset badge or a narrow window can wrap it onto more lines). Also run from
+// applyView, since ResizeObserver doesn't fire for a page that isn't painting.
+function syncHeaderHeight() {
+  const h = document.querySelector('header').offsetHeight;
+  if (h) document.documentElement.style.setProperty('--hdr-h', h + 'px');
+}
+
+// ---------------------------------------------------------------------------
 // Version selector (live vs beta) — see gameinfo.py / versions.json.
 // The active version picks which data file we fetch. It also rides in the URL as
 // a human-readable `v=<branch>` param (absent = the default/live branch), so a
@@ -2923,6 +3110,10 @@ async function init() {
   renderRestrictBadge();
   { const x = $('#restrict-clear'); if (x) x.addEventListener('click', clearRestrict); }
   window.addEventListener('popstate', syncRestrictFromUrl);
+  // A tab the opening subset link restricts starts Compact unless the viewer has picked a view.
+  VIEW_DEFAULT = { spells: restrictedSp() ? 'compact' : 'cards', equipment: restrictedEq() ? 'compact' : 'cards' };
+  loadViewPref();
+  wireCompact();
   loadBuild();
   loadGuideFromUrl();
   loadInv();

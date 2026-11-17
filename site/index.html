@@ -87,8 +87,23 @@
       </div>
     </div>
     <div class="active-filters hidden" id="eq-filters"></div>
-    <div class="count" id="eq-count"></div>
+    <div class="count-row">
+      <div class="count" id="eq-count"></div>
+      <div class="view-toggle" data-tab="equipment">
+        <span class="vt-label" id="eq-view-label">View</span>
+        <div class="segmented" data-mode="cards" role="radiogroup" aria-labelledby="eq-view-label">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button type="button" class="seg-opt active" data-view="cards" role="radio" aria-checked="true">Cards</button>
+          <button type="button" class="seg-opt" data-view="compact" role="radio" aria-checked="false">Compact</button>
+        </div>
+      </div>
+    </div>
     <div class="grid" id="eq-grid"></div>
+    <!-- Compact view: bands of one-line chips + a preview pane (see app.js renderCompact) -->
+    <div class="cv hidden" id="eq-compact">
+      <div class="cv-list" id="eq-cv-list"></div>
+      <aside class="cv-pane" id="eq-cv-pane" aria-label="Equipment preview"></aside>
+    </div>
   </section>
 
   <!-- COMPONENTS -->
@@ -144,8 +159,22 @@
       </div>
     </div>
     <div class="active-filters hidden" id="sp-filters"></div>
-    <div class="count" id="sp-count"></div>
+    <div class="count-row">
+      <div class="count" id="sp-count"></div>
+      <div class="view-toggle" data-tab="spells">
+        <span class="vt-label" id="sp-view-label">View</span>
+        <div class="segmented" data-mode="cards" role="radiogroup" aria-labelledby="sp-view-label">
+          <span class="seg-thumb" aria-hidden="true"></span>
+          <button type="button" class="seg-opt active" data-view="cards" role="radio" aria-checked="true">Cards</button>
+          <button type="button" class="seg-opt" data-view="compact" role="radio" aria-checked="false">Compact</button>
+        </div>
+      </div>
+    </div>
     <div class="grid" id="sp-grid"></div>
+    <div class="cv hidden" id="sp-compact">
+      <div class="cv-list" id="sp-cv-list"></div>
+      <aside class="cv-pane" id="sp-cv-pane" aria-label="Spell preview"></aside>
+    </div>
   </section>
 
   <!-- MONSTERS -->
