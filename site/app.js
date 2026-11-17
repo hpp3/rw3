@@ -714,7 +714,8 @@ function renderEquipment() {
   const slots = EQ.slots, tags = EQ.tags;
   const pool = EQ.craftableOnly ? inventoryEssences() : null;
   const sc = $('#eq-sumcount'); if (sc) sc.textContent = EQ.sumTags.size || '';
-  let list = DATA.equipment.filter(e => {
+  const all = eqPool();
+  let list = all.filter(e => {
     if (slots.size && !slots.has(e.slot)) return false;
     if (EQ.statFilters && !passesStatFilters(e, EQ.statFilters)) return false;
     if (EQ.craftableOnly && evalRecipe(e.recipe, pool).missing > 0) return false;
@@ -741,7 +742,7 @@ function renderEquipment() {
   if (!list.length) {
     const msg = (EQ.craftableOnly && Object.keys(INVENTORY).length === 0)
       ? 'Add components on the <a class="tablink" data-goto="components">Components tab</a> to see what you can craft.'
-      : 'No equipment matches those filters.';
+      : `No equipment${restrictedEq() ? ' in this subset' : ''} matches those filters.`;
     grid.appendChild(el('div', 'empty', msg));
   }
   list.forEach(e => {
@@ -749,8 +750,8 @@ function renderEquipment() {
     if (EQ.sumTags.size) markSummonMatches(card, EQ.sumTags);
     grid.appendChild(card);
   });
-  const suffix = EQ.craftableOnly ? ' craftable' : '';
-  $('#eq-count').textContent = `${list.length} of ${DATA.equipment.length} items${suffix}`;
+  const suffix = (EQ.craftableOnly ? ' craftable' : '') + (restrictedEq() ? ' in this subset' : '');
+  $('#eq-count').textContent = `${list.length} of ${all.length} items${suffix}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1254,7 +1255,8 @@ function renderSpells() {
   const q = SP.search.toLowerCase();
   const xc = $('#sp-xcount'); if (xc) xc.textContent = SP.xtags.size || '';
   const sc = $('#sp-sumcount'); if (sc) sc.textContent = SP.sumTags.size || '';
-  let list = DATA.spells.filter(s => {
+  const all = spPool();
+  let list = all.filter(s => {
     if (SP.levels.size && !SP.levels.has(s.forbidden ? 'Forbidden' : String(s.level))) return false;
     if (SP.statFilters && !passesStatFilters(s, SP.statFilters)) return false;
     if (SP.tags.size) {
@@ -1271,13 +1273,13 @@ function renderSpells() {
   });
   const grid = $('#sp-grid');
   grid.innerHTML = '';
-  if (!list.length) grid.appendChild(el('div', 'empty', 'No spells match.'));
+  if (!list.length) grid.appendChild(el('div', 'empty', restrictedSp() ? 'No spells in this subset match.' : 'No spells match.'));
   list.forEach(s => {
     const card = spellCard(s);
     if (SP.sumTags.size) markSummonMatches(card, SP.sumTags);
     grid.appendChild(card);
   });
-  $('#sp-count').textContent = `${list.length} of ${DATA.spells.length} spells`;
+  $('#sp-count').textContent = `${list.length} of ${all.length} spells${restrictedSp() ? ' in this subset' : ''}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1371,6 +1373,9 @@ function gotoPool(pool) {
 const TAB_RENDER = { equipment: () => renderEquipment(), spells: () => renderSpells(), monsters: () => renderMonsters(),
                      components: () => renderComponents(), costumes: () => renderCostumes() };
 function gotoEntry(kind, name) {
+  // A subset link (?r=) hides everything outside it; say so instead of landing
+  // on a tab where the card can't appear.
+  if (!entryInSubset(kind, name)) { restrictNote(`${name} isn't in this subset`); return; }
   const tab = KIND_TAB[kind];
   const id = KIND_CARD_PREFIX[kind] + slug(name);
   switchTab(tab);
@@ -2725,6 +2730,94 @@ function switchTab(name, fromHash) {
 }
 
 // ---------------------------------------------------------------------------
+// Subset links (`?r=`) — show only some spells / equipment on their tabs.
+// Written by the game mod mods/CompendiumExport for runs that randomly cut the
+// spellbook or crafting list (Improviser, Limited Spellbook): the link carries
+// that run's lists, and the Spells / Equipment tabs then show only those, with
+// every normal filter and sort still working on top. Machine-written, so it is
+// packed for length, not readability:
+//   r = VER '.' <equipment bits> '.' <spell bits>
+// Each bits field is a bitset over stable ids (equipment `id`, spell `sp_id`;
+// ids.json, §13) in the base64url alphabet, 6 ids per char, least significant
+// bit first: char k bit j <=> id 6k+j. An empty field leaves that tab whole.
+// Forbidden spells come along when the equipment that grants them is in the
+// subset (or equipment isn't restricted), as they would in that run. Like `g`,
+// the state lives only in the URL — never localStorage — and the header badge's
+// × drops the param.
+// ---------------------------------------------------------------------------
+const RESTRICT_PARAM = 'r';
+const RESTRICT_VER = '1';
+const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+let RESTRICT = null;   // null, or { eq: Set(name) | null, sp: Set(name) | null }
+let EQ_POOL = null, SP_POOL = null;   // cached subset arrays (DATA order)
+
+function decodeIdBits(str) {
+  const ids = new Set();
+  for (let k = 0; k < str.length; k++) {
+    const v = B64URL.indexOf(str[k]);
+    if (v < 0) continue;
+    for (let j = 0; j < 6; j++) if ((v >> j) & 1) ids.add(k * 6 + j);
+  }
+  return ids;
+}
+function loadRestrictFromUrl() {
+  RESTRICT = null; EQ_POOL = SP_POOL = null;
+  const raw = new URL(location.href).searchParams.get(RESTRICT_PARAM);
+  if (!raw) return;
+  const parts = raw.split('.');
+  if (parts[0] !== RESTRICT_VER) return;            // a future format this build can't read
+  const eqIds = parts[1] ? decodeIdBits(parts[1]) : null;
+  const spIds = parts[2] ? decodeIdBits(parts[2]) : null;
+  if (!eqIds && !spIds) return;
+  const eq = eqIds && new Set(DATA.equipment.filter(e => eqIds.has(e.id)).map(e => e.name));
+  const sp = spIds && new Set(DATA.spells.filter(s =>
+    spIds.has(s.sp_id) || (s.forbidden && (!eq || eq.has(s.granted_by)))).map(s => s.name));
+  RESTRICT = { eq, sp };
+}
+const restrictedEq = () => !!(RESTRICT && RESTRICT.eq);
+const restrictedSp = () => !!(RESTRICT && RESTRICT.sp);
+function eqPool() {
+  if (!restrictedEq()) return DATA.equipment;
+  return EQ_POOL || (EQ_POOL = DATA.equipment.filter(e => RESTRICT.eq.has(e.name)));
+}
+function spPool() {
+  if (!restrictedSp()) return DATA.spells;
+  return SP_POOL || (SP_POOL = DATA.spells.filter(s => RESTRICT.sp.has(s.name)));
+}
+function entryInSubset(kind, name) {
+  if (kind === 'spell') return !restrictedSp() || RESTRICT.sp.has(name);
+  if (kind === 'equipment') return !restrictedEq() || RESTRICT.eq.has(name);
+  return true;
+}
+function restrictLabel() {
+  const parts = [];
+  if (restrictedSp()) parts.push(`${RESTRICT.sp.size} spells`);
+  if (restrictedEq()) parts.push(`${RESTRICT.eq.size} equipment`);
+  return 'Showing a subset: ' + parts.join(' · ');
+}
+function renderRestrictBadge() {
+  const b = $('#restrict-badge'); if (!b) return;
+  b.classList.toggle('hidden', !RESTRICT);
+  if (RESTRICT) $('#restrict-text').textContent = restrictLabel();
+}
+let restrictNoteTimer = null;
+function restrictNote(msg) {
+  const t = $('#restrict-text'); if (!t || !RESTRICT) return;
+  t.textContent = msg;
+  t.parentNode.classList.add('note');
+  clearTimeout(restrictNoteTimer);
+  restrictNoteTimer = setTimeout(() => { t.parentNode.classList.remove('note'); renderRestrictBadge(); }, 2600);
+}
+function clearRestrict() {
+  RESTRICT = null; EQ_POOL = SP_POOL = null;
+  const url = new URL(location.href);
+  url.searchParams.delete(RESTRICT_PARAM);
+  history.replaceState(null, '', url);
+  renderRestrictBadge();
+  renderEquipment(); renderSpells();
+}
+
+// ---------------------------------------------------------------------------
 // Version selector (live vs beta) — see gameinfo.py / versions.json.
 // The active version picks which data file we fetch. It also rides in the URL as
 // a human-readable `v=<branch>` param (absent = the default/live branch), so a
@@ -2814,6 +2907,9 @@ async function init() {
   for (const c of DATA.components) SHARE_ENTRY['c-' + slug(c.name)] = ['component', c.name];
   for (const n of Object.keys(UNITS)) SHARE_ENTRY[unitCardId(n)] = ['unit', n];
   buildSpLookup();
+  loadRestrictFromUrl();
+  renderRestrictBadge();
+  { const x = $('#restrict-clear'); if (x) x.addEventListener('click', clearRestrict); }
   loadBuild();
   loadGuideFromUrl();
   loadInv();
@@ -2853,7 +2949,7 @@ async function init() {
     setEqTagMode(btn.dataset.mode);
     renderEquipment();
   });
-  makeStatSearch({ inputEl: $('#eq-search'), filtersEl: $('#eq-filters'), state: EQ, getDataset: () => DATA.equipment, render: renderEquipment });
+  makeStatSearch({ inputEl: $('#eq-search'), filtersEl: $('#eq-filters'), state: EQ, getDataset: eqPool, render: renderEquipment });
   $('#eq-sort').addEventListener('change', e => { EQ.sort = e.target.value; renderEquipment(); });
   $('#eq-craftable').addEventListener('click', e => {
     EQ.craftableOnly = !EQ.craftableOnly;
@@ -2892,7 +2988,7 @@ async function init() {
   });
   SP.sumTags = buildSummonTagChips($('#sp-sumtags'), DATA.spells, 'Spells', renderSpells);
   $('#sp-upgtags').addEventListener('click', () => { setSpUpgTags(!SP.upgTags); renderSpells(); });
-  makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: () => DATA.spells, render: renderSpells });
+  makeStatSearch({ inputEl: $('#sp-search'), filtersEl: $('#sp-filters'), state: SP, getDataset: spPool, render: renderSpells });
 
   // --- Monsters controls ---
   MON.types = buildChips($('#mon-types'), ['monster', 'summon', 'companion', 'boss'], {

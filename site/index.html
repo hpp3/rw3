@@ -10,7 +10,11 @@
 <body>
 <header>
   <div class="title">
-    <h1>Rift Wizard 3 Compendium</h1>
+    <div class="title-row">
+      <h1>Rift Wizard 3 Compendium</h1>
+      <!-- Shown only for a subset link (?r=, written by the CompendiumExport game mod) -->
+      <div class="restrict-badge hidden" id="restrict-badge" role="status"><span id="restrict-text"></span><button type="button" id="restrict-clear" title="Show all spells and equipment" aria-label="Show all spells and equipment">×</button></div>
+    </div>
     <p class="sub">Last Updated: <span id="last-updated">—</span><label class="version-picker hidden" id="version-picker"> · Version <select id="version-select"></select></label> · <a href="#recent" id="recent-link">View recent changes</a></p>
   </div>
   <nav class="tabs" id="tabs">

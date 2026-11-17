@@ -423,7 +423,8 @@ who cached the old bytes, until their cache revalidates (~10 min on Pages, or a 
 ## 13. Stable IDs (and where state lives)
 
 Stable integer ids exist so **shareable Guides** (§15) survive content additions with **no server/db**.
-The URL is owned solely by the Guide (`?g=`); everything else is local: the equipment **build**,
+The URL carries only link-borne state: the Guide (`?g=`), the dataset version (`?v=`, §17) and a
+subset filter (`?r=`, §20). Everything else is local: the equipment **build**,
 component inventory, component→item assignments, scroll, and active tab (`#hash`).
 
 - **`ids.json`** (committed, repo root) maps `display name → small int`, per category (`equipment`,
@@ -758,3 +759,34 @@ card it previews, and new fields show up in previews for free.
 - **Costumes are excluded on purpose.** Their art sits behind an explicit per-costume reveal;
   a link preview would show it to a whole channel at once. No share button, no page, and the
   screenshot pass is scoped to the four shareable grids rather than `.card[id]`.
+
+---
+
+## 20. Subset links — `?r=` restricts the Spells and Equipment tabs
+
+Some trials cut the run's options at random (Improviser removes 75% of the spellbook and of
+the crafting list, Limited Spellbook 80% of the spellbook). The game mod
+`mods/CompendiumExport` (in the rw3-mods repo) puts an "Export to Compendium" link in the
+spell and crafting shops that opens this site with that run's lists. The Spells and Equipment
+tabs then show **only** those entries, and every normal filter, search and sort works on top,
+because the subset is applied first (`spPool()` / `eqPool()` replace `DATA.spells` /
+`DATA.equipment` as the list each renderer and stat-search filters).
+
+- **Format** (`loadRestrictFromUrl`): `r = VER '.' <equipment bits> '.' <spell bits>`. Each
+  field is a bitset over the stable ids of §13 (`id` for equipment, `sp_id` for spells),
+  6 ids per char in the base64url alphabet, least significant bit first: char *k*, bit *j*
+  is id 6*k*+*j*. Trailing all-zero chars are trimmed. It is written only by the mod, so it is
+  packed for length rather than readability: about 230 chars whatever the subset size, so the
+  URL stays far below the ~2k limit of Windows' URL launcher. An **empty field leaves that tab
+  whole** (Limited Spellbook sends no equipment field). Ids the loaded dataset lacks drop, as in
+  the Guide. A different `VER` is ignored rather than misread.
+- **Forbidden spells** come along when the equipment that grants them (`granted_by`) is in
+  the subset, or when equipment isn't restricted: that is when the run can actually get them.
+  The mod therefore sends only the run's spellbook.
+- **URL only, never localStorage.** The header badge ("Showing a subset: N spells · M
+  equipment") has an × (`clearRestrict`) that drops the param with `replaceState` and re-renders.
+  `v` and `#tab` survive, and the version switch keeps `r` because ids are shared across
+  branches (§17).
+- **Cross-references** to an entry outside the subset (`gotoEntry`) don't navigate. The
+  badge briefly says "<name> isn't in this subset" instead, since the card can't appear.
+  Hover sheets still work. Other tabs (Components, Monsters, Guide, Recent) ignore `r`.
