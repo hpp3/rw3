@@ -2906,7 +2906,7 @@ function compactGroups(tab, list) {
     for (const e of list) {
       if (EQ.sort === 'slot') add(e.slot, e.slot, e);
       else if (EQ.sort === 'name') add('az', 'A–Z', e);
-      else add(e.recipe_cost, `${e.recipe_cost} comp.`, e);
+      else add(e.recipe_cost, `${e.recipe_cost} cost`, e);
     }
   }
   const noun = tab === 'spells' ? ['spell', 'spells'] : ['item', 'items'];

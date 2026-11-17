@@ -811,7 +811,7 @@ of fixed-width chips beside a preview pane.
   both views.
 - **Bands** (`compactGroups`):
   - Spells: one band per SP cost, with Forbidden last; names A–Z inside a band.
-  - Equipment follows the Sort select: recipe cost bands ("4 comp.", ascending or descending),
+  - Equipment follows the Sort select: recipe cost bands ("4 cost", ascending or descending),
     slot bands, or a single "A–Z" band.
   - Each band's left gutter shows its label and a count.
 - **Chips** (`chipHtml`): a 24px icon, the name (ellipsised), and the tag letters right-aligned
