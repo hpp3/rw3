@@ -2742,13 +2742,16 @@ function switchTab(name, fromHash) {
 // bit first: char k bit j <=> id 6k+j. An empty field leaves that tab whole.
 // Forbidden spells come along when the equipment that grants them is in the
 // subset (or equipment isn't restricted), as they would in that run. Like `g`,
-// the state lives only in the URL — never localStorage — and the header badge's
-// × drops the param.
+// the state lives only in the URL — never localStorage. The header badge's ×
+// drops the param as a NEW history entry, and every same-page history move
+// re-reads it (syncRestrictFromUrl), so Back restores the subset and Forward
+// clears it again.
 // ---------------------------------------------------------------------------
 const RESTRICT_PARAM = 'r';
 const RESTRICT_VER = '1';
 const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 let RESTRICT = null;   // null, or { eq: Set(name) | null, sp: Set(name) | null }
+let RESTRICT_RAW = ''; // the `r` value RESTRICT was built from
 let EQ_POOL = null, SP_POOL = null;   // cached subset arrays (DATA order)
 
 function decodeIdBits(str) {
@@ -2760,9 +2763,10 @@ function decodeIdBits(str) {
   }
   return ids;
 }
+const restrictInUrl = () => new URL(location.href).searchParams.get(RESTRICT_PARAM) || '';
 function loadRestrictFromUrl() {
   RESTRICT = null; EQ_POOL = SP_POOL = null;
-  const raw = new URL(location.href).searchParams.get(RESTRICT_PARAM);
+  const raw = RESTRICT_RAW = restrictInUrl();
   if (!raw) return;
   const parts = raw.split('.');
   if (parts[0] !== RESTRICT_VER) return;            // a future format this build can't read
@@ -2808,13 +2812,21 @@ function restrictNote(msg) {
   clearTimeout(restrictNoteTimer);
   restrictNoteTimer = setTimeout(() => { t.parentNode.classList.remove('note'); renderRestrictBadge(); }, 2600);
 }
-function clearRestrict() {
-  RESTRICT = null; EQ_POOL = SP_POOL = null;
-  const url = new URL(location.href);
-  url.searchParams.delete(RESTRICT_PARAM);
-  history.replaceState(null, '', url);
+// Apply whatever `r` the URL now carries (no-op if unchanged). Runs on popstate,
+// which fires for every same-page Back/Forward, query-only moves included.
+function syncRestrictFromUrl() {
+  if (restrictInUrl() === RESTRICT_RAW) return;
+  loadRestrictFromUrl();
+  clearTimeout(restrictNoteTimer);
+  const b = $('#restrict-badge'); if (b) b.classList.remove('note');
   renderRestrictBadge();
   renderEquipment(); renderSpells();
+}
+function clearRestrict() {
+  const url = new URL(location.href);
+  url.searchParams.delete(RESTRICT_PARAM);
+  history.pushState(null, '', url);     // its own entry, so Back brings the subset back
+  syncRestrictFromUrl();
 }
 
 // ---------------------------------------------------------------------------
@@ -2910,6 +2922,7 @@ async function init() {
   loadRestrictFromUrl();
   renderRestrictBadge();
   { const x = $('#restrict-clear'); if (x) x.addEventListener('click', clearRestrict); }
+  window.addEventListener('popstate', syncRestrictFromUrl);
   loadBuild();
   loadGuideFromUrl();
   loadInv();

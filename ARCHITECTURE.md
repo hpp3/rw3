@@ -784,9 +784,14 @@ because the subset is applied first (`spPool()` / `eqPool()` replace `DATA.spell
   the subset, or when equipment isn't restricted: that is when the run can actually get them.
   The mod therefore sends only the run's spellbook.
 - **URL only, never localStorage.** The header badge ("Showing a subset: N spells · M
-  equipment") has an × (`clearRestrict`) that drops the param with `replaceState` and re-renders.
-  `v` and `#tab` survive, and the version switch keeps `r` because ids are shared across
-  branches (§17).
+  equipment") has an × (`clearRestrict`) that drops the param with `pushState`, so it gets its
+  own history entry. `v` and `#tab` survive, and the version switch keeps `r` because ids are
+  shared across branches (§17).
+- **The URL is the source of truth across Back/Forward.** Back and Forward between same-page
+  entries don't reload, so a `popstate` listener (`syncRestrictFromUrl`) re-reads `r` and
+  re-renders whenever it differs from the value applied (`RESTRICT_RAW`). Back after the ×
+  restores the subset; tab switches made before or after the × keep their own `r` state. An
+  earlier version used `replaceState` with no listener: Back restored the URL but not the filter.
 - **Cross-references** to an entry outside the subset (`gotoEntry`) don't navigate. The
   badge briefly says "<name> isn't in this subset" instead, since the card can't appear.
   Hover sheets still work. Other tabs (Components, Monsters, Guide, Recent) ignore `r`.
