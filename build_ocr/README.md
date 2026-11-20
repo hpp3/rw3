@@ -17,6 +17,8 @@ quarter of the time.
 | 2 | `ocr_stage.py` | RapidOCR (PP-OCRv4, GPU via DirectML) → one cached JSON of text boxes per image, keyed by content hash; about 1.3 s/image |
 | 3 | `parse.py` | text-anchored layout ("Spells"/"Equipment" headers, "Learn a Spell"/"Craft Equipment" terminators, "Outcome"/"Turns taken" pane) → `results.jsonl`, `summary.json`, `unmatched.tsv`; groups images of the same run |
 | 4 | `evaluate.py` | accuracy against hand-read gold files and agreement with July's results |
+| 5 | `analyze.py` | pick rates by patch (with intervals), upgrade take-rates (chosen vs pushed to 3+), final-realm damage credited to spells/items, carry-based archetypes with compendium guide links → `analysis.json` |
+| 6 | `report.py` | renders `analysis.json` as one self-contained HTML page |
 
 ```bash
 cd build_ocr
@@ -27,6 +29,8 @@ uv pip install --python .venv/Scripts/python.exe onnxruntime-directml
 .venv/Scripts/python.exe -I vocab.py --data ../site/data.json --data ../site/data.beta.json --history ../site/history.json --game "E:/SteamLibrary/steamapps/common/Rift Wizard 3"
 .venv/Scripts/python.exe -I ocr_stage.py D:/Downloads/rw3_images D:/Downloads/rw3_images_2026-11 --cache D:/Downloads/rw3_build_ocr/cache
 .venv/Scripts/python.exe -I parse.py --cache D:/Downloads/rw3_build_ocr/cache --images D:/Downloads/rw3_images D:/Downloads/rw3_images_2026-11 --out D:/Downloads/rw3_build_ocr/out
+.venv/Scripts/python.exe -I analyze.py --builds D:/Downloads/rw3_build_ocr/out/builds.jsonl --site ../site --out D:/Downloads/rw3_build_ocr/analysis/analysis.json
+.venv/Scripts/python.exe -I report.py --analysis D:/Downloads/rw3_build_ocr/analysis/analysis.json --site ../site --out winning-builds.html
 .venv/Scripts/python.exe -I evaluate.py --results D:/Downloads/rw3_build_ocr/out/results.jsonl --gold D:/Downloads/rw3_build_ocr/gold --july D:/Downloads/rw3_ocr_results/results.jsonl --out D:/Downloads/rw3_build_ocr/out/accuracy.md
 ```
 

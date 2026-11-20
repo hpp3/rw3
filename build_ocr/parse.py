@@ -57,6 +57,15 @@ def to_int(s: str) -> int | None:
     return int(digits) if digits else None
 
 
+# "165 Seal Fate", but OCR often drops the space ("8BlueLion") or reads a final 1 as l
+# ("3327lSonicShields" = 33271 Sonic Shields): a lazy run of digit-like chars, then a capital
+COUNT_LINE = re.compile(r"\s*([0-9lIO|,]+?)\s*([A-Z].*)$")
+
+
+def fix_other(t: str) -> str:
+    return re.sub(r"(?<![A-Za-z])0ther\b", "Other", t)
+
+
 def weekly_number(text: str) -> int | None:
     """weekly_273 -> 273. The underscore is often read as a digit, and weekly seeds are 3 digits."""
     n = to_int(text)
@@ -315,7 +324,7 @@ class Parser:
     def parse_summary(self, rows: list[list[Box]]) -> dict:
         texts = [row_text(r) for r in rows]
         out: dict = {"realm": None, "challenge": None, "challenge_raw": None, "outcome": None,
-                     "turns_taken": None, "spell_casts": [], "summary_lines": texts}
+                     "turns_taken": None, "spell_casts": [], "damage_to_enemies": [], "summary_lines": texts}
         realm_i = outcome_i = None
         for i, t in enumerate(texts):
             m = re.match(r"\s*R\w{2,4}m\s*([0-9lIO|]{1,3})\b", t)
@@ -355,11 +364,20 @@ class Parser:
         casts_i = next((i for i, t in enumerate(texts) if fuzz.partial_ratio(norm(t), "spellcasts") >= 88), None)
         if casts_i is not None:
             for t in texts[casts_i + 1: casts_i + 12]:
-                m = re.match(r"\s*([0-9lIO|]+)\s+(.+)$", t)
+                m = COUNT_LINE.match(fix_other(t))
                 if not m or re.search(r"damage|purchase", t, re.I):
                     break
                 name, score, _ = self.spell_m.best(m.group(2))
                 out["spell_casts"].append([to_int(m.group(1)), name if score >= MATCH_LOW else m.group(2)])
+        # final-realm damage by source: spells, items, minions, statuses, and an "Other" bucket.
+        # Kept raw; the analysis credits minions to whatever summons them.
+        dmg_i = next((i for i, t in enumerate(texts) if fuzz.partial_ratio(norm(t), "damagetoenemies") >= 88), None)
+        if dmg_i is not None:
+            for t in texts[dmg_i + 1: dmg_i + 10]:
+                m = COUNT_LINE.match(fix_other(t))
+                if not m or re.search(r"damage to|purchase|allies|enemies slain", t, re.I):
+                    break
+                out["damage_to_enemies"].append([to_int(m.group(1)), m.group(2).strip()])
         return out
 
     # -- left panel --------------------------------------------------------------
@@ -453,6 +471,7 @@ class Parser:
             "turns_taken": summary.get("turns_taken"),
             "current_turn": left["turn"],
             "spell_casts": summary.get("spell_casts", []),
+            "damage_to_enemies": summary.get("damage_to_enemies", []),
             "line_height": round(lh, 1),
         })
         if left["realm"] and summary.get("realm") and left["realm"] != summary["realm"]:
@@ -573,11 +592,21 @@ def apply_final_realm(r: dict) -> None:
 
 
 def fingerprint(r: dict) -> tuple | None:
+    """Same realm + same local and global turn counts. Cast lists are not part of the key:
+    two screenshots of one run can OCR them slightly differently."""
     tt = r.get("turns_taken") or {}
-    casts = tuple(tuple(c) for c in r.get("spell_casts") or [])
-    if tt.get("global") is None and not casts:
+    if tt.get("global") is None or tt.get("local") is None:
         return None
-    return (r.get("realm"), tt.get("local"), tt.get("global"), casts[:4])
+    return (r.get("realm"), tt.get("local"), tt.get("global"))
+
+
+def same_run(a: dict, b: dict) -> bool:
+    """Guard for a fingerprint match: the spell lists must agree (a map view lists only names)."""
+    sa = {s["name"] for s in a.get("spells") or []}
+    sb = {s["name"] for s in b.get("spells") or []}
+    if not sa or not sb:
+        return True
+    return len(sa & sb) / len(sa | sb) >= 0.5
 
 
 def build_key(r: dict) -> tuple | None:
@@ -612,12 +641,17 @@ def group_runs(results: list[dict]) -> None:
         if r["kind"] == "non_build":
             continue
         fp = fingerprint(r)
-        if fp and fp[2] is not None:  # needs the global turn count to be a safe identity
-            by_fp[fp].append(r["image"])
+        if fp:
+            by_fp[fp].append(r)
         bk = build_key(r)
         if bk and r["kind"].endswith("_sheet") and (len(bk[0]) + len(bk[1])) >= 6:
             by_build[(bk, (r.get("turns_taken") or {}).get("global"))].append(r["image"])
-    for group in list(by_fp.values()) + list(by_build.values()):
+    for group in by_fp.values():
+        for i, a in enumerate(group):
+            for b in group[i + 1:]:
+                if same_run(a, b):
+                    union(a["image"], b["image"])
+    for group in by_build.values():
         for img in group[1:]:
             union(group[0], img)
     # same-post pairs (char sheet + finish map) posted within 3s that agree on spells
@@ -697,7 +731,8 @@ def main() -> int:
                 continue
             fh.write(json.dumps({k: r.get(k) for k in (
                 "image", "batch", "posted", "kind", "realm", "challenge", "outcome", "turns_taken", "spells",
-                "equipment", "assumed_victory", "incomplete", "quality", "warnings", "run_group")}, ensure_ascii=False) + "\n")
+                "equipment", "spell_casts", "damage_to_enemies", "assumed_victory", "incomplete", "quality",
+                "warnings", "run_group")}, ensure_ascii=False) + "\n")
     kinds = Counter(r["kind"] for r in results)
     unique_usable = [r for r in results if r["status"] == "usable" and not r.get("duplicate_of")]
     unmatched = Counter()
