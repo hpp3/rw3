@@ -523,6 +523,18 @@ class Parser:
             res["reason"] = "assumed_victory_from_final_realm_in_progress"
         else:
             res["reason"] = res["reason"] or res["kind"]
+        # modded runs: the Roguelite mod marks its rare variants with a leading "*", and items
+        # that exist in neither the game nor the vocabulary come from other mods
+        if res.get("lines"):
+            texts = [x["text"] for x in res["lines"]["spells"]] + [x["text"] for x in res["lines"]["equipment"]]
+            signs = [t for t in texts if t.strip().startswith("*")]
+            signs += [e["name"] for e in res.get("equipment") or [] if not e["known"]]
+            if signs:
+                res["modded"] = signs[:6]
+                warnings.append(f"modded:{signs[:6]}")
+                if res["status"] == "usable":
+                    res["status"] = "unusable"
+                    res["reason"] = "modded_run"
         trivial = ("unknown_upgrade", "split_merged_line", "spell_inferred_from_upgrades")
         res["quality"] = "flagged" if any(not w.startswith(trivial) for w in warnings) else "clean"
         return res
@@ -541,7 +553,8 @@ DEMO_END_MS = 1782864000000  # 2026-07-01 UTC: earlier posts include demo wins, 
 
 def apply_final_realm(r: dict) -> None:
     """The right pane is a per-level summary: "Outcome: VICTORY" also follows a mid-run level
-    clear. Only the final realm is a run win (realm 20 for demo-era posts)."""
+    clear. Only the final realm is a run win. Demo wins (realm 20, posts before July 2026) are
+    recognised but excluded: the user doesn't want demo-era builds in the analysis."""
     if not r["kind"].startswith("victory_") or r.get("realm") is None:
         return
     realm = r["realm"]
@@ -549,6 +562,9 @@ def apply_final_realm(r: dict) -> None:
         return
     if realm == FINAL_REALM - 1 and (r.get("posted") or 0) < DEMO_END_MS:
         r["demo_final_realm"] = True
+        if r["status"] == "usable":
+            r["status"] = "unusable"
+            r["reason"] = "demo_win"
         return
     r["kind"] = "level_clear_" + r["kind"].split("_", 1)[1]
     if r["status"] == "usable":

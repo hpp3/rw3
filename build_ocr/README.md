@@ -45,11 +45,11 @@ images) when the machine is in use. Failed images are never cached, so re-runnin
   - two realm-21 in-progress sheets that July rejected (it accepted 19 others like them);
   - one map-only image that July accepted.
   Where both accept an image, July's upgrade lists match on only 123 of 412. Spot checks show July errors: Tomes snapped to other items, and upgrades read as spells.
-- **Result:** 1,913 usable images, 1,910 unique runs (413 July + 1,497 new). 16 are flagged, 9 incomplete, 25 assumed wins (in-progress realm-21 sheets), and 4 demo wins (realm 20, June). There are 183 non-builds; a 16-image sample of them was all genuinely non-build. 587 victory map views carry spell names only, and 289 of them have no character sheet from the same run.
+- **Result:** 1,907 usable images, 1,904 unique vanilla wins (409 July + 1,495 new). 14 are flagged, 9 incomplete, and 25 are assumed wins (in-progress realm-21 sheets). Excluded: 4 demo wins (realm 20, June), 6 mid-run level clears and 2 modded runs. There are 183 non-builds; a 16-image sample of them was all genuinely non-build. 587 victory map views carry spell names only, and 289 of them have no character sheet from the same run.
 
 ## Output (`results.jsonl`, one row per image)
 
-The fields are a superset of July's, so `../build_analysis.py` can read them.
+The fields are a superset of July's, so `../build_analysis.py` can read them. Demo wins (`demo_final_realm`) are excluded from `usable`.
 
 - `kind`:
   - `victory_sheet`: character sheet + Outcome: VICTORY.
@@ -58,6 +58,7 @@ The fields are a superset of July's, so `../build_analysis.py` can read them.
   - `victory_map` / `in_progress_map` / `defeat_map`: map view; spell names from the left panel only.
   - `level_clear_sheet` / `level_clear_map`: "Outcome: VICTORY" for a mid-run realm. The right pane summarises the level just finished, so only the final realm is a run win: 21, or 20 for demo-era posts before 2026-07-01, which get `demo_final_realm: true`.
   - `non_build`
+- `modded`: signs of a modded run. Roguelite marks its rare variants with a leading `*`, and items that exist in neither the game nor the vocabulary come from other mods (e.g. Artificer's Wheel). These runs are not `usable`.
 - `status`: `usable` for a final-realm victory sheet, or for an in-progress sheet on realm 21+ (`assumed_victory: true`, the same rule July used).
 - `spells`: `[{name, upgrades, confidence, unknown_upgrades?}]` in sheet order. `unknown_upgrades` holds legible indented lines that match no known upgrade, which are usually names from June builds.
 - `equipment`: `[{name, known, confidence}]` in order, repeats kept.
