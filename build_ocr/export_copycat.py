@@ -24,6 +24,7 @@ def main() -> int:
     ap.add_argument("--site", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--challenge", default="Improviser")
+    ap.add_argument("--image-dir", action="append", default=[], help="folder(s) holding the screenshots")
     args = ap.parse_args()
     data = json.loads((args.site / "data.json").read_text(encoding="utf-8"))
     forbidden = {s["name"] for s in data["spells"] if s.get("granted_by") or s.get("forbidden")}
@@ -41,6 +42,8 @@ def main() -> int:
         out.append({
             "id": b["image"].split("_", 1)[0],
             "posted": dt.datetime.fromtimestamp(b["posted"] / 1000, dt.UTC).date().isoformat(),
+            "posted_ms": b["posted"],  # Discord post time (UTC epoch ms, from the attachment id)
+            "image": b["image"],       # the original screenshot, looked up in image_dirs
             "spells": spells,
             "equipment": items,
             "pushed": pushed,
@@ -48,7 +51,9 @@ def main() -> int:
         })
     out.sort(key=lambda r: r["id"])
     payload = {"challenge": args.challenge, "source": "Discord #final-builds screenshots, OCR'd by build_ocr",
-               "generated": dt.date.today().isoformat(), "builds": out}
+               "generated": dt.date.today().isoformat(),
+               "image_dirs": [str(d) for d in args.image_dir],  # where the mod finds the screenshots
+               "builds": out}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(payload, indent=1, ensure_ascii=False), encoding="utf-8")
     print(f"{len(out)} builds ({sum(1 for r in out if not r['pushed'])} with no spell past 2 upgrades) -> {args.out}")
