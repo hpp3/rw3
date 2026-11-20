@@ -21,6 +21,7 @@ import math
 import re
 import sys
 from collections import Counter, defaultdict
+from itertools import combinations
 from pathlib import Path
 
 from rapidfuzz import fuzz, process
@@ -84,7 +85,8 @@ def cast_links(data: dict) -> list:
     def scan(text, src, up):
         text = re.sub(r"\[([^\]:]+)(?::[^\]]*)?\]", r"\1", text or "")
         for n in names:
-            if n != src and re.search(r"\b(?i:casts?)\s+(?:a\s+|an\s+|your\s+)?" + re.escape(n) + r"\b", text):
+            if n != src and (re.search(r"\b(?i:casts?)\s+(?:a\s+|an\s+|your\s+)?" + re.escape(n) + r"\b", text)
+                             or re.search(re.escape(n) + r"\s+(?:will be|is)\s+cast\b", text)):  # "Holy Fire will be cast"
                 links.append((src, up, n))
     for s in data["spells"]:
         scan(s.get("desc"), s["name"], None)
@@ -107,6 +109,59 @@ def root_chain(spell, build_spells, upgrades, links, seen=None) -> list:
         if len(chain) > len(best):
             best = chain
     return best
+
+
+def combos_block(builds: list, links: list) -> list:
+    """2-piece combos from Improviser: a given pair is on offer together in ~1/16 of runs, so if
+    each spell is taken at its own taken-when-offered rate, a pair should appear in about
+    N/16 * pA * pB winning builds. Pairs seen far more often than that win as a unit. The
+    surprise is a one-sided Poisson tail; many pairs are tested, so weak ones can be chance."""
+    imp = [b for b in builds if b.get("challenge") == "Improviser"]
+    n = len(imp)
+    if not n:
+        return []
+    single = Counter(x for b in imp for x in b["S"])
+    pairs = Counter(p for b in imp for p in combinations(sorted(b["S"]), 2))
+    p_off = {x: min(1.0, k / (0.25 * n)) for x, k in single.items()}
+    N = len(builds)
+    all_single = Counter(x for b in builds for x in b["S"])
+    linked = {}
+    for eng, up, target in links:
+        linked.setdefault(tuple(sorted((eng, target))), f"{eng}: {up}" if up else f"{eng} casts {target}")
+    rows = []
+    for (a, c), k in pairs.items():
+        if k < 4:
+            continue
+        exp = n / 16 * p_off[a] * p_off[c]
+        tail = 1 - sum(math.exp(-exp) * exp ** i / math.factorial(i) for i in range(k))
+        if tail > 0.03:
+            continue
+        together_all = sum(1 for b in builds if a in b["S"] and c in b["S"])
+        exp_all = all_single[a] * all_single[c] / N
+        members = [b for b in builds if a in b["S"] and c in b["S"]]
+        rows.append({"a": a, "b": c, "k": k, "expected": round(exp, 2), "p": round(tail, 4),
+                     "together_when_offered": round(min(1, k / (n / 16)), 3),
+                     "all_k": together_all, "all_expected": round(exp_all, 1),
+                     "all_lift": round(together_all / exp_all, 1) if exp_all else None,
+                     "link": linked.get((a, c)),
+                     "others": Counter(x for b in members for x in b["S"] if x not in (a, c)).most_common(4)})
+    return sorted(rows, key=lambda r: r["p"])
+
+
+def oner_block(builds: list) -> list:
+    """Oner allows one spell: the spells that won a whole run by themselves, with their upgrades."""
+    oner = [b for b in builds if b.get("challenge") == "Oner"]
+    by = defaultdict(list)
+    for b in oner:
+        for s in b["spells"]:
+            if not s.get("unknown"):
+                by[s["name"]].append(s)
+    out = []
+    for name, ss in sorted(by.items(), key=lambda kv: -len(kv[1])):
+        ups = Counter(u for s in ss for u in s["upgrades"])
+        out.append({"spell": name, "k": len(ss), "of": len(oner),
+                    "upgrades": [[u, round(k / len(ss), 2)] for u, k in ups.most_common(5)]})
+    return out
 
 
 def improviser_block(builds: list, data: dict, all_upgrades: list) -> dict:
@@ -570,6 +625,8 @@ def main() -> int:
     }
     if not args.only_challenge:
         out["improviser"] = improviser_block(builds, data, out["upgrades"])
+        out["combos"] = combos_block(builds, links)
+        out["oner"] = oner_block(builds)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({k: out[k] for k in ("n_builds", "dataset", "carry_coverage", "archetype_coverage")}, indent=1))

@@ -45,6 +45,7 @@ def main() -> int:
         "signature": [r for r in a["signature_upgrades"] if r["rate"] >= 0.8],
         "item_damage": a["item_damage"][:25],
         "improviser": a.get("improviser") or {},
+        "combos": a.get("combos") or [], "oner": (a.get("oner") or [])[:12],
         "coverage": a["carry_coverage"], "arch_cov": a["archetype_coverage"],
         "archetypes": a["archetypes"], "always": a["always_good"],
         "unattributed": a["unattributed_top"][:10],
@@ -160,7 +161,7 @@ ul.plain { margin: 0; padding-left: 18px; max-width: 80ch; display: grid; gap: 6
   <div class="eyebrow">Discord #final-builds · OCR'd screenshots</div>
   <h1>Rift Wizard 3 Winning Builds</h1>
   <p class="lede" id="lede"></p>
-  <nav aria-label="Sections"><a href="#picks">Pick rates</a><a href="#upgrades">Upgrades</a><a href="#improviser">Just good (Improviser)</a><a href="#carries">Carries</a><a href="#archetypes">Archetypes</a><a href="#method">Method and limits</a></nav>
+  <nav aria-label="Sections"><a href="#picks">Pick rates</a><a href="#upgrades">Upgrades</a><a href="#improviser">Just good (Improviser)</a><a href="#combos">Combos and solo spells</a><a href="#carries">Carries</a><a href="#archetypes">Archetypes</a><a href="#method">Method and limits</a></nav>
 </header>
 
 <section id="overview" aria-label="Dataset">
@@ -206,6 +207,14 @@ ul.plain { margin: 0; padding-left: 18px; max-width: 80ch; display: grid; gap: 6
     <div class="panel scroll"><h3>Craftable items, same measure</h3><table id="impItems"></table></div>
     <div class="panel"><h3>Upgrade picks: Improviser vs everyone</h3><p class="sub" id="impUpNote"></p><div id="impUps" style="display:grid;gap:12px"></div></div>
   </div>
+</section>
+
+<section id="combos">
+  <div class="eyebrow">1d · Small cores</div>
+  <h2>Two-piece combos and spells that win alone</h2>
+  <p>In Improviser a given pair of spells is on offer together in only about one run in sixteen. If each spell were taken at its own taken-when-offered rate, a pair would show up in about (runs ÷ 16) × rate A × rate B winning builds. The pairs below show up far more often than that, so they tend to win as a unit. <b>Linked</b> pairs are ones the game connects directly, where one spell casts the other through an upgrade or its own effect; the rest are combos the data finds on its own. The all-runs column checks each pair against every win.</p>
+  <div class="panel scroll"><h3>Pairs over-represented in Improviser wins</h3><p class="sub">Hundreds of pairs were tested, so the weakest entries near the bottom could be chance; the linked ones double as a check that the method works.</p><table id="comboTable"></table></div>
+  <div class="panel scroll"><h3>Oner: the spell that won the whole run</h3><p class="sub" id="onerNote"></p><table id="onerTable"></table></div>
 </section>
 
 <section id="carries">
@@ -355,6 +364,20 @@ if (IM && IM.n) {
   $('impUpNote').innerHTML = `Builds where the player chose one or two upgrades for the spell. Dark bar: Improviser; light bar: everyone. Spells with the biggest gaps come first. Samples are small (8–22 Improviser builds per spell), and some gaps may come from the random spell pool rather than skill.`;
   $('impUps').innerHTML = ups.map(u => `<div class="kv"><span class="k">${esc(u.spell)} · ${u.chosen} Improviser / ${u.everyone_chosen} all</span>` +
     u.rows.filter(r => r[1] > 0 || r[2] >= 0.1).slice(0, 4).map(([n, a, b]) => `<div class="duo"><span class="label" title="${esc(n)}">${esc(n)}</span><div class="bars"><div class="b1" style="width:${(100 * a).toFixed(0)}%"></div><div class="b2" style="width:${(100 * b).toFixed(0)}%"></div></div><span class="num sub">${Math.round(100 * a)}% / ${Math.round(100 * b)}%</span></div>`).join('') + '</div>').join('');
+}
+
+// ---- combos and Oner
+if (D.combos.length) {
+  $('comboTable').innerHTML = `<thead><tr><th>Pair</th><th class="num">Improviser wins</th><th class="num">Expected</th><th class="num">Together when both offered</th><th class="num">All runs</th><th>Game link</th><th>Usually alongside</th></tr></thead><tbody>` +
+    D.combos.map(r => `<tr><td><div class="name"><span>${esc(r.a)} + ${esc(r.b)}</span></div></td><td class="num">${r.k}</td><td class="num">${r.expected.toFixed(1)}</td>` +
+      `<td class="num">${Math.round(100 * r.together_when_offered)}%</td><td class="num">${r.all_k} vs ${r.all_expected}<div class="sub">${r.all_lift}× chance</div></td>` +
+      `<td>${r.link ? `<span class="pill role-everywhere">linked</span> <span class="sub">${esc(r.link)}</span>` : '<span class="pill role-alone">found in data</span>'}</td>` +
+      `<td><div class="chips">${r.others.slice(0, 3).map(([s, k]) => `<span class="chip">${esc(s)}<i>${k}</i></span>`).join('')}</div></td></tr>`).join('') + '</tbody>';
+}
+if (D.oner.length) {
+  $('onerNote').textContent = `Oner allows only one spell, so these are spells that cleared all 21 realms by themselves (with items), out of ${D.oner[0].of} Oner wins. One prolific player can tilt these counts.`;
+  $('onerTable').innerHTML = `<thead><tr><th>Spell</th><th class="num">Oner wins</th><th>Upgrades taken</th></tr></thead><tbody>` +
+    D.oner.map(r => `<tr><td>${esc(r.spell)}</td><td class="num">${r.k}</td><td><div class="chips">${r.upgrades.map(([u, p]) => `<span class="chip">${esc(u)}<i>${Math.round(100 * p)}%</i></span>`).join('')}</div></td></tr>`).join('') + '</tbody>';
 }
 
 // ---- carries
