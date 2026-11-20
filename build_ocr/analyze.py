@@ -148,6 +148,70 @@ def combos_block(builds: list, links: list) -> list:
     return sorted(rows, key=lambda r: r["p"])
 
 
+def item_combos_block(builds: list, data: dict) -> dict:
+    """Spell + item pairs and spell/item trios from Improviser, same logic as combos_block.
+    Only craftable items: Improviser removes 75% of those, so each is on offer in ~1/4 of runs
+    (tomes, companions and vault items come from rewards at unknown rates). Forbidden spells are
+    left out: each always appears with the book that grants it, and the book stands in for it.
+    A trio counts only if it beats what its strongest pair predicts: given that pair, the third
+    piece is on offer in ~1/4 of those runs and taken at its own rate."""
+    imp = [b for b in builds if b.get("challenge") == "Improviser"]
+    n = len(imp)
+    if not n:
+        return {}
+    forbidden = {s["name"] for s in data["spells"] if s.get("granted_by") or s.get("forbidden")}
+    craftable = {e["name"] for e in data["equipment"]}
+    tok = []
+    for b in imp:
+        sp = {"S:" + x for x in b["S"] if x not in forbidden}
+        it = {"I:" + x for x in b["Iset"] if x in craftable}
+        tok.append(sp | it)
+    single = Counter(t for ts in tok for t in ts)
+    p = {t: min(1.0, k / (0.25 * n)) for t, k in single.items()}
+    pair_k = Counter(pr for ts in tok for pr in combinations(sorted(ts), 2))
+    N = len(builds)
+    def all_count(names):
+        return sum(1 for b in builds if all((x[2:] in b["S"]) if x[0] == "S" else (x[2:] in b["Iset"]) for x in names))
+    def tail(k, exp):
+        return 1 - sum(math.exp(-exp) * exp ** i / math.factorial(i) for i in range(k))
+    day = [dt.datetime.fromtimestamp(b["posted"] / 1000, dt.UTC).date() for b in imp]
+
+    def days(members):
+        # distinct posting days of the Improviser wins with this combo: a rough guard against
+        # one player's streak (no poster names were captured)
+        return len({day[i] for i, ts in enumerate(tok) if all(m in ts for m in members)})
+    pairs = []
+    for (a, c), k in pair_k.items():
+        if k < 4 or a[0] == c[0]:
+            continue  # spell+spell pairs are in combos_block; item+item pairs aren't asked for
+        exp = n / 16 * p[a] * p[c]
+        t = tail(k, exp)
+        if t > 0.02:
+            continue
+        sp, it = (a, c) if a[0] == "S" else (c, a)
+        pairs.append({"spell": sp[2:], "item": it[2:], "k": k, "expected": round(exp, 2), "p": round(t, 4),
+                      "together_when_offered": round(min(1, k / (n / 16)), 3), "all_k": all_count((a, c)),
+                      "days": days((a, c))})
+    pairs.sort(key=lambda r: r["p"])
+    trio_k = Counter(tr for ts in tok for tr in combinations(sorted(ts), 3))
+    trios = []
+    for tr, k in trio_k.items():
+        if k < 3 or not any(x[0] == "I" for x in tr) or not any(x[0] == "S" for x in tr):
+            continue
+        exp = n / 64 * p[tr[0]] * p[tr[1]] * p[tr[2]]
+        # best explanation by a sub-pair: pair count x (third on offer) x (third's take rate)
+        given_pair = max(pair_k[tuple(sorted((tr[i], tr[j])))] * 0.25 * p[tr[3 - i - j]]
+                         for i, j in ((0, 1), (0, 2), (1, 2)))
+        t = tail(k, exp)
+        if t > 0.005 or k < 2 * given_pair:
+            continue
+        trios.append({"spells": [m[2:] for m in tr if m[0] == "S"], "items": [m[2:] for m in tr if m[0] == "I"],
+                      "k": k, "expected": round(exp, 3), "given_best_pair": round(given_pair, 2),
+                      "p": round(t, 5), "all_k": all_count(tr), "days": days(tr)})
+    trios.sort(key=lambda r: (r["p"], -r["k"]))
+    return {"pairs": pairs[:30], "trios": trios[:20], "n": n}
+
+
 def oner_block(builds: list) -> list:
     """Oner allows one spell: the spells that won a whole run by themselves, with their upgrades."""
     oner = [b for b in builds if b.get("challenge") == "Oner"]
@@ -626,6 +690,7 @@ def main() -> int:
     if not args.only_challenge:
         out["improviser"] = improviser_block(builds, data, out["upgrades"])
         out["combos"] = combos_block(builds, links)
+        out["item_combos"] = item_combos_block(builds, data)
         out["oner"] = oner_block(builds)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")

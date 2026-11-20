@@ -46,6 +46,7 @@ def main() -> int:
         "item_damage": a["item_damage"][:25],
         "improviser": a.get("improviser") or {},
         "combos": a.get("combos") or [], "oner": (a.get("oner") or [])[:12],
+        "item_combos": a.get("item_combos") or {},
         "coverage": a["carry_coverage"], "arch_cov": a["archetype_coverage"],
         "archetypes": a["archetypes"], "always": a["always_good"],
         "unattributed": a["unattributed_top"][:10],
@@ -214,6 +215,8 @@ ul.plain { margin: 0; padding-left: 18px; max-width: 80ch; display: grid; gap: 6
   <h2>Two-piece combos and spells that win alone</h2>
   <p>In Improviser a given pair of spells is on offer together in only about one run in sixteen. If each spell were taken at its own taken-when-offered rate, a pair would show up in about (runs ÷ 16) × rate A × rate B winning builds. The pairs below show up far more often than that, so they tend to win as a unit. <b>Linked</b> pairs are ones the game connects directly, where one spell casts the other through an upgrade or its own effect; the rest are combos the data finds on its own. The all-runs column checks each pair against every win.</p>
   <div class="panel scroll"><h3>Pairs over-represented in Improviser wins</h3><p class="sub">Hundreds of pairs were tested, so the weakest entries near the bottom could be chance; the linked ones double as a check that the method works.</p><table id="comboTable"></table></div>
+  <div class="panel scroll"><h3>Spell + item pairs</h3><p class="sub">Same test with craftable items, which Improviser also cuts to a quarter. Forbidden spells are left out because each always appears with the book that grants it; the book stands in for its spell. Days = how many different days those wins were posted on, a rough guard against one player's streak.</p><table id="spellItemTable"></table></div>
+  <div class="panel scroll"><h3>Trios of spells and items</h3><p class="sub">All three on offer together in only about one Improviser run in 64, so most trios rest on 3–5 wins. A trio is listed only if it shows up at least twice as often as its strongest pair predicts. Use the all-runs count to tell a recurring build from a one-off.</p><table id="trioTable"></table></div>
   <div class="panel scroll"><h3>Oner: the spell that won the whole run</h3><p class="sub" id="onerNote"></p><table id="onerTable"></table></div>
 </section>
 
@@ -373,6 +376,13 @@ if (D.combos.length) {
       `<td class="num">${Math.round(100 * r.together_when_offered)}%</td><td class="num">${r.all_k} vs ${r.all_expected}<div class="sub">${r.all_lift}× chance</div></td>` +
       `<td>${r.link ? `<span class="pill role-everywhere">linked</span> <span class="sub">${esc(r.link)}</span>` : '<span class="pill role-alone">found in data</span>'}</td>` +
       `<td><div class="chips">${r.others.slice(0, 3).map(([s, k]) => `<span class="chip">${esc(s)}<i>${k}</i></span>`).join('')}</div></td></tr>`).join('') + '</tbody>';
+}
+const IC = D.item_combos;
+if (IC && IC.pairs) {
+  $('spellItemTable').innerHTML = `<thead><tr><th>Spell</th><th>Item</th><th class="num">Improviser wins</th><th class="num">Expected</th><th class="num">Together when both offered</th><th class="num">Days</th><th class="num">All runs</th></tr></thead><tbody>` +
+    IC.pairs.map(r => `<tr><td>${esc(r.spell)}</td><td>${esc(r.item)}</td><td class="num">${r.k}</td><td class="num">${r.expected.toFixed(1)}</td><td class="num">${Math.round(100 * r.together_when_offered)}%</td><td class="num">${r.days}</td><td class="num">${r.all_k}</td></tr>`).join('') + '</tbody>';
+  $('trioTable').innerHTML = `<thead><tr><th>Spells</th><th>Items</th><th class="num">Improviser wins</th><th class="num">Best pair predicts</th><th class="num">Days</th><th class="num">All runs</th></tr></thead><tbody>` +
+    IC.trios.map(r => `<tr><td>${r.spells.map(esc).join(' + ')}</td><td>${r.items.map(esc).join(' + ')}</td><td class="num">${r.k}</td><td class="num">${r.given_best_pair.toFixed(1)}</td><td class="num">${r.days}</td><td class="num">${r.all_k}</td></tr>`).join('') + '</tbody>';
 }
 if (D.oner.length) {
   $('onerNote').textContent = `Oner allows only one spell, so these are spells that cleared all 21 realms by themselves (with items), out of ${D.oner[0].of} Oner wins. One prolific player can tilt these counts.`;
