@@ -39,12 +39,13 @@ images) when the machine is in use. Failed images are never cached, so re-runnin
 
 ## Accuracy (2026-11-19 run, 2,872 images)
 
-- **Gold set:** 22 hand-read images, stratified toward hard cases (7302 px ultrawide, 4K, Retina, 40-upgrade Wild Magic sheets, a 46-item list, cropped and in-progress sheets, map views, a non-game image). Spells 128/128, upgrades 287/287, equipment 276/276. Kind, realm, challenge, outcome and both turn counts are all correct.
+- **Gold set:** 22 hand-read images, stratified toward hard cases (7302 px ultrawide, 4K, Retina, 40-upgrade Wild Magic sheets, a 46-item list, cropped and in-progress sheets, map views, a non-game image). Spells 128/128, upgrades 287/287, equipment 276/276. Kind, realm, challenge, outcome and both turn counts are all correct. The score is the same whether the images are OCR'd on the GPU or with `--cpu`.
+- **Near-matches:** every accepted fuzzy match below 97 was reviewed by hand; all 24 are OCR typos of the right name (e.g. "Seif Healing" -> Self Healing). Look-alikes with a clean OCR read but no close match (e.g. "Artificer's Wheel") are kept as unknown items rather than snapped.
 - **July comparison:** the usable/unusable split agrees on 566 of 569. The differences:
   - two realm-21 in-progress sheets that July rejected (it accepted 19 others like them);
   - one map-only image that July accepted.
   Where both accept an image, July's upgrade lists match on only 123 of 412. Spot checks show July errors: Tomes snapped to other items, and upgrades read as spells.
-- **Result:** 1,919 usable images, 1,916 unique runs (413 July + 1,503 new). 16 are flagged and 9 incomplete. 183 non-builds; a 16-image sample of them was all genuinely non-build.
+- **Result:** 1,913 usable images, 1,910 unique runs (413 July + 1,497 new). 16 are flagged, 9 incomplete, 25 assumed wins (in-progress realm-21 sheets), and 4 demo wins (realm 20, June). There are 183 non-builds; a 16-image sample of them was all genuinely non-build. 587 victory map views carry spell names only, and 289 of them have no character sheet from the same run.
 
 ## Output (`results.jsonl`, one row per image)
 
@@ -55,8 +56,9 @@ The fields are a superset of July's, so `../build_analysis.py` can read them.
   - `in_progress_sheet`: character sheet, run not finished.
   - `defeat_sheet`
   - `victory_map` / `in_progress_map` / `defeat_map`: map view; spell names from the left panel only.
+  - `level_clear_sheet` / `level_clear_map`: "Outcome: VICTORY" for a mid-run realm. The right pane summarises the level just finished, so only the final realm is a run win: 21, or 20 for demo-era posts before 2026-07-01, which get `demo_final_realm: true`.
   - `non_build`
-- `status`: `usable` for a victory sheet, or for an in-progress sheet on realm 21+ (`assumed_victory: true`, the same rule July used).
+- `status`: `usable` for a final-realm victory sheet, or for an in-progress sheet on realm 21+ (`assumed_victory: true`, the same rule July used).
 - `spells`: `[{name, upgrades, confidence, unknown_upgrades?}]` in sheet order. `unknown_upgrades` holds legible indented lines that match no known upgrade, which are usually names from June builds.
 - `equipment`: `[{name, known, confidence}]` in order, repeats kept.
 - `realm`, `challenge` (a trial name, `weekly_N`, `Mutated Run`, or raw text), `challenge_raw`, `outcome`, `turns_taken {local, global}`, `current_turn` (left panel), `spell_casts`.

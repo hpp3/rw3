@@ -535,6 +535,27 @@ def snowflake_ms(name: str) -> int | None:
     return ((int(head) >> 22) + 1420070400000) if head.isdigit() else None
 
 
+FINAL_REALM = 21
+DEMO_END_MS = 1782864000000  # 2026-07-01 UTC: earlier posts include demo wins, whose last realm was 20
+
+
+def apply_final_realm(r: dict) -> None:
+    """The right pane is a per-level summary: "Outcome: VICTORY" also follows a mid-run level
+    clear. Only the final realm is a run win (realm 20 for demo-era posts)."""
+    if not r["kind"].startswith("victory_") or r.get("realm") is None:
+        return
+    realm = r["realm"]
+    if realm >= FINAL_REALM:
+        return
+    if realm == FINAL_REALM - 1 and (r.get("posted") or 0) < DEMO_END_MS:
+        r["demo_final_realm"] = True
+        return
+    r["kind"] = "level_clear_" + r["kind"].split("_", 1)[1]
+    if r["status"] == "usable":
+        r["status"] = "unusable"
+        r["reason"] = f"level_clear_realm_{realm}"
+
+
 def fingerprint(r: dict) -> tuple | None:
     tt = r.get("turns_taken") or {}
     casts = tuple(tuple(c) for c in r.get("spell_casts") or [])
@@ -551,7 +572,8 @@ def build_key(r: dict) -> tuple | None:
     return (sp, eq)
 
 
-KIND_RANK = {"victory_sheet": 0, "in_progress_sheet": 1, "defeat_sheet": 2, "victory_map": 3, "in_progress_map": 4, "defeat_map": 5, "non_build": 9}
+KIND_RANK = {"victory_sheet": 0, "in_progress_sheet": 1, "defeat_sheet": 2, "level_clear_sheet": 3, "victory_map": 4,
+             "in_progress_map": 5, "defeat_map": 6, "level_clear_map": 7, "non_build": 9}
 
 
 def group_runs(results: list[dict]) -> None:
@@ -645,6 +667,7 @@ def main() -> int:
             r["batch"] = root.name
             r["folder"] = str(rel.parent) if str(rel.parent) != "." else ""
             r["posted"] = snowflake_ms(p.name)
+            apply_final_realm(r)
             results.append(r)
     group_runs(results)
     args.out.mkdir(parents=True, exist_ok=True)
