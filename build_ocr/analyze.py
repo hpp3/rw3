@@ -31,7 +31,7 @@ ERAS = [  # live builds in the compendium's history.json; a post belongs to the 
 ]
 STATUSES = {"bleed", "poison", "burn", "acid", "fire", "ice", "lightning", "physical", "dark", "holy", "arcane",
             "freeze", "frozen", "petrify", "stun", "doom", "blood", "curse", "rot", "necrosis"}
-CARRY_SHARE = 0.35       # top source must hold this share of the listed damage to label an archetype
+ENGINE_SHARE = 0.4       # the root spell must hold this share of the run's spell damage to label it
 MIN_GROUP = 15
 MIN_SPELL_N = 20
 
@@ -72,6 +72,41 @@ def load_site(site: Path):
                     d = dt.date.fromisoformat(date)
                     added[name] = min(added.get(name, d), d)
     return data, ids, added
+
+
+def cast_links(data: dict) -> list:
+    """(engine spell, upgrade that enables it or None, spell it casts for free), read from the
+    compendium's spell and upgrade descriptions: "Watcher Form also casts Chain Lightning each
+    turn", "Cast Fireball on each tile Chain Lightning arcs to"."""
+    names = sorted({s["name"] for s in data["spells"]}, key=len, reverse=True)
+    links = []
+
+    def scan(text, src, up):
+        text = re.sub(r"\[([^\]:]+)(?::[^\]]*)?\]", r"\1", text or "")
+        for n in names:
+            if n != src and re.search(r"\b(?i:casts?)\s+(?:a\s+|an\s+|your\s+)?" + re.escape(n) + r"\b", text):
+                links.append((src, up, n))
+    for s in data["spells"]:
+        scan(s.get("desc"), s["name"], None)
+        for u in s.get("upgrades") or []:
+            scan(u.get("desc"), s["name"], u["name"])
+    return links
+
+
+def root_chain(spell, build_spells, upgrades, links, seen=None) -> list:
+    """Follow free casts upward: Fireball <- Chain Lightning (Chain Fireball) <- Watcher Form
+    (Chain Watcher Form). Only links whose engine is in the build, with the enabling upgrade."""
+    seen = (seen or set()) | {spell}
+    best = [spell]
+    for eng, up, target in links:
+        if target != spell or eng in seen or eng not in build_spells:
+            continue
+        if up is not None and up not in upgrades.get(eng, ()):
+            continue
+        chain = root_chain(eng, build_spells, upgrades, links, seen) + [spell]
+        if len(chain) > len(best):
+            best = chain
+    return best
 
 
 class Attributor:
@@ -247,13 +282,13 @@ def main() -> int:
             u["none"] += not ups
             u["all_counts"].update(ups)
             if len(s["upgrades"]) >= 3:
-                u["pushed"] += 1
-            else:
-                u["chosen_n"] += 1
+                u["pushed"] += 1  # extra upgrades from shrines / the Codex: not a free choice
+            elif ups:
+                u["chosen_n"] += 1  # the player picked 1-2 upgrades themselves
                 u["counts"].update(ups)
     out["upgrades"] = []
     for name, u in sorted(upg.items(), key=lambda kv: -kv[1]["n"]):
-        if u["n"] < MIN_SPELL_N:
+        if u["n"] < 15:
             continue
         known = [x["name"] for x in spell_info.get(name, {}).get("upgrades", [])]
         out["upgrades"].append({
@@ -263,130 +298,171 @@ def main() -> int:
             "take_all": [[x, u["all_counts"][x]] for x in sorted(known, key=lambda x: -u["all_counts"][x])],
         })
 
+    # upgrades that (almost) always come with their spell, measured where the player chose 1-2
+    # upgrades themselves (an unupgraded support or a spell pushed to 3+ says nothing about choice)
+    sig = []
+    for u in out["upgrades"]:
+        if u["chosen_n"] < 12:
+            continue
+        upgraded = u["n"] - u["none"]
+        all_k = dict(u["take_all"])
+        for name, k in u["take"]:
+            if k / u["chosen_n"] >= 0.7:
+                sig.append({"spell": u["spell"], "upgrade": name, "k": k, "chosen_n": u["chosen_n"],
+                            "rate": round(k / u["chosen_n"], 3), "n": u["n"],
+                            "rate_upgraded": round(all_k.get(name, 0) / max(1, upgraded), 3)})
+    out["signature_upgrades"] = sorted(sig, key=lambda r: -r["rate"])
+
     # ---------------------------------------------------------------- 2. carries
     att = Attributor(data, args.game)
-    carry = defaultdict(lambda: {"present": 0, "top": 0, "shares": []})
+    links = cast_links(data)
+    out["cast_links"] = [list(l) for l in links]
+    item_rows = defaultdict(lambda: {"present": 0, "listed": 0, "shares": [], "with": Counter()})
+    eng_rows = defaultdict(lambda: {"present": 0, "top": 0, "listed": 0, "shares": []})
     unattributed = Counter()
     totals = Counter()
     for b in builds:
+        b["engine"] = None
         dmg = b["damage_to_enemies"]
         if not dmg:
-            b["carry"] = None
             continue
+        upgrades = {sp["name"]: set(sp["upgrades"]) for sp in b["spells"]}
         owners = [(v or 0, src, *att.owner(src, b["S"], b["Iset"])) for v, src in dmg]
         total = sum(v for v, _, kind, _ in owners if kind != "enemy") or 1
-        by_owner = Counter()
+        by_root, by_chain, by_item = Counter(), Counter(), Counter()
         for v, src, kind, who in owners:
             totals[kind] += v
             if kind in ("unattributed", "monster"):
                 unattributed[f"{src} ({kind})"] += 1
-            if kind in ("spell", "item"):
-                by_owner[(kind, who)] += v
-        for key in {("spell", s) for s in b["S"]} | {("item", i) for i in b["Iset"]}:
-            c = carry[key]
-            c["present"] += 1
-            c["shares"].append(by_owner.get(key, 0) / total)
-        if by_owner:
-            (kind, who), v = by_owner.most_common(1)[0]
-            carry[(kind, who)]["top"] += 1
-            share = v / total
-            b["carry"] = {"kind": kind, "name": who, "share": round(share, 3)}
-        else:
-            b["carry"] = None
+            if kind == "spell":
+                chain = root_chain(who, b["S"], upgrades, links)
+                by_root[chain[0]] += v
+                by_chain[" > ".join(chain)] += v
+            elif kind == "item":
+                by_item[who] += v
+        spell_total = sum(by_root.values())
+        if by_root:
+            root, v = by_root.most_common(1)[0]
+            best_chain = max((c for c in by_chain if c.split(" > ")[0] == root), key=lambda c: by_chain[c])
+            b["engine"] = {"name": root, "chain": best_chain, "share_of_spells": round(v / spell_total, 3),
+                           "share_of_total": round(v / total, 3)}
+        for r in {root_chain(x, b["S"], upgrades, links)[0] for x in b["S"]}:
+            e = eng_rows[r]
+            e["present"] += 1
+            e["listed"] += r in by_root
+            e["shares"].append(by_root.get(r, 0) / total)
+        if b["engine"]:
+            eng_rows[b["engine"]["name"]]["top"] += 1
+        for i in b["Iset"]:
+            it = item_rows[i]
+            it["present"] += 1
+            if i in by_item:
+                it["listed"] += 1
+                it["shares"].append(by_item[i] / total)
+                if b["engine"]:
+                    it["with"][b["engine"]["name"]] += 1
     out["carry_coverage"] = {k: round(v / max(1, sum(totals.values())), 4) for k, v in totals.items()}
     out["unattributed_top"] = unattributed.most_common(25)
     rows = []
-    for (kind, name), c in carry.items():
-        if c["present"] < MIN_SPELL_N:
+    for name, e in eng_rows.items():
+        if e["present"] < MIN_SPELL_N:
             continue
-        sh = sorted(c["shares"])
-        rows.append({"kind": kind, "name": name, "present": c["present"], "top": c["top"],
-                     "top_rate": round(c["top"] / c["present"], 3),
-                     "in_top5_rate": round(sum(1 for x in sh if x > 0) / len(sh), 3),
+        sh = sorted(e["shares"])
+        rows.append({"kind": "spell", "name": name, "present": e["present"], "top": e["top"],
+                     "top_rate": round(e["top"] / e["present"], 3), "in_top5_rate": round(e["listed"] / e["present"], 3),
                      "median_share": round(sh[len(sh) // 2], 3)})
     out["carries"] = sorted(rows, key=lambda r: -r["top"])
+    irows = []
+    for name, it in item_rows.items():
+        if it["listed"] < 15:
+            continue
+        sh = sorted(it["shares"])
+        irows.append({"name": name, "present": it["present"], "listed": it["listed"],
+                      "median_share_when_listed": round(sh[len(sh) // 2], 3),
+                      "with": it["with"].most_common(4)})
+    out["item_damage"] = sorted(irows, key=lambda r: -r["listed"])
 
     # ---------------------------------------------------------------- 3. archetypes
+    # A run's archetype is the spell at the root of most of its spell damage on the final realm,
+    # after following free casts upward (Fireball <- Chain Lightning <- Watcher Form). Items never
+    # define an archetype (they augment spells); they are listed as pairings.
     base_s = Counter(n for b in builds for n in b["S"])
     base_i = Counter(n for b in builds for n in b["Iset"])
     N = len(builds)
     groups = defaultdict(list)
     for b in builds:
-        c = b.get("carry")
-        if c and c["share"] >= CARRY_SHARE:
-            groups[(c["kind"], c["name"])].append(b)
-    sp_id = {s["name"]: s.get("sp_id") for s in data["spells"]}
-    up_id = {(s["name"], u["name"]): u.get("sp_id") for s in data["spells"] for u in s.get("upgrades", [])}
+        e = b.get("engine")
+        if e and e["share_of_spells"] >= ENGINE_SHARE:
+            groups[e["name"]].append(b)
+    sp_id = {x["name"]: x.get("sp_id") for x in data["spells"]}
+    up_id = {(x["name"], u["name"]): u.get("sp_id") for x in data["spells"] for u in x.get("upgrades", [])}
     eq_id = ids["equipment"]
 
     def b36(n: int) -> str:
         digits = "0123456789abcdefghijklmnopqrstuvwxyz"
-        s = ""
+        out_ = ""
         while True:
             n, r = divmod(n, 36)
-            s = digits[r] + s
+            out_ = digits[r] + out_
             if n == 0:
-                return s
+                return out_
 
     def guide_link(title, core_sp, util_sp, core_eq, util_eq, upgrades_for):
         def sp_track(head, spells):
             items = []
-            for s in spells:
-                if sp_id.get(s) is None:
+            for x in spells:
+                if sp_id.get(x) is None:
                     continue
-                items.append(b36(sp_id[s]))
-                for u in upgrades_for.get(s, []):
-                    if up_id.get((s, u)) is not None:
-                        items.append(b36(up_id[(s, u)]))
+                items.append(b36(sp_id[x]))
+                for u in upgrades_for.get(x, []):
+                    if up_id.get((x, u)) is not None:
+                        items.append(b36(up_id[(x, u)]))
             return (head + ".".join(items)) if items else ""
+
         def eq_track(head, eqs):
             items = [b36(eq_id[e]) for e in eqs if e in eq_id]
             return (head + ".".join(items)) if items else ""
         eq = eq_track("C", core_eq) + eq_track("U", util_eq)
         sp = sp_track("C", core_sp) + sp_track("U", util_sp)
         clean_title = re.sub(r"[^A-Za-z0-9 '-]", "", title)[:40].strip().replace(" ", "-").lower()
-        missing = [e for e in core_eq + util_eq if e not in eq_id] + [s for s in core_sp + util_sp if sp_id.get(s) is None]
+        missing = [e for e in core_eq + util_eq if e not in eq_id] + [x for x in core_sp + util_sp if sp_id.get(x) is None]
         return f"https://hpp3.github.io/rw3/?g=1_{eq}_{sp}_{clean_title}", missing
 
     archetypes = []
-    for (kind, name), members in sorted(groups.items(), key=lambda kv: -len(kv[1])):
+    for name, members in sorted(groups.items(), key=lambda kv: -len(kv[1])):
         if len(members) < MIN_GROUP:
             continue
         n = len(members)
         cs = Counter(x for b in members for x in b["S"])
         ci = Counter(x for b in members for x in b["Iset"])
+
         def lift(cnt, base, x):
             return (cnt[x] / n) / (base[x] / N)
+        chains = Counter(b["engine"]["chain"] for b in members)
+        chain_spells = [x for c, _ in chains.most_common(2) for x in c.split(" > ")]
         core_sp = [x for x, k in cs.most_common() if k / n >= 0.4 and lift(cs, base_s, x) >= 1.5]
         util_sp = [x for x, k in cs.most_common() if k / n >= 0.2 and lift(cs, base_s, x) < 1.3]
         core_eq = [x for x, k in ci.most_common() if k / n >= 0.25 and lift(ci, base_i, x) >= 1.5]
         util_eq = [x for x, k in ci.most_common() if k / n >= 0.2 and lift(ci, base_i, x) < 1.3]
-        if kind == "spell":
-            core_sp = [name] + [x for x in core_sp if x != name]
-            util_sp = [x for x in util_sp if x != name]
-        else:
-            core_eq = [name] + [x for x in core_eq if x != name]
-            util_eq = [x for x in util_eq if x != name]
-        # a book that only grants a spell travels with it
-        for s in list(core_sp):
-            if s in granted_by and granted_by[s] not in core_eq:
-                core_eq.append(granted_by[s])
-        upgrades_for = {}
-        upgrade_rates = {}
-        for s in core_sp + util_sp:
-            have = [sp for b in members for sp in b["spells"] if sp["name"] == s and not sp.get("from_left_panel")]
+        lead = [name] + [x for x in dict.fromkeys(chain_spells) if x != name and cs[x] / n >= 0.3]
+        core_sp = lead + [x for x in core_sp if x not in lead]
+        util_sp = [x for x in util_sp if x not in core_sp]
+        for x in list(core_sp):  # a book that only grants a spell travels with it
+            if x in granted_by and granted_by[x] not in core_eq:
+                core_eq.append(granted_by[x])
+        upgrades_for, upgrade_rates = {}, {}
+        for x in core_sp + util_sp:
+            have = [sp for b in members for sp in b["spells"] if sp["name"] == x and not sp.get("from_left_panel")]
             if not have:
                 continue
             uc = Counter(u for sp in have for u in sp["upgrades"])
-            upgrade_rates[s] = [[u, round(k / len(have), 3)] for u, k in uc.most_common(6)]
-            pick = [u for u, k in uc.most_common() if k / len(have) >= 0.35 and up_id.get((s, u)) is not None]
-            upgrades_for[s] = pick[:4]
-        title = f"{name} wins"
-        link, missing = guide_link(title, core_sp[:8], util_sp[:6], core_eq[:8], util_eq[:6], upgrades_for)
-        shares = sorted(b["carry"]["share"] for b in members)
+            upgrade_rates[x] = [[u, round(k / len(have), 3)] for u, k in uc.most_common(6)]
+            upgrades_for[x] = [u for u, k in uc.most_common() if k / len(have) >= 0.35 and up_id.get((x, u)) is not None][:4]
+        link, missing = guide_link(f"{name} wins", core_sp[:8], util_sp[:6], core_eq[:8], util_eq[:6], upgrades_for)
+        shares = sorted(b["engine"]["share_of_total"] for b in members)
         archetypes.append({
-            "carry": name, "kind": kind, "n": n,
-            "share_of_carried": round(n / max(1, sum(len(v) for v in groups.values())), 3),
+            "carry": name, "kind": "spell", "n": n,
+            "chains": [[c, k] for c, k in chains.most_common(4)],
             "median_damage_share": shares[len(shares) // 2],
             "normal_runs": sum(b["normal"] for b in members),
             "challenges": Counter(b["challenge"] or "none" for b in members).most_common(6),
@@ -397,14 +473,16 @@ def main() -> int:
             "utility_items": [[x, round(ci[x] / n, 3)] for x in util_eq[:6]],
             "upgrades": upgrade_rates,
             "guide": link, "not_in_compendium": missing,
-            "thin": len(core_sp) + len(core_eq) <= 2,
             "members": [b["image"] for b in members],
         })
     out["archetypes"] = archetypes
-    labelled = sum(len(v) for v in groups.values())
-    out["archetype_coverage"] = {"with_damage": sum(1 for b in builds if b.get("carry") is not None),
-                                 "clear_carry": labelled, "in_listed_groups": sum(a["n"] for a in archetypes),
-                                 "mixed": sum(1 for b in builds if b.get("carry") and b["carry"]["share"] < CARRY_SHARE)}
+    out["archetype_coverage"] = {
+        "with_damage": sum(1 for b in builds if b["damage_to_enemies"]),
+        "with_spell_damage": sum(1 for b in builds if b.get("engine")),
+        "clear_engine": sum(len(v) for v in groups.values()),
+        "in_listed_groups": sum(a["n"] for a in archetypes),
+        "mixed": sum(1 for b in builds if b.get("engine") and b["engine"]["share_of_spells"] < ENGINE_SHARE),
+    }
     # "always good": supports that show up (>= 20%) across many archetypes rather than one
     spread_s, spread_i = Counter(), Counter()
     for a in archetypes:
@@ -419,7 +497,7 @@ def main() -> int:
     args.out.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({k: out[k] for k in ("n_builds", "dataset", "carry_coverage", "archetype_coverage")}, indent=1))
     print("unattributed:", out["unattributed_top"][:15])
-    print("archetypes:", [(a["carry"], a["n"], a["thin"]) for a in archetypes])
+    print("archetypes:", [(a["carry"], a["n"], a["chains"][0]) for a in archetypes])
     return 0
 
 

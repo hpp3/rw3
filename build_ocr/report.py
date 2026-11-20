@@ -41,7 +41,9 @@ def main() -> int:
         ar["school"] = school(spell_tags.get(ar["carry"], item_tags.get(ar["carry"], [])))
     payload = {
         "dataset": a["dataset"], "n": a["n_builds"], "spells": spells, "items": items,
-        "upgrades": a["upgrades"][:24], "pushed": pushed, "carries": a["carries"][:40],
+        "upgrades": a["upgrades"], "pushed": pushed, "carries": a["carries"][:40],
+        "signature": [r for r in a["signature_upgrades"] if r["rate"] >= 0.8],
+        "item_damage": a["item_damage"][:25],
         "coverage": a["carry_coverage"], "arch_cov": a["archetype_coverage"],
         "archetypes": a["archetypes"], "always": a["always_good"],
         "unattributed": a["unattributed_top"][:10],
@@ -174,17 +176,22 @@ ul.plain { margin: 0; padding-left: 18px; max-width: 80ch; display: grid; gap: 6
 <section id="upgrades">
   <div class="eyebrow">1b · Upgrades</div>
   <h2>Which upgrades winners pick</h2>
-  <p>For each common spell: how often each upgrade is taken when the spell has two or fewer upgrades (the player's own choices), and how often the spell was pushed to three or more by the Shrine of Evolution, the Shrine of Perfection or the Codex of Chaotic Evolution. Wild Magic runs and cropped screenshots are left out.</p>
-  <div class="panel"><h3>Most often pushed past two upgrades</h3><div id="pushedChart"></div></div>
+  <p>Upgrade rates are measured on builds where the player picked one or two upgrades for that spell themselves. A spell kept unupgraded as a support, or pushed to three or more by the Shrine of Evolution, the Shrine of Perfection or the Codex of Chaotic Evolution, says nothing about which upgrade people choose. Wild Magic runs and cropped screenshots are left out.</p>
+  <div class="grid2">
+    <div class="panel scroll"><h3>Upgrades taken almost every time</h3><p class="sub">Picked in at least 80% of builds that chose upgrades for the spell (at least 12 such builds).</p><table id="sigTable"></table></div>
+    <div class="panel"><h3>Most often pushed past two upgrades</h3><div id="pushedChart"></div></div>
+  </div>
+  <div class="controls"><label class="sub" for="uq">Look up a spell</label><input type="search" id="uq" placeholder="e.g. Miasma"><span class="sub" id="uqNote"></span></div>
   <div class="upg" id="upgCards"></div>
 </section>
 
 <section id="carries">
   <div class="eyebrow">2 · What did the killing</div>
   <h2>Carries</h2>
-  <p>Every run summary lists the final realm's top five damage sources plus "Other". Each source is credited to the spell or item in that build that dealt it: minions go to whatever summoned them, a staff's free spell goes to the staff. <b>Top source</b> is how often it led the list when taken; <b>in top 5</b> is how often it appears at all. A spell that is taken often but rarely in the top five is a support pick, or simply not one of the five biggest sources.</p>
+  <p>Every run summary lists the final realm's top five damage sources plus "Other". Each source is credited to the spell or item in that build that dealt it: minions go to whatever summoned them, a staff's free spell goes to the staff. Spell damage is then followed up free-cast chains when the build has the enabling upgrade, so Fireballs cast by Chain Fireball count for Chain Lightning, and Chain Lightning cast by Chain Watcher Form counts for Watcher Form. <b>Top engine</b> is how often the spell was the root of most of the run's spell damage when taken.</p>
   <div class="panel"><h3>Where final-realm damage was credited</h3><div id="covChart"></div></div>
-  <div class="panel scroll"><table id="carryTable"></table></div>
+  <div class="panel scroll"><h3>Spells</h3><table id="carryTable"></table></div>
+  <div class="panel scroll"><h3>Items in the damage lists, and the spell engines they were used with</h3><p class="sub">Items add damage to a build rather than define it, so they don't form archetypes.</p><table id="itemTable"></table></div>
 </section>
 
 <section id="archetypes">
@@ -292,38 +299,52 @@ renderPicks();
 
 // ---- upgrades
 $('pushedChart').innerHTML = hbars(D.pushed.map(r => [r.spell, r.pushed / r.n]), {label: 'Spells pushed past two upgrades', lw: 170, max: Math.max(...D.pushed.map(r => r.pushed / r.n)), f: v => (100 * v).toFixed(0) + '%'});
-$('upgCards').innerHTML = D.upgrades.slice(0, 18).map(u => {
-  const rows = u.take.filter(([, k]) => k > 0).slice(0, 5);
-  const max = Math.max(1, ...rows.map(([, k]) => k));
-  return `<div class="upgcard"><h3>${esc(u.spell)}</h3><div class="sub">${fmt(u.n)} builds · ${pct(u.pushed, u.n)} pushed to 3+ · ${pct(u.none, u.n)} with no upgrades</div>` +
-    rows.map(([name, k]) => `<div class="upgrow"><span class="label" title="${esc(name)}">${esc(name)}</span><div class="track"><div class="bar" style="width:${(100 * k / max).toFixed(0)}%"></div></div><span class="num sub">${pct(k, u.chosen_n)}</span></div>`).join('') + '</div>';
-}).join('');
+$('sigTable').innerHTML = `<thead><tr><th>Spell</th><th>Upgrade</th><th class="num">Chosen</th></tr></thead><tbody>` +
+  D.signature.map(r => `<tr><td>${esc(r.spell)}</td><td>${esc(r.upgrade)}</td><td class="num">${pct(r.k, r.chosen_n)}<div class="sub">${r.k} / ${r.chosen_n}</div></td></tr>`).join('') + '</tbody>';
+function upgCard(u) {
+  const rows = u.take.filter(([, k]) => k > 0).slice(0, 6);
+  return `<div class="upgcard"><h3>${esc(u.spell)}</h3><div class="sub">${fmt(u.n)} builds · ${fmt(u.chosen_n)} chose 1–2 upgrades · ${pct(u.pushed, u.n)} pushed to 3+ · ${pct(u.none, u.n)} unupgraded</div>` +
+    (rows.length ? rows.map(([name, k]) => `<div class="upgrow"><span class="label" title="${esc(name)}">${esc(name)}</span><div class="track"><div class="bar" style="width:${(100 * k / Math.max(1, u.chosen_n)).toFixed(0)}%"></div></div><span class="num sub">${pct(k, u.chosen_n)}</span></div>`).join('') : '<span class="sub">No builds chose upgrades for it themselves.</span>') + '</div>';
+}
+function renderUpg() {
+  const q = $('uq').value.trim().toLowerCase();
+  const list = q ? D.upgrades.filter(u => u.spell.toLowerCase().includes(q)) : D.upgrades.slice(0, 18);
+  $('uqNote').textContent = q ? `${list.length} match${list.length === 1 ? '' : 'es'}` : `showing the 18 most-picked of ${D.upgrades.length} spells`;
+  $('upgCards').innerHTML = list.slice(0, 30).map(upgCard).join('') || '<p class="sub">No spell with at least 15 winning builds matches.</p>';
+}
+$('uq').oninput = renderUpg;
+renderUpg();
 
 // ---- carries
 const cov = D.coverage, covKeys = [['spell', 'credited to a spell', 'var(--bar)'], ['item', 'credited to an item', 'var(--bar2)'], ['other', '"Other" bucket', '#8f97a6'], ['monster', 'monster names, not traced', '#c9a35a'], ['unattributed', 'unknown source', '#d47a6a'], ['enemy', 'enemies hurting enemies (excluded)', '#6b7280'], ['status', 'statuses', '#5aa58a']];
 $('covChart').innerHTML = `<div class="stack" role="img" aria-label="Damage attribution">` + covKeys.map(([k, , c]) => `<div style="width:${(100 * (cov[k] || 0)).toFixed(2)}%;background:${c}" title="${k}"></div>`).join('') + '</div>' +
   `<div class="legend" style="margin-top:8px">` + covKeys.map(([k, l, c]) => `<span><i class="sw" style="background:${c}"></i>${l} ${(100 * (cov[k] || 0)).toFixed(0)}%</span>`).join('') + '</div>';
 const cmax = Math.max(...D.carries.map(r => r.top_rate));
-$('carryTable').innerHTML = `<thead><tr><th>Source</th><th class="num">Builds with it</th><th class="num">Top source</th><th class="barcell">Top-source rate</th><th class="num">In top 5</th><th class="num">Median share</th></tr></thead><tbody>` +
-  D.carries.map(r => `<tr><td><div class="name"><span>${esc(r.name)}</span><span class="sub">${r.kind}</span></div></td><td class="num">${fmt(r.present)}</td><td class="num">${fmt(r.top)}</td>` +
+$('carryTable').innerHTML = `<thead><tr><th>Spell engine</th><th class="num">Builds with it</th><th class="num">Top engine</th><th class="barcell">Top-engine rate</th><th class="num">Dealt listed damage</th><th class="num">Median share</th></tr></thead><tbody>` +
+  D.carries.map(r => `<tr><td><div class="name"><span>${esc(r.name)}</span></div></td><td class="num">${fmt(r.present)}</td><td class="num">${fmt(r.top)}</td>` +
     `<td class="barcell"><div class="track"><div class="bar" style="width:${(100 * r.top_rate / cmax).toFixed(0)}%"></div></div><span class="sub">${pct(r.top, r.present)}</span></td>` +
     `<td class="num">${(100 * r.in_top5_rate).toFixed(0)}%</td><td class="num">${(100 * r.median_share).toFixed(0)}%</td></tr>`).join('') + '</tbody>';
+$('itemTable').innerHTML = `<thead><tr><th>Item</th><th class="num">In damage list</th><th class="num">Median share when listed</th><th>Spell engine of those runs</th></tr></thead><tbody>` +
+  D.item_damage.map(r => `<tr><td>${esc(r.name)}</td><td class="num">${pct(r.listed, r.present)}<div class="sub">${r.listed} / ${r.present}</div></td><td class="num">${(100 * r.median_share_when_listed).toFixed(0)}%</td>` +
+    `<td><div class="chips">${r.with.map(([s, k]) => `<span class="chip">${esc(s)}<i>${k}</i></span>`).join('')}</div></td></tr>`).join('') + '</tbody>';
 
 // ---- archetypes
 const ac = D.arch_cov;
-$('archIntro').innerHTML = `Each build is labelled by its biggest damage source on the final realm, when that source dealt at least 35% of the listed damage (${fmt(ac.clear_carry)} of ${fmt(ac.with_damage)} runs; the other ${fmt(ac.mixed)} spread their damage). Groups with at least 15 runs are shown, ${fmt(ac.in_listed_groups)} runs in all. <b>Core</b> spells and items are much more common in the group than overall (lift ≥ 1.5×); <b>common</b> ones appear in at least a fifth of the group without being special to it. Upgrade rates include the third and fourth upgrades, which carries often reach. Each card opens as a guide in the compendium.`;
+$('archIntro').innerHTML = `Each run is labelled by its spell engine: the spell at the root of most of its final-realm spell damage, after following free-cast chains (a Watcher Form run whose damage shows up as Fireball and Chain Lightning is a Watcher Form run). Items never define an archetype. ${fmt(ac.clear_engine)} of the ${fmt(ac.with_spell_damage)} runs with spell damage have an engine holding at least 40% of it; groups with at least 15 runs are shown, ${fmt(ac.in_listed_groups)} runs in all. <b>Core</b> spells and items are much more common in the group than overall (lift ≥ 1.5×); <b>common</b> ones appear in at least a fifth of the group without being special to it. Upgrade rates here count every build in the group, including third and fourth upgrades. Each card opens as a guide in the compendium.`;
 const chip = (name, p, lift) => `<span class="chip">${esc(name)}<i>${Math.round(100 * p)}%${lift ? ' · ' + lift.toFixed(1) + '×' : ''}</i></span>`;
 $('archCards').innerHTML = D.archetypes.map(a => {
   const chal = a.challenges.map(([c, k]) => `${c === 'none' ? 'normal' : esc(c)} ${k}`).join(' · ');
   const carryUp = (a.upgrades[a.carry] || []).slice(0, 5);
   const otherUps = Object.entries(a.upgrades).filter(([s]) => s !== a.carry).slice(0, 2);
+  const chains = a.chains.filter(([c]) => c.includes(' > ') || a.chains.length > 1).map(([c, k]) => `<span class="chip">${c.split(' > ').map(esc).join(' → ')}<i>${k}</i></span>`).join('');
   return `<article class="card" style="--school:${col(a.school)}">
-    <h3><span>${esc(a.carry)}</span><small>${a.kind} · ${a.n} runs</small></h3>
+    <h3><span>${esc(a.carry)}</span><small>${a.n} runs</small></h3>
     <div class="sub">median ${Math.round(100 * a.median_damage_share)}% of final-realm damage · ${chal}</div>
+    ${chains ? `<div class="kv"><span class="k">How the damage is dealt</span><div class="chips">${chains}</div></div>` : ''}
     ${carryUp.length ? `<div class="kv"><span class="k">${esc(a.carry)} upgrades</span><div class="chips">${carryUp.map(([u, p]) => chip(u, p)).join('')}</div></div>` : ''}
     <div class="kv"><span class="k">Core spells</span><div class="chips">${a.core_spells.filter(([s]) => s !== a.carry).map(([s, p, l]) => chip(s, p, l)).join('') || '<span class="sub">nothing beyond the carry</span>'}</div></div>
     ${otherUps.map(([s, ups]) => `<div class="kv"><span class="k">${esc(s)} upgrades</span><div class="chips">${ups.slice(0, 4).map(([u, p]) => chip(u, p)).join('')}</div></div>`).join('')}
-    <div class="kv"><span class="k">Core items</span><div class="chips">${a.core_items.filter(([s]) => s !== a.carry).map(([s, p, l]) => chip(s, p, l)).join('') || '<span class="sub">none stand out</span>'}</div></div>
+    <div class="kv"><span class="k">Items winners pair with it</span><div class="chips">${a.core_items.map(([s, p, l]) => chip(s, p, l)).join('') || '<span class="sub">none stand out</span>'}</div></div>
     ${(a.utility_spells.length || a.utility_items.length) ? `<div class="kv"><span class="k">Common, not special</span><div class="chips">${a.utility_spells.concat(a.utility_items).map(([s, p]) => chip(s, p)).join('')}</div></div>` : ''}
     <a class="guide" href="${esc(a.guide)}" target="_blank" rel="noopener">Open as compendium guide ↗</a>
     ${a.not_in_compendium.length ? `<div class="sub">Not in the compendium, so left out of the guide: ${a.not_in_compendium.map(esc).join(', ')}</div>` : ''}
@@ -338,6 +359,7 @@ $('methodList').innerHTML = [
   `A run counts once even when its character sheet and map screenshot were posted together or it was reposted. The ${ds.assumed_victory} runs that show a realm 21 character sheet before the win screen are counted as wins.`,
   `Patches are assigned by posting date, using the dates the compendium recorded each live build. A player can post days after playing, so the boundaries are approximate. A spell or item is only compared over patches it existed in.`,
   `Carries use the final realm only, and only its top five sources. A source missing from the list may still have dealt damage.`,
+  `Free-cast chains are read from the compendium's spell and upgrade descriptions ("also casts Chain Lightning each turn", "Cast Fireball on each tile Chain Lightning arcs to") and only followed when the build has the enabling upgrade. When a spell is both cast by hand and cast for free, all of its damage goes to the chain.`,
   `Damage that could not be traced to the build: ${un}. These are mostly monsters' own attacks and minions summoned by other minions.`,
   `No poster names were captured, so one prolific player can tilt a small archetype. Check the screenshot list on each card.`,
 ].map(t => `<li>${t}</li>`).join('');
