@@ -44,6 +44,7 @@ def main() -> int:
         "upgrades": a["upgrades"], "pushed": pushed, "carries": a["carries"][:40],
         "signature": [r for r in a["signature_upgrades"] if r["rate"] >= 0.8],
         "item_damage": a["item_damage"][:25],
+        "improviser": a.get("improviser") or {},
         "coverage": a["carry_coverage"], "arch_cov": a["archetype_coverage"],
         "archetypes": a["archetypes"], "always": a["always_good"],
         "unattributed": a["unattributed_top"][:10],
@@ -141,6 +142,16 @@ details .members { font: 11.5px/1.6 var(--mono); color: var(--muted); word-break
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 ul.plain { margin: 0; padding-left: 18px; max-width: 80ch; display: grid; gap: 6px; }
+.pill.role-everywhere { color: var(--accent); background: var(--accent-soft); }
+.pill.role-alone { color: var(--up); background: color-mix(in srgb, var(--up) 14%, transparent); }
+.pill.role-plan { color: var(--muted); background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.range { position: relative; height: 10px; min-width: 140px; }
+.range .ci { position: absolute; top: 3px; height: 4px; border-radius: 2px; background: var(--bar2); }
+.range .pt { position: absolute; top: 0; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--bar); }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) 110px 74px; gap: 6px; align-items: center; font-size: 13px; }
+.duo .bars { display: grid; gap: 2px; }
+.duo .b1 { height: 6px; border-radius: 2px; background: var(--bar); }
+.duo .b2 { height: 6px; border-radius: 2px; background: var(--bar2); }
 @media (prefers-reduced-motion: no-preference) { .bar { transition: width .25s ease; } }
 </style>
 
@@ -149,7 +160,7 @@ ul.plain { margin: 0; padding-left: 18px; max-width: 80ch; display: grid; gap: 6
   <div class="eyebrow">Discord #final-builds · OCR'd screenshots</div>
   <h1>Rift Wizard 3 Winning Builds</h1>
   <p class="lede" id="lede"></p>
-  <nav aria-label="Sections"><a href="#picks">Pick rates</a><a href="#upgrades">Upgrades</a><a href="#carries">Carries</a><a href="#archetypes">Archetypes</a><a href="#method">Method and limits</a></nav>
+  <nav aria-label="Sections"><a href="#picks">Pick rates</a><a href="#upgrades">Upgrades</a><a href="#improviser">Just good (Improviser)</a><a href="#carries">Carries</a><a href="#archetypes">Archetypes</a><a href="#method">Method and limits</a></nav>
 </header>
 
 <section id="overview" aria-label="Dataset">
@@ -183,6 +194,18 @@ ul.plain { margin: 0; padding-left: 18px; max-width: 80ch; display: grid; gap: 6
   </div>
   <div class="controls"><label class="sub" for="uq">Look up a spell</label><input type="search" id="uq" placeholder="e.g. Miasma"><span class="sub" id="uqNote"></span></div>
   <div class="upg" id="upgCards"></div>
+</section>
+
+<section id="improviser">
+  <div class="eyebrow">1c · Improviser</div>
+  <h2>What's just good</h2>
+  <p id="impIntro"></p>
+  <div class="legend"><span><span class="pill role-everywhere">good everywhere</span> high in Improviser and in normal runs</span><span><span class="pill role-alone">strong alone</span> high in Improviser, at or below average in normal runs</span><span><span class="pill role-plan">plan piece</span> much more popular in normal runs than when offered at random</span></div>
+  <div class="panel scroll"><h3>Spells: how often winners took it when it was on offer</h3><table id="impSpells"></table></div>
+  <div class="grid2">
+    <div class="panel scroll"><h3>Craftable items, same measure</h3><table id="impItems"></table></div>
+    <div class="panel"><h3>Upgrade picks: Improviser vs everyone</h3><p class="sub" id="impUpNote"></p><div id="impUps" style="display:grid;gap:12px"></div></div>
+  </div>
 </section>
 
 <section id="carries">
@@ -314,6 +337,25 @@ function renderUpg() {
 }
 $('uq').oninput = renderUpg;
 renderUpg();
+
+// ---- improviser
+const IM = D.improviser;
+if (IM && IM.n) {
+  const ROLE = {everywhere: 'good everywhere', alone: 'strong alone', plan: 'plan piece'};
+  $('impIntro').innerHTML = `Improviser removes a random 75% of the spellbook and 75% of the craftable equipment every run, so each spell is on offer in about a quarter of runs. Dividing a spell's pick rate by 0.25 estimates how often a winner took it when they could, which tests the spell on its own rather than as part of a planned combo. ${fmt(IM.n)} Improviser wins, mostly from the Sep 1 and Oct 12 patches, so the comparison uses the ${fmt(IM.normal_late_n)} normal runs from those patches. Because Improviser players choose from about a quarter of the spells, every rate is higher there; the <b>× average</b> columns compare each spell with the average spell in its own mode (${Math.round(100 * IM.base_imp)}% taken when offered in Improviser, ${(100 * IM.base_norm).toFixed(1)}% picked in normal runs). Each spell is on offer only about ${Math.round(IM.n / 4)} times, so the intervals are wide: read the top of the list as a group, not as an exact order.`;
+  const rows = IM.spells.filter(s => s.k >= 8).slice(0, 45);
+  const rng = s => `<div class="range"><div class="ci" style="left:${(100 * s.lo).toFixed(1)}%;width:${(100 * (s.hi - s.lo)).toFixed(1)}%"></div><div class="pt" style="left:${(100 * s.offered).toFixed(1)}%"></div></div>`;
+  $('impSpells').innerHTML = `<thead><tr><th>#</th><th>Spell</th><th class="num">Taken when offered</th><th>95% interval (0–100%)</th><th class="num">× average, Improviser</th><th class="num">× average, normal</th><th></th></tr></thead><tbody>` +
+    rows.map((s, i) => `<tr><td class="num">${i + 1}</td><td><div class="name"><span>${esc(s.name)}</span><span class="sub">${s.level ? 'level ' + s.level : ''}${s.granted_by ? ' · from ' + esc(s.granted_by) : ''}</span></div></td>` +
+      `<td class="num">${Math.round(100 * s.offered)}%<div class="sub">${s.k} wins</div></td><td>${rng(s)}</td><td class="num">${s.x_imp.toFixed(1)}×</td><td class="num">${s.x_norm.toFixed(1)}×</td>` +
+      `<td>${s.role ? `<span class="pill role-${s.role}">${ROLE[s.role]}</span>` : ''}</td></tr>`).join('') + '</tbody>';
+  $('impItems').innerHTML = `<thead><tr><th>Item</th><th class="num">Taken when offered</th><th>95% interval</th></tr></thead><tbody>` +
+    IM.items.slice(0, 20).map(s => `<tr><td>${esc(s.name)}</td><td class="num">${Math.round(100 * s.offered)}%<div class="sub">${s.k} wins</div></td><td>${rng(s)}</td></tr>`).join('') + '</tbody>';
+  const ups = IM.upgrades.slice().sort((a, b) => (b.differs - a.differs) || (b.chosen - a.chosen)).slice(0, 12);
+  $('impUpNote').innerHTML = `Builds where the player chose one or two upgrades for the spell. Dark bar: Improviser; light bar: everyone. Spells with the biggest gaps come first. Samples are small (8–22 Improviser builds per spell), and some gaps may come from the random spell pool rather than skill.`;
+  $('impUps').innerHTML = ups.map(u => `<div class="kv"><span class="k">${esc(u.spell)} · ${u.chosen} Improviser / ${u.everyone_chosen} all</span>` +
+    u.rows.filter(r => r[1] > 0 || r[2] >= 0.1).slice(0, 4).map(([n, a, b]) => `<div class="duo"><span class="label" title="${esc(n)}">${esc(n)}</span><div class="bars"><div class="b1" style="width:${(100 * a).toFixed(0)}%"></div><div class="b2" style="width:${(100 * b).toFixed(0)}%"></div></div><span class="num sub">${Math.round(100 * a)}% / ${Math.round(100 * b)}%</span></div>`).join('') + '</div>').join('');
+}
 
 // ---- carries
 const cov = D.coverage, covKeys = [['spell', 'credited to a spell', 'var(--bar)'], ['item', 'credited to an item', 'var(--bar2)'], ['other', '"Other" bucket', '#8f97a6'], ['monster', 'monster names, not traced', '#c9a35a'], ['unattributed', 'unknown source', '#d47a6a'], ['enemy', 'enemies hurting enemies (excluded)', '#6b7280'], ['status', 'statuses', '#5aa58a']];

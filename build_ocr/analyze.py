@@ -109,6 +109,77 @@ def root_chain(spell, build_spells, upgrades, links, seen=None) -> list:
     return best
 
 
+def improviser_block(builds: list, data: dict, all_upgrades: list) -> dict:
+    """Improviser removes a random 75% of the spellbook and of the craftable equipment each run
+    (Mutators.py RandomSpellRestriction / RandomEquipmentRestriction), so every spell is on offer
+    in about a quarter of runs. Pick rate / 0.25 estimates how often a winner took it when they
+    could: a test of the spell on its own, free of the combos people plan in normal runs.
+    Upgrades are not restricted, and Improviser players are strong, so their upgrade picks are
+    compared with everyone's."""
+    imp = [b for b in builds if b.get("challenge") == "Improviser"]
+    late = dt.date(2026, 9, 1)  # most Improviser wins are from the Sep 1 and Oct 12 patches
+    norm = [b for b in builds if b["normal"] and dt.datetime.fromtimestamp(b["posted"] / 1000, dt.UTC).date() >= late]
+    if not imp:
+        return {}
+    n = len(imp)
+    book = len({s["name"] for s in data["spells"]})
+    avg_imp = sum(len(b["S"]) for b in imp) / n
+    avg_norm = sum(len(b["S"]) for b in norm) / max(1, len(norm))
+    base_imp, base_norm = avg_imp / (0.25 * book), avg_norm / book
+    level = {s["name"]: s.get("level") for s in data["spells"]}
+    granted = {s["name"]: s["granted_by"] for s in data["spells"] if s.get("granted_by")}
+    craftable = {e["name"] for e in data["equipment"]}
+    cs = Counter(x for b in imp for x in b["S"])
+    cn = Counter(x for b in norm for x in b["S"])
+    spells = []
+    for name, k in cs.most_common():
+        lo, hi = wilson(k, n)
+        x_imp = (k / (0.25 * n)) / base_imp
+        x_norm = (cn[name] / max(1, len(norm))) / base_norm
+        role = ("everywhere" if x_imp >= 2.5 and x_norm >= 2.5 else
+                "alone" if x_imp >= 2.5 and x_norm <= 1.5 else
+                "plan" if x_norm >= 3 and x_imp <= x_norm / 1.6 else None)
+        spells.append({"name": name, "level": level.get(name), "k": k, "offered": round(min(1, k / (0.25 * n)), 3),
+                       "lo": round(min(1, lo / 0.25), 3), "hi": round(min(1, hi / 0.25), 3),
+                       "x_imp": round(x_imp, 2), "x_norm": round(x_norm, 2), "k_norm": cn[name],
+                       "granted_by": granted.get(name), "role": role})
+    ci = Counter(x for b in imp for x in b["Iset"] if x in craftable)
+    items = []
+    for name, k in ci.most_common(30):
+        lo, hi = wilson(k, n)
+        items.append({"name": name, "k": k, "offered": round(min(1, k / (0.25 * n)), 3),
+                      "lo": round(min(1, lo / 0.25), 3), "hi": round(min(1, hi / 0.25), 3)})
+    # upgrade picks where the player chose 1-2 upgrades: Improviser vs every run
+    everyone = {u["spell"]: u for u in all_upgrades}
+    per = defaultdict(lambda: {"chosen": 0, "counts": Counter()})
+    for b in imp:
+        if b.get("incomplete"):
+            continue
+        for s in b["spells"]:
+            ups = [x for x in s["upgrades"] if x not in (s.get("unknown_upgrades") or [])]
+            if s.get("unknown") or s.get("from_left_panel") or not ups or len(s["upgrades"]) >= 3:
+                continue
+            per[s["name"]]["chosen"] += 1
+            per[s["name"]]["counts"].update(ups)
+    upgrades = []
+    for name, p in sorted(per.items(), key=lambda kv: -kv[1]["chosen"]):
+        if p["chosen"] < 8 or name not in everyone:
+            continue
+        e = everyone[name]
+        e_rate = {u: k / max(1, e["chosen_n"]) for u, k in e["take"]}
+        rows = []
+        for u, _ in e["take"]:
+            ri = p["counts"][u] / p["chosen"]
+            rows.append([u, round(ri, 3), round(e_rate.get(u, 0), 3)])
+        rows.sort(key=lambda r: -r[1])
+        biggest = max(rows, key=lambda r: abs(r[1] - r[2]))
+        upgrades.append({"spell": name, "chosen": p["chosen"], "everyone_chosen": e["chosen_n"], "rows": rows,
+                         "differs": abs(biggest[1] - biggest[2]) >= 0.2, "biggest": biggest})
+    return {"n": n, "normal_late_n": len(norm), "spellbook": book, "base_imp": round(base_imp, 3),
+            "base_norm": round(base_norm, 4), "eras": Counter(b["era"] for b in imp).most_common(),
+            "spells": spells, "items": items, "upgrades": upgrades}
+
+
 class Attributor:
     """Credit a damage-source name to something in the build."""
 
@@ -203,12 +274,16 @@ def main() -> int:
     ap.add_argument("--site", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--game", type=Path, default=Path("E:/SteamLibrary/steamapps/common/Rift Wizard 3"))
+    ap.add_argument("--only-challenge", help="restrict to one challenge, e.g. Improviser")
+    ap.add_argument("--min-group", type=int, default=MIN_GROUP, help="smallest archetype shown")
     args = ap.parse_args()
     data, ids, added = load_site(args.site)
     spell_info = {s["name"]: s for s in data["spells"]}
     granted_by = {s["name"]: s["granted_by"] for s in data["spells"] if s.get("granted_by")}
     grants = {v: k for k, v in granted_by.items()}
     builds = [json.loads(l) for l in args.builds.read_text(encoding="utf-8").splitlines()]
+    if args.only_challenge:
+        builds = [b for b in builds if (b.get("challenge") or "") == args.only_challenge]
     for b in builds:
         b["era"] = era_of(b["posted"])
         b["normal"] = not b.get("challenge")
@@ -430,7 +505,7 @@ def main() -> int:
 
     archetypes = []
     for name, members in sorted(groups.items(), key=lambda kv: -len(kv[1])):
-        if len(members) < MIN_GROUP:
+        if len(members) < args.min_group:
             continue
         n = len(members)
         cs = Counter(x for b in members for x in b["S"])
@@ -493,6 +568,8 @@ def main() -> int:
         "spells": [[x, k, round(base_s[x] / N, 3)] for x, k in spread_s.most_common(12) if k >= 3],
         "items": [[x, k, round(base_i[x] / N, 3)] for x, k in spread_i.most_common(12) if k >= 3],
     }
+    if not args.only_challenge:
+        out["improviser"] = improviser_block(builds, data, out["upgrades"])
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({k: out[k] for k in ("n_builds", "dataset", "carry_coverage", "archetype_coverage")}, indent=1))
