@@ -1,0 +1,3221 @@
+{
+ "spell_aliases": {},
+ "spells": {
+  "Amalgamate Slime": {
+   "level": 3,
+   "tags": [
+    "Slime",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Slime Drinking",
+    "Global Network",
+    "Absorption",
+    "Slimy Mimic"
+   ]
+  },
+  "Annihilate": {
+   "level": 2,
+   "tags": [
+    "Chaos",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Assured Destruction",
+    "Cascade",
+    "Comprehensive Annihilation",
+    "Mega Annihilate"
+   ]
+  },
+  "Arc Lightning": {
+   "level": 6,
+   "tags": [
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Multi Flash",
+    "Invigoration",
+    "Proton Storm",
+    "Arc Welder"
+   ]
+  },
+  "Arcane Warding": {
+   "level": 4,
+   "tags": [
+    "Arcane",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Soul Thief",
+    "Transmutation Ward",
+    "Amplifier Ward",
+    "Energy Absorber"
+   ]
+  },
+  "Armageddon Blade": {
+   "level": 4,
+   "tags": [
+    "Chaos",
+    "Metallic",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Armor of Armageddon",
+    "Doombrand",
+    "Armageddon Foretold",
+    "Mass Armaments"
+   ]
+  },
+  "Black Hole": {
+   "level": 6,
+   "tags": [
+    "Arcane",
+    "Sorcery",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Singularity Crush",
+    "Heat Death",
+    "Cosmic Grasp",
+    "Environmental Destruction"
+   ]
+  },
+  "Blazerip": {
+   "level": 3,
+   "tags": [
+    "Arcane",
+    "Fire",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Dual Blazerip",
+    "Aether Poison",
+    "Arcane Assassin",
+    "Reality Rip"
+   ]
+  },
+  "Blinding Light": {
+   "level": 3,
+   "tags": [
+    "Holy",
+    "Eye",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Quickcast",
+    "Searing Light",
+    "Angelic Visions",
+    "Halting Light"
+   ]
+  },
+  "Blink": {
+   "level": 3,
+   "tags": [
+    "Arcane",
+    "Sorcery",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Aether Swap",
+    "Blindcasting",
+    "Dissolution",
+    "Thunderblink"
+   ]
+  },
+  "Blizzard": {
+   "level": 4,
+   "tags": [
+    "Enchantment",
+    "Ice",
+    "Nature"
+   ],
+   "upgrades": [
+    "Blinding Squall",
+    "Blizzard Beasts",
+    "Blizzard Harvest",
+    "Hailstorm"
+   ]
+  },
+  "Blood Bullet": {
+   "level": 1,
+   "tags": [
+    "Blood",
+    "Metallic",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Rime Coated Rounds",
+    "Blessed Blood",
+    "Double Tap",
+    "Sniper's Trance"
+   ]
+  },
+  "Blood Meridian": {
+   "level": 5,
+   "tags": [
+    "Blood",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Lifesteal",
+    "Deep Division",
+    "Blood Wall",
+    "Twilight Divide"
+   ]
+  },
+  "Bloodshift": {
+   "level": 3,
+   "tags": [
+    "Blood",
+    "Dark",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Blood Freeze",
+    "Blood Greed",
+    "Boiling Bloodshift",
+    "Toxic Shift"
+   ]
+  },
+  "Blue Lion": {
+   "level": 5,
+   "tags": [
+    "Nature",
+    "Holy",
+    "Conjuration",
+    "Arcane"
+   ],
+   "upgrades": [
+    "Holy Bolt",
+    "Shimmermane",
+    "Lion Saviors",
+    "Summon Lamasu"
+   ]
+  },
+  "Boiling Blood": {
+   "level": 2,
+   "tags": [
+    "Nature",
+    "Enchantment",
+    "Blood",
+    "Fire"
+   ],
+   "upgrades": [
+    "Berserker Rage",
+    "Combustion Point",
+    "Endless Fury",
+    "Escalating Fury"
+   ]
+  },
+  "Bone Barrage": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Marrow Conduction",
+    "Bone Spears",
+    "Piston Spears",
+    "Cursed Bones"
+   ]
+  },
+  "Bone Spear": {
+   "level": 2,
+   "tags": [
+    "Sorcery",
+    "Blood"
+   ],
+   "upgrades": [
+    "Bone Ballista",
+    "Osseous Recall",
+    "Stunning Spear",
+    "Hellfire Spear"
+   ]
+  },
+  "Bouncing Slimeball": {
+   "level": 2,
+   "tags": [
+    "Sorcery",
+    "Chaos",
+    "Slime",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Impact Kickback",
+    "Slimepacolypse",
+    "Slime Ammo Pouch",
+    "Kinetic Conservation"
+   ]
+  },
+  "Burning Idol": {
+   "level": 4,
+   "tags": [
+    "Fire",
+    "Conjuration",
+    "Metallic",
+    "Dark"
+   ],
+   "upgrades": [
+    "Gluttonous Sacrifice",
+    "Bone Explosion",
+    "Indiscriminate Hunger",
+    "Sufficient Sacrifice"
+   ]
+  },
+  "Call Archon": {
+   "level": 5,
+   "tags": [
+    "Lightning",
+    "Holy",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Flood Heralds",
+    "Healing Beam",
+    "Beam Arc",
+    "Storm Archon"
+   ]
+  },
+  "Call Seraph": {
+   "level": 4,
+   "tags": [
+    "Holy",
+    "Fire",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Quickened Seraphs",
+    "Moonblade",
+    "Healing Aura",
+    "Holy Fire Aura"
+   ]
+  },
+  "Cantrip Cascade": {
+   "level": 5,
+   "tags": [
+    "Arcane",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Cantrip Burst",
+    "Relentless Cascade",
+    "Triple Tap",
+    "Evocation Amalgamation"
+   ]
+  },
+  "Carnival of Pain": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Chaos",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Death Power",
+    "Lifesteal",
+    "Crowd Participation",
+    "Torment"
+   ]
+  },
+  "Chain Lightning": {
+   "level": 3,
+   "tags": [
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Jolting Chain",
+    "Cloud Conductance",
+    "Lightning Shield",
+    "Chain Fireball"
+   ]
+  },
+  "Chaos Barrage": {
+   "level": 2,
+   "tags": [
+    "Chaos",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Endless Barrage",
+    "Smart Bolts",
+    "Shockwaves",
+    "Mega Barrage"
+   ]
+  },
+  "Chill Wind": {
+   "level": 5,
+   "tags": [
+    "Ice",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Dual Wind",
+    "Harsh Winds",
+    "Storm Front",
+    "Arcane Storm"
+   ]
+  },
+  "Choir of Angels": {
+   "level": 4,
+   "tags": [
+    "Holy",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Unending Song",
+    "Song of Salvation",
+    "Massive Chorus",
+    "Dual Angels"
+   ]
+  },
+  "Combust Poison": {
+   "level": 4,
+   "tags": [
+    "Sorcery",
+    "Fire",
+    "Nature"
+   ],
+   "upgrades": [
+    "Ignition Principle",
+    "Flame Rave",
+    "Toxic Embers",
+    "Paralyzing Combustion"
+   ]
+  },
+  "Darkness": {
+   "level": 3,
+   "tags": [
+    "Dark",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Nightstalkers",
+    "Eyes Of Cursed Dark",
+    "Long Night",
+    "Darkvision"
+   ]
+  },
+  "Death Bolt": {
+   "level": 1,
+   "tags": [
+    "Dark",
+    "Sorcery",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Blood Bolt",
+    "Winter Bolt",
+    "Soul Battery",
+    "Corpse Explosion"
+   ]
+  },
+  "Death Chill": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Dark",
+    "Ice"
+   ],
+   "upgrades": [
+    "Compounding Chill",
+    "Slaughter Chill",
+    "Lockjaw",
+    "Mass Death Chill"
+   ]
+  },
+  "Death Cleave": {
+   "level": 4,
+   "tags": [
+    "Enchantment",
+    "Arcane",
+    "Dark"
+   ],
+   "upgrades": [
+    "Cleaving Whirlwind",
+    "Lightning Cleave",
+    "Execution Ledger",
+    "Marked for Death"
+   ]
+  },
+  "Death Clock": {
+   "level": 3,
+   "tags": [
+    "Dark",
+    "Metallic",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Daily Death",
+    "Stopwatch",
+    "Sundial",
+    "Ritual of Mortality",
+    "Ritual of Acceleration"
+   ]
+  },
+  "Death Shock": {
+   "level": 5,
+   "tags": [
+    "Sorcery",
+    "Dark",
+    "Lightning"
+   ],
+   "upgrades": [
+    "Shield Burn",
+    "Corpse Construct",
+    "Fire Shock",
+    "Shocking Momentum"
+   ]
+  },
+  "Demon Form": {
+   "level": 7,
+   "tags": [
+    "Chaos",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Chaos Summoner",
+    "Soul Hunger",
+    "Ultimate Form",
+    "Demonic Royalty"
+   ]
+  },
+  "Demonic Ritual": {
+   "level": 6,
+   "tags": [
+    "Blood",
+    "Chaos",
+    "Conjuration",
+    "Ritual"
+   ],
+   "upgrades": [
+    "Solomon's Binding",
+    "Inviolate Ritual",
+    "The Gate and the Key",
+    "Grand Ritual"
+   ]
+  },
+  "Devour Flesh": {
+   "level": 3,
+   "tags": [
+    "Blood"
+   ],
+   "upgrades": [
+    "Controlled Appetite",
+    "Demonic Appetite",
+    "Mass Feeding",
+    "Resistance Absorption"
+   ]
+  },
+  "Devour Mind": {
+   "level": 3,
+   "tags": [
+    "Arcane",
+    "Conjuration",
+    "Dark",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Arcane Drain",
+    "Gluttony",
+    "Brain Freeze",
+    "Horde Mode"
+   ]
+  },
+  "Disperse": {
+   "level": 2,
+   "tags": [
+    "Arcane",
+    "Sorcery",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Protective Warp",
+    "Void Sickness",
+    "Far Sending",
+    "Violent Warp"
+   ]
+  },
+  "Dispersion Field": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Arcane",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Planar Travel",
+    "Num Targets",
+    "Bombs Away",
+    "Hodophobia"
+   ]
+  },
+  "Dominate": {
+   "level": 3,
+   "tags": [
+    "Arcane",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Brute Force",
+    "Conqueror",
+    "Cult Leader",
+    "Death Lord"
+   ]
+  },
+  "Dragon Breath": {
+   "level": 2,
+   "tags": [
+    "Dragon",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Chromatic Aspect",
+    "Measured Breathing",
+    "Dragon Lungs",
+    "Dragon Speaker"
+   ]
+  },
+  "Dragon Claw": {
+   "level": 1,
+   "tags": [
+    "Dragon",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Serrated Steel Claws",
+    "Dragon Tutor",
+    "Frenzied Swipes",
+    "Chaos Claws"
+   ]
+  },
+  "Dragon Roar": {
+   "level": 3,
+   "tags": [
+    "Dragon",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Forceful Roar",
+    "Frightening Presence",
+    "Rallying Roar",
+    "Roar of Anguish"
+   ]
+  },
+  "Drain Pulse": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Blood",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Sickening Pulse",
+    "Felomancy",
+    "World Drain",
+    "Desperation"
+   ]
+  },
+  "Dread Lash": {
+   "level": 2,
+   "tags": [
+    "Dark",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Dread Lord",
+    "Razor Lash",
+    "Dreadful Secret",
+    "Web of Fear"
+   ]
+  },
+  "Dream the Starwhale": {
+   "level": 7,
+   "tags": [
+    "Nature",
+    "Ice",
+    "Arcane",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Starbask",
+    "Ice Dream",
+    "Hungering Depths",
+    "Ritual of Stars"
+   ]
+  },
+  "Earthen Passage": {
+   "level": 2,
+   "tags": [
+    "Nature",
+    "Sorcery",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Mineral Shielding",
+    "Guarded Entrance",
+    "Earthen Prison",
+    "Stonefisher"
+   ]
+  },
+  "Earthen Sentinel": {
+   "level": 3,
+   "tags": [
+    "Nature",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Mobile Menhir",
+    "Stinging Totem",
+    "Holy Totem",
+    "Earth Shaper"
+   ]
+  },
+  "Earthquake": {
+   "level": 3,
+   "tags": [
+    "Sorcery",
+    "Nature"
+   ],
+   "upgrades": [
+    "Aftershocks",
+    "Shrapnel Quake",
+    "Chthonic Breach",
+    "Magnitude 8.0"
+   ]
+  },
+  "Essence Flux": {
+   "level": 4,
+   "tags": [
+    "Arcane",
+    "Chaos",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Banishment",
+    "Essence Degradation",
+    "Essence Stabilizer",
+    "Flummoxed"
+   ]
+  },
+  "Eye of Blood": {
+   "level": 2,
+   "tags": [
+    "Blood",
+    "Enchantment",
+    "Eye"
+   ],
+   "upgrades": [
+    "Blood Accelerant",
+    "Eye of Plasmoid",
+    "Eye of Lifedrain",
+    "Hag's Eye"
+   ]
+  },
+  "Eye of Fire": {
+   "level": 2,
+   "tags": [
+    "Fire",
+    "Enchantment",
+    "Eye"
+   ],
+   "upgrades": [
+    "Eye of Conflagration",
+    "Fiery Onlooker",
+    "Promethean Eye",
+    "Eye of Immolation"
+   ]
+  },
+  "Eye of Ice": {
+   "level": 2,
+   "tags": [
+    "Ice",
+    "Enchantment",
+    "Eye"
+   ],
+   "upgrades": [
+    "Freezing",
+    "Frosty Onlooker",
+    "Icy Array",
+    "Eye of Icicles"
+   ]
+  },
+  "Eye of Lightning": {
+   "level": 2,
+   "tags": [
+    "Lightning",
+    "Enchantment",
+    "Eye"
+   ],
+   "upgrades": [
+    "Ionized Sight",
+    "Penetrating Gaze",
+    "Archon Eye",
+    "Eye of Thunder"
+   ]
+  },
+  "Eye of Rage": {
+   "level": 2,
+   "tags": [
+    "Nature",
+    "Enchantment",
+    "Eye"
+   ],
+   "upgrades": [
+    "Burning Rage",
+    "Lycanthropy",
+    "Enduring Rage",
+    "Infectious Rage"
+   ]
+  },
+  "Fae Court": {
+   "level": 5,
+   "tags": [
+    "Nature",
+    "Arcane",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Fae Protection",
+    "Winter Faery",
+    "Gardeners",
+    "Summon Queen"
+   ]
+  },
+  "Faehaunt Garden": {
+   "level": 6,
+   "tags": [
+    "Enchantment",
+    "Arcane",
+    "Nature",
+    "Lightning",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Garden Pruning",
+    "Guardian Gnomes",
+    "Glass Garden",
+    "Fae Pupils"
+   ]
+  },
+  "Fan of Flames": {
+   "level": 2,
+   "tags": [
+    "Sorcery",
+    "Fire"
+   ],
+   "upgrades": [
+    "Healing Hearthfire",
+    "Roaring Flames",
+    "Fan of Frostfire",
+    "Wildfire"
+   ]
+  },
+  "Fiery Tormentor": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Fire",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Frostfire Tormentor",
+    "Tormenting Mass",
+    "Torturer's Brand",
+    "Tithes of Torment"
+   ]
+  },
+  "Fire Drake": {
+   "level": 4,
+   "tags": [
+    "Fire",
+    "Conjuration",
+    "Dragon"
+   ],
+   "upgrades": [
+    "Lava Born",
+    "Superheated Flames",
+    "Dragon Mage",
+    "Cindervein"
+   ]
+  },
+  "Fireball": {
+   "level": 1,
+   "tags": [
+    "Fire",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Ash Ball",
+    "Meteor",
+    "Shaped Blast",
+    "Chaos Ball"
+   ]
+  },
+  "Flame Burst": {
+   "level": 4,
+   "tags": [
+    "Fire",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Melting Flame",
+    "Bright Flame",
+    "Dual Burst",
+    "Spreading Flame"
+   ]
+  },
+  "Flame Gate": {
+   "level": 3,
+   "tags": [
+    "Fire",
+    "Enchantment",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Gatewatch",
+    "Searing Gate",
+    "Starfire Gate",
+    "Eye Gate"
+   ]
+  },
+  "Flesh Fiend": {
+   "level": 5,
+   "tags": [
+    "Blood",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Belly Flop",
+    "Cursed Flesh",
+    "Flaming Fiend",
+    "Worm Lord"
+   ]
+  },
+  "Floating Eye": {
+   "level": 2,
+   "tags": [
+    "Eye",
+    "Arcane",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Regenerating Shields",
+    "Eye for an Eye",
+    "Stone Gaze",
+    "Eyemage"
+   ]
+  },
+  "Flock of Eagles": {
+   "level": 5,
+   "tags": [
+    "Conjuration",
+    "Nature",
+    "Holy"
+   ],
+   "upgrades": [
+    "Shielded Eagles",
+    "Untouchable Majesty",
+    "Thunder Claw",
+    "Army of Eagles"
+   ]
+  },
+  "Freeze": {
+   "level": 2,
+   "tags": [
+    "Enchantment",
+    "Ice"
+   ],
+   "upgrades": [
+    "Quickcast",
+    "Refreezing",
+    "Frostbite",
+    "Mass Freeze"
+   ]
+  },
+  "Frostfire Hydra": {
+   "level": 3,
+   "tags": [
+    "Ice",
+    "Fire",
+    "Dragon",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Double Dragon",
+    "Crystalline Hydra",
+    "Hydra Regrowth",
+    "Orochi"
+   ]
+  },
+  "Furnace of Sorcery": {
+   "level": 6,
+   "tags": [
+    "Sorcery",
+    "Metallic",
+    "Fire",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Flames of Sorcery",
+    "Furnace of Purity",
+    "Imp Smithy",
+    "Arcane Eyebolts"
+   ]
+  },
+  "Gates of Helheim": {
+   "level": 8,
+   "tags": [
+    "Dark",
+    "Lightning",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Unassailable Gates",
+    "Aelf Horde",
+    "Elite Aelves",
+    "Gate Guards"
+   ]
+  },
+  "Ghostball": {
+   "level": 3,
+   "tags": [
+    "Dark",
+    "Conjuration",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Haunting",
+    "Memorialize",
+    "Ignis Fatuus",
+    "Ghost Mass"
+   ]
+  },
+  "Giant Bear": {
+   "level": 3,
+   "tags": [
+    "Nature",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Mauler",
+    "Armored Polar Bear",
+    "Blood Bear",
+    "Venom Bear"
+   ]
+  },
+  "Goatia Offering": {
+   "level": 2,
+   "tags": [
+    "Blood",
+    "Dark",
+    "Nature",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Maggot Host",
+    "Pain Aura",
+    "Reincarnation",
+    "Scape Goats"
+   ]
+  },
+  "Gold Drake": {
+   "level": 6,
+   "tags": [
+    "Holy",
+    "Conjuration",
+    "Dragon"
+   ],
+   "upgrades": [
+    "Treasure Seekers",
+    "Immortal Dragon",
+    "Dragon Mage",
+    "Dragon Saint"
+   ]
+  },
+  "Golden Skull": {
+   "level": 5,
+   "tags": [
+    "Dark",
+    "Holy",
+    "Metallic",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Blood Skull",
+    "Armored Skulls",
+    "Skull Sentry",
+    "Golden Wheel"
+   ]
+  },
+  "Hatebolts": {
+   "level": 8,
+   "tags": [
+    "Fire",
+    "Dark",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Toxic Hatred",
+    "Boomerang Bolts",
+    "Cold Fury",
+    "Ritual of Malevolence"
+   ]
+  },
+  "Healing Light": {
+   "level": 2,
+   "tags": [
+    "Holy",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Purifying Light",
+    "Shielding Light",
+    "Heartflame",
+    "Ritual of Rejuvenation"
+   ]
+  },
+  "Heaven's Wrath": {
+   "level": 6,
+   "tags": [
+    "Holy",
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Halt Heretics",
+    "Fiery Wrath",
+    "Culling",
+    "Heaven's Promise"
+   ]
+  },
+  "Heavenly Blast": {
+   "level": 2,
+   "tags": [
+    "Holy",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Shield",
+    "Spirit Bind",
+    "Judgement",
+    "Immolating Blast"
+   ]
+  },
+  "Heavenly Idol": {
+   "level": 5,
+   "tags": [
+    "Holy",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Lonely Idol",
+    "Shield Gaze",
+    "Fire Gaze",
+    "Bastion of Immortality"
+   ]
+  },
+  "Holy Fire": {
+   "level": 3,
+   "tags": [
+    "Fire",
+    "Holy",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Holy Smite",
+    "Tithe Of The Fallen",
+    "Divine Blaze",
+    "Heaven Call"
+   ]
+  },
+  "Horde of Halfmen": {
+   "level": 8,
+   "tags": [
+    "Nature",
+    "Blood",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Baphomet's Horde",
+    "All the King's Horses",
+    "Pandemonium Party",
+    "Golden Bull"
+   ]
+  },
+  "Hungry Maw": {
+   "level": 2,
+   "tags": [
+    "Arcane",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Chasm Dweller",
+    "Gnashing Teeth",
+    "Invincible Maw",
+    "Void Maw"
+   ]
+  },
+  "Ice Drake": {
+   "level": 4,
+   "tags": [
+    "Ice",
+    "Conjuration",
+    "Dragon"
+   ],
+   "upgrades": [
+    "Dragon Mage",
+    "Cold Embrace",
+    "Elite Drakes",
+    "Winterbringer"
+   ]
+  },
+  "Ice Phoenix": {
+   "level": 5,
+   "tags": [
+    "Conjuration",
+    "Ice",
+    "Holy"
+   ],
+   "upgrades": [
+    "Freezing Attack",
+    "Reincarnations",
+    "Restorative Phoenix",
+    "Polar Aura"
+   ]
+  },
+  "Ice Vortex": {
+   "level": 3,
+   "tags": [
+    "Ice",
+    "Arcane",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Embodied Vortex",
+    "Ritual of Winter",
+    "Storm Vortex",
+    "Drake Calling"
+   ]
+  },
+  "Iceball": {
+   "level": 2,
+   "tags": [
+    "Sorcery",
+    "Ice"
+   ],
+   "upgrades": [
+    "Ice Crush",
+    "Cloud Combustion",
+    "Fae Ball",
+    "Subzero Ice"
+   ]
+  },
+  "Icicle": {
+   "level": 1,
+   "tags": [
+    "Ice",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Freezing",
+    "Ice Spear",
+    "Corrosive Shard",
+    "Storm Spike"
+   ]
+  },
+  "Immolate": {
+   "level": 2,
+   "tags": [
+    "Fire",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Dragon Soul",
+    "Radiant Heat",
+    "Unquenchable Flames",
+    "Cursed Flames",
+    "Conflagration"
+   ]
+  },
+  "Imp Swarm": {
+   "level": 4,
+   "tags": [
+    "Enchantment",
+    "Conjuration",
+    "Chaos"
+   ],
+   "upgrades": [
+    "Dark Swarm",
+    "Metal Swarm",
+    "Endless Swarm",
+    "Elite Swarm"
+   ]
+  },
+  "Invoke Savagery": {
+   "level": 2,
+   "tags": [
+    "Nature",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Venomous Bite",
+    "Nature's Wrath",
+    "Savage Leap",
+    "Savage Spree"
+   ]
+  },
+  "Ion Tentacles": {
+   "level": 8,
+   "tags": [
+    "Lightning",
+    "Arcane",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Coordination",
+    "Cthulhu Form",
+    "Bloody Tendrils",
+    "Growing Power"
+   ]
+  },
+  "Ironize": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Conjuration",
+    "Metallic"
+   ],
+   "upgrades": [
+    "Arcane Insulation",
+    "Armor Plating",
+    "Jagged Armor",
+    "Permanent Transmutation"
+   ]
+  },
+  "Knightly Oath": {
+   "level": 6,
+   "tags": [
+    "Conjuration",
+    "Holy"
+   ],
+   "upgrades": [
+    "Ouranic Knights",
+    "Call to Arms",
+    "Armageddon Court",
+    "Slime Knights"
+   ]
+  },
+  "Leghead": {
+   "level": 4,
+   "tags": [
+    "Arcane",
+    "Dark",
+    "Conjuration",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Rabid Bite",
+    "Running Start",
+    "Mismatch",
+    "Unstoppable Juggernaut"
+   ]
+  },
+  "Lifedrain": {
+   "level": 1,
+   "tags": [
+    "Blood",
+    "Dark",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Blood Horizon",
+    "Exsanguinate",
+    "Life Funnel",
+    "Blood Hexes"
+   ]
+  },
+  "Lightning Bolt": {
+   "level": 1,
+   "tags": [
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Electric Ink",
+    "Stormbolt",
+    "Energy Bolt",
+    "Repeater Bolts"
+   ]
+  },
+  "Lightning Form": {
+   "level": 4,
+   "tags": [
+    "Lightning",
+    "Enchantment",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Lingering Form",
+    "Crackling Aura",
+    "Fire Form",
+    "Gathering Momentum"
+   ]
+  },
+  "Lightning Halo": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Lightning"
+   ],
+   "upgrades": [
+    "Ring of Fire",
+    "Faraday Cage",
+    "Radioactive Field",
+    "Lightning Nova"
+   ]
+  },
+  "Lightning Spire": {
+   "level": 3,
+   "tags": [
+    "Lightning",
+    "Metallic",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Mass Blasting",
+    "Spire Network",
+    "Wall Penetration",
+    "Resistance Penetration"
+   ]
+  },
+  "Lightning Storm": {
+   "level": 4,
+   "tags": [
+    "Lightning",
+    "Nature",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Surestrike",
+    "Supercell",
+    "Particle Storm",
+    "Spirit Harvest"
+   ]
+  },
+  "Litany of Curses": {
+   "level": 9,
+   "tags": [
+    "Dark",
+    "Ritual",
+    "Word"
+   ],
+   "upgrades": [
+    "Cursed Vocabulary",
+    "Dreadful Refrain",
+    "Curse of Inevitability",
+    "Curse Harvester"
+   ]
+  },
+  "Lumbriogenesis": {
+   "level": 3,
+   "tags": [
+    "Blood",
+    "Nature",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Toxogenesis",
+    "Ectogenesis",
+    "Mechanogenesis",
+    "Worm Host"
+   ]
+  },
+  "Magic Missile": {
+   "level": 1,
+   "tags": [
+    "Arcane",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Arcane Crossfire",
+    "Shield Burn",
+    "Disruption Bolt",
+    "Ricochet"
+   ]
+  },
+  "Magnetize": {
+   "level": 2,
+   "tags": [
+    "Lightning",
+    "Metallic",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Hemomagnetism",
+    "Radioactivity",
+    "Electromagnetism",
+    "Liquid Magnetism"
+   ]
+  },
+  "Mass Calcification": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Osseous Amalgam",
+    "Bone Shards",
+    "Blood Salvage",
+    "Dark Harvest"
+   ]
+  },
+  "Melt": {
+   "level": 2,
+   "tags": [
+    "Fire",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Mass Melt",
+    "Melting Point",
+    "Plasmify",
+    "White Flame"
+   ]
+  },
+  "Mercurize": {
+   "level": 2,
+   "tags": [
+    "Dark",
+    "Metallic",
+    "Enchantment",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Morbidity",
+    "Mercurial Temper",
+    "Mercurial Vengeance",
+    "Retrograde"
+   ]
+  },
+  "Miasma": {
+   "level": 6,
+   "tags": [
+    "Dark",
+    "Nature",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Ritual of Suffocation",
+    "Consumptive Vapors",
+    "Rapid Growth",
+    "Plague Bringer"
+   ]
+  },
+  "Moon Glaive": {
+   "level": 2,
+   "tags": [
+    "Metallic",
+    "Arcane",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Electroblade",
+    "Gravityblade",
+    "Glimmerblade",
+    "Glaive Warden"
+   ]
+  },
+  "Multicast": {
+   "level": 7,
+   "tags": [
+    "Enchantment",
+    "Arcane"
+   ],
+   "upgrades": [
+    "Spell Weaving",
+    "Echo Mage",
+    "Multi Mastery",
+    "Preparedness"
+   ]
+  },
+  "Mystic Power": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Arcane"
+   ],
+   "upgrades": [
+    "Blood is Power",
+    "Explosive Power",
+    "Occult Power",
+    "Mystic Arcanum"
+   ]
+  },
+  "Mystic Vision": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Arcane",
+    "Eye"
+   ],
+   "upgrades": [
+    "Overwatch",
+    "Superior Sight",
+    "Vision Aura",
+    "Truesight"
+   ]
+  },
+  "Night Hag": {
+   "level": 5,
+   "tags": [
+    "Blood",
+    "Dark",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Spear Hag",
+    "Hellbound",
+    "Nightmare Hag",
+    "Coven Matron"
+   ]
+  },
+  "Nightmare Aura": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Dark",
+    "Arcane"
+   ],
+   "upgrades": [
+    "Chilling Dream",
+    "Dark Dream",
+    "Nightmare Flood",
+    "Slumbering Aura"
+   ]
+  },
+  "Orb of Anima": {
+   "level": 5,
+   "tags": [
+    "Orb",
+    "Blood",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Blood Offerings",
+    "Anima Reclaimed",
+    "Blood Thief",
+    "Anima's Vengeance"
+   ]
+  },
+  "Orb of Assimilation": {
+   "level": 5,
+   "tags": [
+    "Orb",
+    "Arcane",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Spell Sampling",
+    "Damage Assimilation",
+    "Assimilation Mastery",
+    "Spell Exhaustion"
+   ]
+  },
+  "Orb of Explosions": {
+   "level": 4,
+   "tags": [
+    "Orb",
+    "Fire",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Motion Sensors",
+    "Detonator",
+    "Crossfire",
+    "Supercritical"
+   ]
+  },
+  "Orb of Night": {
+   "level": 4,
+   "tags": [
+    "Orb",
+    "Dark",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Feed the Darkness",
+    "Dark Detonation",
+    "Dark Tendrils",
+    "Engulfing Darkness"
+   ]
+  },
+  "Orb of Reflection": {
+   "level": 6,
+   "tags": [
+    "Orb",
+    "Ice",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Cursed Reflection",
+    "Inverted Mirror",
+    "Shattered Orb",
+    "Prismatic Reflection"
+   ]
+  },
+  "Orb of Unraveling": {
+   "level": 4,
+   "tags": [
+    "Orb",
+    "Chaos",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "World Breaker",
+    "Unraveling Curse",
+    "Accelerated Decay",
+    "Locus of Chaos"
+   ]
+  },
+  "Pain Mirror": {
+   "level": 4,
+   "tags": [
+    "Blood",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Illusory Pain",
+    "Pain Seeker",
+    "Burning Pain",
+    "Spirits of Pain"
+   ]
+  },
+  "Permanence": {
+   "level": 4,
+   "tags": [
+    "Enchantment"
+   ],
+   "upgrades": [
+    "True Permanence",
+    "Immutable Flesh",
+    "Reality Hold",
+    "Temporal Reinforcement"
+   ]
+  },
+  "Petrification Aura": {
+   "level": 4,
+   "tags": [
+    "Arcane",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Crumbling Aura",
+    "Wormification Aura",
+    "Glassify",
+    "Perfect Stillness"
+   ]
+  },
+  "Petrify": {
+   "level": 2,
+   "tags": [
+    "Arcane",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Arcane Conductivity",
+    "Glassify",
+    "Rocky Servitude",
+    "Panic"
+   ]
+  },
+  "Pillar of Fire": {
+   "level": 5,
+   "tags": [
+    "Fire",
+    "Holy",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Channeled Flame",
+    "Disrupting Flames",
+    "Pillar of Annihilation",
+    "Orbital Bombardment"
+   ]
+  },
+  "Poison Sting": {
+   "level": 1,
+   "tags": [
+    "Sorcery",
+    "Nature"
+   ],
+   "upgrades": [
+    "Silk Shot",
+    "Acidity",
+    "Stinger Barrage",
+    "Stinging Rebuke"
+   ]
+  },
+  "Prismatic Beam": {
+   "level": 6,
+   "tags": [
+    "Holy",
+    "Ice",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Arcane Refraction",
+    "Cold Diffusion",
+    "Prismatic Pulse",
+    "Softened Light"
+   ]
+  },
+  "Prison of Thorns": {
+   "level": 4,
+   "tags": [
+    "Arcane",
+    "Conjuration",
+    "Nature"
+   ],
+   "upgrades": [
+    "Grasping Vines",
+    "Rot Growth",
+    "Super Max",
+    "Icy Prison"
+   ]
+  },
+  "Psychic Seedling": {
+   "level": 3,
+   "tags": [
+    "Conjuration",
+    "Arcane",
+    "Nature"
+   ],
+   "upgrades": [
+    "Parasitic Growth",
+    "Rapid Evolution",
+    "Psychic Fields",
+    "Mind Harvester"
+   ]
+  },
+  "Purity": {
+   "level": 4,
+   "tags": [
+    "Holy",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Crusader",
+    "Aura of Purity",
+    "Depravity",
+    "Sin Eater"
+   ]
+  },
+  "Pyrostatic Curse": {
+   "level": 3,
+   "tags": [
+    "Fire",
+    "Lightning",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Linear Conductance",
+    "Cursebringer",
+    "Resistance Melting",
+    "Pyrostatic Chaos"
+   ]
+  },
+  "Pyrostatic Pulse": {
+   "level": 2,
+   "tags": [
+    "Fire",
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Unstoppable Pulse",
+    "Chaos Pulse",
+    "Spirit Calling",
+    "Forking Cascade"
+   ]
+  },
+  "Rain Storm": {
+   "level": 2,
+   "tags": [
+    "Nature",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Personal Storms",
+    "Acid Rain",
+    "Healing Rain",
+    "Living Rain"
+   ]
+  },
+  "Rain of Fire": {
+   "level": 9,
+   "tags": [
+    "Fire",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Chaos Storm",
+    "Pyrostatic Storm",
+    "Ritual of Explosions",
+    "Rain of Dragons"
+   ]
+  },
+  "Rain of Thunderbolts": {
+   "level": 7,
+   "tags": [
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Cryostorm",
+    "Stormbringer",
+    "Thunder God",
+    "Tempest Drakes"
+   ]
+  },
+  "Regeneration Aura": {
+   "level": 2,
+   "tags": [
+    "Enchantment",
+    "Nature"
+   ],
+   "upgrades": [
+    "Regenerative Goop",
+    "Self Healing",
+    "Global",
+    "Death Defiance"
+   ]
+  },
+  "Ride Drake": {
+   "level": 2,
+   "tags": [
+    "Dragon",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Armored Drake",
+    "Evasive Maneuvers",
+    "Flight of the Dragons",
+    "Strafing Run"
+   ]
+  },
+  "Ritual of Flying Daggers": {
+   "level": 6,
+   "tags": [
+    "Metallic",
+    "Ritual"
+   ],
+   "upgrades": [
+    "Forest of Flying Daggers",
+    "Weighted Knives",
+    "Anima Thief",
+    "Soul Blades"
+   ]
+  },
+  "Ritual of Revelation": {
+   "level": 8,
+   "tags": [
+    "Holy",
+    "Blood",
+    "Ritual"
+   ],
+   "upgrades": [
+    "Arbiter's Revelation",
+    "The Witness",
+    "Holy Horde",
+    "Arcane Revelation"
+   ]
+  },
+  "Ritual of the Opening Eye": {
+   "level": 7,
+   "tags": [
+    "Eye",
+    "Ritual"
+   ],
+   "upgrades": [
+    "Eternal Vigil",
+    "Unseen Dreamers",
+    "Rapturous Sight",
+    "Waking The Witness"
+   ]
+  },
+  "Rot Gaze": {
+   "level": 3,
+   "tags": [
+    "Dark",
+    "Nature",
+    "Eye",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Necrotic Gaze",
+    "Felling All Foes",
+    "Lord of Rot",
+    "Rot Feast"
+   ]
+  },
+  "Ruinous Offering": {
+   "level": 4,
+   "tags": [
+    "Blood",
+    "Chaos",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Panoply of Ruin",
+    "Ruinous Gate",
+    "Sanguine Renewal",
+    "Blessing of Ruin"
+   ]
+  },
+  "Sanction": {
+   "level": 6,
+   "tags": [
+    "Blood",
+    "Holy",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Divine Rebuke",
+    "Exiled One",
+    "Mass Sanction",
+    "Stripped Bare"
+   ]
+  },
+  "Scourge": {
+   "level": 3,
+   "tags": [
+    "Holy",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Painful Lesson",
+    "Scourged Exile",
+    "Ascension",
+    "Mass Scourge"
+   ]
+  },
+  "Seal Fate": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Dark"
+   ],
+   "upgrades": [
+    "Blindcasting",
+    "Spreading Curse",
+    "Heavenly Mandate",
+    "Fatebound"
+   ]
+  },
+  "Searing Seal": {
+   "level": 4,
+   "tags": [
+    "Fire",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Inner Fire",
+    "Searing Rebuke",
+    "Fire Harvest",
+    "Chaos Seal"
+   ]
+  },
+  "Shadow Hex": {
+   "level": 2,
+   "tags": [
+    "Dark",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Devouring Shadows",
+    "Insatiable Shadows",
+    "Compounding Curses",
+    "Hex Knot"
+   ]
+  },
+  "Shatter": {
+   "level": 3,
+   "tags": [
+    "Ice",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Gather Ice",
+    "Razor Ice",
+    "Glacial Excision",
+    "Steam Anima"
+   ]
+  },
+  "Shrapnel Blast": {
+   "level": 3,
+   "tags": [
+    "Fire",
+    "Metallic",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Slicing Shrapnel",
+    "Remote Detonation",
+    "Chain Blast",
+    "Magnetized Shards"
+   ]
+  },
+  "Silver Spear": {
+   "level": 3,
+   "tags": [
+    "Holy",
+    "Metallic",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Astral Spear",
+    "Impalement",
+    "Irresistible Strike",
+    "Copper Shaft"
+   ]
+  },
+  "Siphon Shields": {
+   "level": 3,
+   "tags": [
+    "Arcane",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Shield Burn",
+    "Retributive Siphon",
+    "Shield Steal",
+    "Ocular Lensing"
+   ]
+  },
+  "Slime Drake": {
+   "level": 8,
+   "tags": [
+    "Conjuration",
+    "Dragon",
+    "Slime"
+   ],
+   "upgrades": [
+    "Oozing Trail",
+    "Swamp Dweller",
+    "Dragon Mage",
+    "Slime Tank"
+   ]
+  },
+  "Slime Form": {
+   "level": 3,
+   "tags": [
+    "Enchantment",
+    "Conjuration",
+    "Slime"
+   ],
+   "upgrades": [
+    "Blood Slime",
+    "Electric Slime",
+    "Fire Slime",
+    "Ice Slime",
+    "Void Slime",
+    "Chromatic Oozemancer"
+   ]
+  },
+  "Slimeshot": {
+   "level": 2,
+   "tags": [
+    "Sorcery",
+    "Slime"
+   ],
+   "upgrades": [
+    "Slime Chucker",
+    "Slime Rust",
+    "Storm Transmutation",
+    "Slimification Shot"
+   ]
+  },
+  "Slimify": {
+   "level": 2,
+   "tags": [
+    "Enchantment",
+    "Blood",
+    "Conjuration",
+    "Slime"
+   ],
+   "upgrades": [
+    "Genetic Scramble",
+    "Contagion",
+    "Rainbow Slimes",
+    "Rapid Decomposition"
+   ]
+  },
+  "Soul Tax": {
+   "level": 5,
+   "tags": [
+    "Sorcery",
+    "Dark",
+    "Holy"
+   ],
+   "upgrades": [
+    "Insta Tax",
+    "Arcane Taxation",
+    "Soul Debt",
+    "Mass Taxation"
+   ]
+  },
+  "Soul Wind": {
+   "level": 7,
+   "tags": [
+    "Blood",
+    "Holy",
+    "Dark",
+    "Sorcery",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Dual Wind",
+    "Arcane Wind",
+    "Soul Death",
+    "Shared Soul"
+   ]
+  },
+  "Spider Queen": {
+   "level": 3,
+   "tags": [
+    "Nature",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Urticating Hairs",
+    "Aether Queen",
+    "Vampire Queen",
+    "Dryder Guards"
+   ]
+  },
+  "Spikeball Factory": {
+   "level": 7,
+   "tags": [
+    "Metallic",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Defense System",
+    "Manufactory",
+    "Copper Spikeballs",
+    "Overclocked Assembly"
+   ]
+  },
+  "Stampede Form": {
+   "level": 3,
+   "tags": [
+    "Nature",
+    "Conjuration",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Heavyweights",
+    "Ironhide",
+    "Enraged Stampede",
+    "Loyalty"
+   ]
+  },
+  "Stonewake": {
+   "level": 5,
+   "tags": [
+    "Arcane",
+    "Conjuration",
+    "Nature",
+    "Metallic"
+   ],
+   "upgrades": [
+    "Return from Dust",
+    "Crystalline Core",
+    "Orb Guardians",
+    "Supremacy of Stone"
+   ]
+  },
+  "Storm Burst": {
+   "level": 4,
+   "tags": [
+    "Ice",
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Stormshield",
+    "Dual Nova",
+    "Spirit Nova",
+    "Ritual of Storms"
+   ]
+  },
+  "Storm Drake": {
+   "level": 4,
+   "tags": [
+    "Lightning",
+    "Conjuration",
+    "Dragon"
+   ],
+   "upgrades": [
+    "Dragon Mage",
+    "Spirit Drakes",
+    "Storm Summoning",
+    "Stormcrest"
+   ]
+  },
+  "Storm Walk": {
+   "level": 3,
+   "tags": [
+    "Ice",
+    "Lightning",
+    "Nature",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Quickcast",
+    "Storm Boon",
+    "Weathered Traveler",
+    "Storm Surge"
+   ]
+  },
+  "Summon Blade": {
+   "level": 1,
+   "tags": [
+    "Arcane",
+    "Conjuration",
+    "Metallic"
+   ],
+   "upgrades": [
+    "Serrated Blades",
+    "Swords of Light",
+    "Bladeworks",
+    "Ritual of Blades"
+   ]
+  },
+  "Summon Bone Knights": {
+   "level": 2,
+   "tags": [
+    "Conjuration",
+    "Dark"
+   ],
+   "upgrades": [
+    "Double Hit",
+    "Bones of Steel",
+    "Bone Squadron",
+    "Knightmares"
+   ]
+  },
+  "Summon Rider": {
+   "level": 9,
+   "tags": [
+    "Conjuration",
+    "Dark",
+    "Holy",
+    "Word"
+   ],
+   "upgrades": [
+    "Black Rider's Seal",
+    "Pale Rider's Seal",
+    "Red Rider's Seal",
+    "White Rider's Seal",
+    "Peal of Thunder",
+    "Four Horsemen"
+   ]
+  },
+  "Summon Wizard": {
+   "level": 8,
+   "tags": [
+    "Conjuration",
+    "Arcane"
+   ],
+   "upgrades": [
+    "Global Summoning",
+    "Dragon Wizard",
+    "Jealousy",
+    "Wizard Gang"
+   ]
+  },
+  "Suspend Mortality": {
+   "level": 3,
+   "tags": [
+    "Dark",
+    "Holy",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Mortality Deferred",
+    "Twilight Essence",
+    "Endlessness",
+    "Mass Immortality"
+   ]
+  },
+  "Teleport": {
+   "level": 5,
+   "tags": [
+    "Sorcery",
+    "Arcane",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Group Teleport",
+    "Assassinate",
+    "Quickcast",
+    "Void Teleport"
+   ]
+  },
+  "Temporal Transfusion": {
+   "level": 5,
+   "tags": [
+    "Arcane",
+    "Blood",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Chrono Boost",
+    "Temporal Mastery",
+    "Killing Tempo",
+    "Ritual of Haste"
+   ]
+  },
+  "The Restless Dead": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Enchantment",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Junk Golems",
+    "Minion Recycling",
+    "Unstable Undead",
+    "Restless Turning"
+   ]
+  },
+  "Thunder Strike": {
+   "level": 2,
+   "tags": [
+    "Lightning",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Blindcasting",
+    "Enervate",
+    "Storm Power",
+    "Heaven Strike"
+   ]
+  },
+  "Torrent": {
+   "level": 3,
+   "tags": [
+    "Nature",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Dangerous Debris",
+    "Water Bend",
+    "Boiling Torrent",
+    "Ritual of Carcinization"
+   ]
+  },
+  "Touch of Death": {
+   "level": 2,
+   "tags": [
+    "Dark",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Hand of Death",
+    "Touch of the Vampire",
+    "Flametouch",
+    "Final Touch"
+   ]
+  },
+  "Toxin Burst": {
+   "level": 2,
+   "tags": [
+    "Sorcery",
+    "Nature",
+    "Dark"
+   ],
+   "upgrades": [
+    "Herbal Remedy",
+    "Naphtha Accelerant",
+    "Withertoxin",
+    "Burst Chain"
+   ]
+  },
+  "Twilight Gaze": {
+   "level": 6,
+   "tags": [
+    "Holy",
+    "Dark",
+    "Enchantment",
+    "Eye"
+   ],
+   "upgrades": [
+    "Shrouded Twilight",
+    "Arcane Gaze",
+    "Piercing Gaze",
+    "Resistance Debuff"
+   ]
+  },
+  "Underworld Passage": {
+   "level": 2,
+   "tags": [
+    "Dark",
+    "Sorcery",
+    "Translocation"
+   ],
+   "upgrades": [
+    "Quickcast",
+    "Make Entrance",
+    "Tremorsensitivity",
+    "Return to Hell"
+   ]
+  },
+  "Vampiric Gaze": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Blood",
+    "Sorcery",
+    "Eye"
+   ],
+   "upgrades": [
+    "Toxic Gaze",
+    "Coagulation",
+    "Vampiric Tax",
+    "Refracting Gaze"
+   ]
+  },
+  "Vampiricism": {
+   "level": 3,
+   "tags": [
+    "Blood",
+    "Enchantment"
+   ],
+   "upgrades": [
+    "Wicked Fangs",
+    "Quickening",
+    "Enthrall",
+    "Vampiric Regent"
+   ]
+  },
+  "Void Beam": {
+   "level": 4,
+   "tags": [
+    "Arcane",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Detonation Beam",
+    "Void Curse",
+    "Star Beam",
+    "Void Pulse"
+   ]
+  },
+  "Void Drake": {
+   "level": 4,
+   "tags": [
+    "Arcane",
+    "Conjuration",
+    "Dragon"
+   ],
+   "upgrades": [
+    "Essence Drake",
+    "Dragon Mage",
+    "Shields",
+    "Void Mutations"
+   ]
+  },
+  "Volcanic Eruption": {
+   "level": 4,
+   "tags": [
+    "Fire",
+    "Nature",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Blindcasting",
+    "Lava Coat",
+    "Wallcano",
+    "Meteor Shower"
+   ]
+  },
+  "Wall of Flame": {
+   "level": 7,
+   "tags": [
+    "Fire",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Feed the Flames",
+    "Thickened Wall",
+    "Fortress of Flame",
+    "Flames of Heaven"
+   ]
+  },
+  "Wall of Ice": {
+   "level": 4,
+   "tags": [
+    "Conjuration",
+    "Ice"
+   ],
+   "upgrades": [
+    "Hungry Wall",
+    "Glacial Excavator",
+    "Ice Box",
+    "Endless Wall"
+   ]
+  },
+  "Watcher Form": {
+   "level": 4,
+   "tags": [
+    "Enchantment",
+    "Lightning",
+    "Eye"
+   ],
+   "upgrades": [
+    "Holy Watcher Form",
+    "Pyrostatic Watcher Form",
+    "Void Watcher Form",
+    "Chain Watcher Form"
+   ]
+  },
+  "Wave of Dread": {
+   "level": 3,
+   "tags": [
+    "Sorcery",
+    "Dark"
+   ],
+   "upgrades": [
+    "Ritual of Gnawing Dread",
+    "Wilting Wave",
+    "Wave of Tyranny",
+    "Fear Spirits"
+   ]
+  },
+  "Wheel of Death": {
+   "level": 4,
+   "tags": [
+    "Dark",
+    "Sorcery"
+   ],
+   "upgrades": [
+    "Cheat Fate",
+    "Ritual of Death",
+    "Shared Misfortune",
+    "Death Cycle"
+   ]
+  },
+  "Wizard Replica": {
+   "level": 9,
+   "tags": [
+    "Arcane",
+    "Blood",
+    "Conjuration",
+    "Metallic"
+   ],
+   "upgrades": [
+    "Sturdy Construction",
+    "Blood Reclamation",
+    "Investiture",
+    "Wizard Colossus"
+   ]
+  },
+  "Wolf": {
+   "level": 1,
+   "tags": [
+    "Nature",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Werewolf",
+    "Fleet Footed",
+    "Ravenous Wolf",
+    "Wolf Pack"
+   ]
+  },
+  "Word of Beauty": {
+   "level": 7,
+   "tags": [
+    "Holy",
+    "Lightning",
+    "Word"
+   ],
+   "upgrades": [
+    "Echoing Beauty",
+    "Venomous Word",
+    "Divine Symmetry",
+    "Unmarred Beauty"
+   ]
+  },
+  "Word of Chaos": {
+   "level": 7,
+   "tags": [
+    "Chaos",
+    "Word"
+   ],
+   "upgrades": [
+    "Animated Chaos",
+    "Echoing Chaos",
+    "Stunning Word",
+    "Word of Destruction"
+   ]
+  },
+  "Word of Ice": {
+   "level": 7,
+   "tags": [
+    "Ice",
+    "Word"
+   ],
+   "upgrades": [
+    "Endless Ice",
+    "Echoing Ice",
+    "Killer Cold",
+    "Word of Wind"
+   ]
+  },
+  "Word of Madness": {
+   "level": 7,
+   "tags": [
+    "Word",
+    "Dark",
+    "Arcane"
+   ],
+   "upgrades": [
+    "Echoing Madness",
+    "Selective Madness",
+    "Howling Void",
+    "Guardians of Madness"
+   ]
+  },
+  "Word of Undeath": {
+   "level": 7,
+   "tags": [
+    "Dark",
+    "Word"
+   ],
+   "upgrades": [
+    "Hatred of Life",
+    "Vampiric Word",
+    "Death Tax",
+    "Word of Dominion"
+   ]
+  },
+  "Wyrm Eggs": {
+   "level": 7,
+   "tags": [
+    "Fire",
+    "Ice",
+    "Dragon",
+    "Conjuration"
+   ],
+   "upgrades": [
+    "Incubation Exposure",
+    "Radiant Eggs",
+    "Magic Eggs",
+    "Scale Harvest"
+   ]
+  }
+ },
+ "equipment": {
+  "%s Curse Doll": "source",
+  "%s Frenzy": "source",
+  "%s Frenzy Mask": "source",
+  "%s Oculus": "source",
+  "%s Weakness": "source",
+  "Acanthine Armillary": "crafted",
+  "Acidifier": "crafted",
+  "Aether Dagger": "source",
+  "Aether Exposure": "source",
+  "Aetherlord Staff": "crafted",
+  "Alchemist": "companion",
+  "Amber Cube": "crafted",
+  "Amphisbaena Ring": "crafted",
+  "Amulet Of Collected Agony": "crafted",
+  "Amulet of Emerald Flame": "crafted",
+  "Amulet of Undeath": "crafted",
+  "Amulet of the Master": "crafted",
+  "Ankh": "crafted",
+  "Annihilator Staff": "crafted",
+  "Arbiter Cage": "crafted",
+  "Arcane Accelerator": "crafted",
+  "Arcane Amplifier": "crafted",
+  "Arcane Combustion Powder": "crafted",
+  "Arcane Frenzy Mask": "crafted",
+  "Arcane Shield": "crafted",
+  "Arcane Staff": "crafted",
+  "Arcane Tome": "tome",
+  "Arch Sorcerer's Staff": "crafted",
+  "Archangel's Armor": "crafted",
+  "Archangel's Halo": "crafted",
+  "Archangel's Spear": "crafted",
+  "Armor Melted": "source",
+  "Armor Melter": "crafted",
+  "Armor of Nanuk": "crafted",
+  "Armor of the Master": "crafted",
+  "Artificer's Abacus": "crafted",
+  "Artificer's Chalice": "crafted",
+  "Artificer's Hammer": "crafted",
+  "Artificer's Mirror": "crafted",
+  "Artificer's Rod": "crafted",
+  "Artificial Heart": "crafted",
+  "Ashen Rod": "crafted",
+  "Assassin": "companion",
+  "Backtrackers": "crafted",
+  "Balor's Eye Staff": "crafted",
+  "Banner of the Horde": "removed",
+  "Bard": "companion",
+  "Basilisk Scale Armor": "crafted",
+  "Battlemage Staff": "crafted",
+  "Bedlam Bell": "crafted",
+  "Berserker": "companion",
+  "Berserker Rage": "source",
+  "Bishop Boots": "crafted",
+  "Blazeblood Staff": "crafted",
+  "Blazing Wand": "crafted",
+  "Blizzard Beacon": "crafted",
+  "Blood Ruby": "crafted",
+  "Blood Shield": "crafted",
+  "Blood Staff": "crafted",
+  "Blood Tome": "tome",
+  "Bloodletter Bracers": "crafted",
+  "Bloodspike Helm": "crafted",
+  "Blooming Wand": "crafted",
+  "Book of Chaos": "crafted",
+  "Book of Curses": "crafted",
+  "Book of Death": "crafted",
+  "Book of Four Seals": "crafted",
+  "Book of Helheim": "crafted",
+  "Book of Ice": "crafted",
+  "Book of Life": "crafted",
+  "Book of Madness": "crafted",
+  "Book of Malevolence": "crafted",
+  "Book of Revelation": "crafted",
+  "Boots of Imminent Doom": "crafted",
+  "Boreal Armor": "crafted",
+  "Brain Hat": "crafted",
+  "Brew Concoctions": "source",
+  "Brewed Concoctions": "source",
+  "Brisingamen": "crafted",
+  "Cage of Chimerae": "crafted",
+  "Cannibal Mask": "crafted",
+  "Cantrip Clogs": "crafted",
+  "Castellan Clogs": "crafted",
+  "Caustic Sprig": "crafted",
+  "Chalice of %s": "source",
+  "Chalice of Dragons": "crafted",
+  "Chalice of Iron": "crafted",
+  "Chalice of Light": "crafted",
+  "Chalice of Warp": "crafted",
+  "Channeler's Focus": "crafted",
+  "Channeler's Treads": "crafted",
+  "Chaos Links": "crafted",
+  "Chaos Robes": "crafted",
+  "Chaos Scale Crown": "crafted",
+  "Chaos Serpent Staff": "crafted",
+  "Chaos Staff": "crafted",
+  "Chaos Tome": "tome",
+  "Charm Of Darkness": "crafted",
+  "Charm Of Vigor": "crafted",
+  "Chastising Lash": "crafted",
+  "Chelation Claw": "crafted",
+  "Chill Staff": "crafted",
+  "Cleric": "companion",
+  "Codex Necronomicus": "crafted",
+  "Codex of Chaotic Evolution": "crafted",
+  "Cold Iron Heart": "crafted",
+  "Coldsnap Amulet": "crafted",
+  "Command Overclock": "source",
+  "Conciliator's Claw": "crafted",
+  "Conjuration Staff": "crafted",
+  "Conjuration Tome": "tome",
+  "Constellation Cloak": "crafted",
+  "Contagion Corpse": "crafted",
+  "Coruscating Wand": "crafted",
+  "Crackledarkener": "crafted",
+  "Cracklevoid": "crafted",
+  "Crimson Brooch": "crafted",
+  "Crimson Coronet": "crafted",
+  "Crimson Torc": "crafted",
+  "Crisis Charm": "crafted",
+  "Crown of Bony Fingers": "crafted",
+  "Crown of Devastation": "crafted",
+  "Crown of Ea": "crafted",
+  "Crown of Ragnarok": "crafted",
+  "Crown of Virtuous Sin": "crafted",
+  "Cryotic Accumulator": "crafted",
+  "Crystal Dagger": "crafted",
+  "Crystal Oculus": "crafted",
+  "Cultist Soles": "crafted",
+  "Cultist's Staff": "crafted",
+  "Cyst of Eternal Bloom": "crafted",
+  "Dark Staff": "crafted",
+  "Dark Tome": "tome",
+  "Death Fob": "crafted",
+  "Devastation": "source",
+  "Discord": "source",
+  "Disintegrator": "crafted",
+  "Doombrand": "crafted",
+  "Dowsing Spark": "crafted",
+  "Draco Antiphony Scepter": "crafted",
+  "Dragon Hunter's Sigil": "crafted",
+  "Dragon Knight": "companion",
+  "Dragon Tome": "tome",
+  "Dragonclaw Sabatons": "crafted",
+  "Dragonspine Cloak": "crafted",
+  "Drain Boots": "crafted",
+  "Drakenstaff": "crafted",
+  "Draupnir": "crafted",
+  "Dream Thief Diadem": "crafted",
+  "Drill Shoes": "crafted",
+  "Druid's Dibble": "crafted",
+  "Dwarf Hat": "crafted",
+  "Dwarven Chainmail": "source",
+  "Earthmeld Boots": "crafted",
+  "Earthquake Boots": "crafted",
+  "Earthtroll Armor": "crafted",
+  "Earthwrath": "crafted",
+  "Echo Staff": "crafted",
+  "Echomancy": "source",
+  "Ecophagy": "source",
+  "Eldritch Mantle": "crafted",
+  "Electroplasm": "source",
+  "Electroplasm Ampule": "crafted",
+  "Elven Chainmail": "source",
+  "Empyrean Astrolabe": "crafted",
+  "Enchanters Boon": "crafted",
+  "Enchantment Staff": "crafted",
+  "Enchantment Tome": "tome",
+  "Encore": "source",
+  "Engineer": "companion",
+  "Enrage": "source",
+  "Entropic Wand": "crafted",
+  "Erebus Lance": "crafted",
+  "Evasion": "source",
+  "Evermelting Cube": "crafted",
+  "Exploding Boots": "crafted",
+  "Explosive Spore Manual": "crafted",
+  "Expurgate": "source",
+  "Eye Helm": "crafted",
+  "Eye Rock Pendant": "crafted",
+  "Eye Tome": "tome",
+  "Eye of Ammut": "crafted",
+  "Eye of Judgement": "source",
+  "Eye of Mot": "crafted",
+  "Eye of Tamtu": "crafted",
+  "Fae Plate": "crafted",
+  "Fae Thorn Staff": "crafted",
+  "Fae Toxin Pouch": "crafted",
+  "Fanged Amulet": "crafted",
+  "Finger 6": "crafted",
+  "Fire Frenzy Mask": "crafted",
+  "Fire Tome": "tome",
+  "Flagellant's Cup": "crafted",
+  "Flame of Findias": "crafted",
+  "Flaming Claw Staff": "crafted",
+  "Frenzied Swings": "source",
+  "Galvanic Armor": "crafted",
+  "Galvanic Blade": "crafted",
+  "Galvanic Focus": "crafted",
+  "Galvanic Redirection": "source",
+  "Geometer's Staff": "crafted",
+  "Ghost Slippers": "crafted",
+  "Ghostfire Scepter": "crafted",
+  "Glaive of Gorias": "crafted",
+  "Glasya's Bite": "crafted",
+  "Glittering Dancer's Robes": "crafted",
+  "Gnome Shoes": "crafted",
+  "Gold Ring": "source",
+  "Grave Curse Doll": "crafted",
+  "Grave Hunger Amulet": "crafted",
+  "Great Faery": "observed",
+  "Grey Goo": "crafted",
+  "Hallucinogenic Spore Staff": "crafted",
+  "Halo Hunter's Sigil": "crafted",
+  "Harmony": "source",
+  "Haunted Blood Vial": "crafted",
+  "Heavenrender": "crafted",
+  "Hellfire Mantle": "crafted",
+  "Helm of Hexes": "crafted",
+  "Helm of the Host": "crafted",
+  "Hemlock Needle": "crafted",
+  "Hemocorruptor": "crafted",
+  "Hex Specialist's Ring": "crafted",
+  "Holy Aura": "source",
+  "Holy Staff": "crafted",
+  "Holy Tome": "tome",
+  "Horn of Ur": "crafted",
+  "Horn of the Wild Hunt": "crafted",
+  "Hypno Bauble": "crafted",
+  "Ice Caller Staff": "crafted",
+  "Ice Frenzy Mask": "crafted",
+  "Ice Sickle": "crafted",
+  "Ice Tome": "tome",
+  "Icy Chill Mask": "crafted",
+  "Icy Claw Staff": "crafted",
+  "Icy Cruciform": "crafted",
+  "Icy Vengeance Icon": "crafted",
+  "Iron Legion's Banner": "crafted",
+  "Jaculus Idol": "crafted",
+  "Jade Shard": "crafted",
+  "Keraunos": "crafted",
+  "Knight Cage": "crafted",
+  "Kobold Clogs": "crafted",
+  "Lava Cage": "crafted",
+  "Lightbinder": "crafted",
+  "Lightning Staff": "crafted",
+  "Lightning Tether": "crafted",
+  "Lightning Tome": "tome",
+  "Macrophagic Mask": "crafted",
+  "Magic Minion Shield": "crafted",
+  "Magic Wand": "crafted",
+  "Mandala Mukluks": "crafted",
+  "Marksman Cap": "crafted",
+  "Mask of Nihilo": "crafted",
+  "Mask of Woe": "crafted",
+  "Masseter's Mace": "crafted",
+  "Mazer of Murias": "crafted",
+  "Memory Staff": "crafted",
+  "Menacing Eye Mask": "crafted",
+  "Metallic Tome": "tome",
+  "Metallurgy Mitts": "crafted",
+  "Mini Idol of Agony": "source",
+  "Mini Idol of Invincibility": "source",
+  "Mini Idol of Rebirth": "source",
+  "Mini Idol of Vampirism": "source",
+  "Minion Regeneration Amulet": "crafted",
+  "Molten Carapace": "crafted",
+  "Monkey Skull Amulet": "crafted",
+  "Moon Crown": "crafted",
+  "Mortal Hunter's Sigil": "crafted",
+  "Mourning Bell": "crafted",
+  "Multicolored Rage Rod": "crafted",
+  "Multimancer's Staff": "crafted",
+  "Nature Staff": "crafted",
+  "Nature Tome": "tome",
+  "Neanderthal's Tooth": "crafted",
+  "Necromancer": "companion",
+  "Necromancer's Locket": "source",
+  "Necromancer's Staff": "crafted",
+  "Necrosis Blade": "crafted",
+  "Necrostatic Staff": "crafted",
+  "Necrostatics": "source",
+  "Nightmare Hexbag": "crafted",
+  "Numen Censer": "crafted",
+  "Ogre Boots": "crafted",
+  "Ooze Wand": "crafted",
+  "Oozing Scale Armor": "crafted",
+  "Orb Controller's Mitts": "crafted",
+  "Orb Tome": "tome",
+  "Orb of Infinite Slaughter": "crafted",
+  "Orrery of the Unnamed One": "crafted",
+  "Paladin": "companion",
+  "Paralyzing Venom": "crafted",
+  "Pedantic Pendant": "crafted",
+  "Philosopher's Stone": "crafted",
+  "Plague Doctor's Cane": "crafted",
+  "Plague Doctor's Mask": "crafted",
+  "Plague Doctor's Robe": "crafted",
+  "Plaguebringer": "crafted",
+  "Plasmic Distributor": "crafted",
+  "Prism of Shattered Sensations": "crafted",
+  "Prismatic Links": "crafted",
+  "Prismatic Plate": "crafted",
+  "Psychopomp Staff": "crafted",
+  "Pulse Accelerator": "crafted",
+  "Purity Oculus": "crafted",
+  "Pyrophilia Locket": "crafted",
+  "Pyrostatic Curse Doll": "crafted",
+  "Pyrostatic Oculus": "crafted",
+  "Pyrrhic Censer": "crafted",
+  "Quicksilver Armor": "crafted",
+  "Quickstep Boots": "crafted",
+  "Quill Staff": "crafted",
+  "Raiment of Eyes": "crafted",
+  "Rain Beacon": "crafted",
+  "Rainbow Blade": "crafted",
+  "Ranger": "companion",
+  "Rapid Ritual Rod": "crafted",
+  "Razoreye": "crafted",
+  "Red Majesty": "crafted",
+  "Red Obsidian Shard": "crafted",
+  "Restorative Concoction": "source",
+  "Restore": "source",
+  "Rift Breaker": "crafted",
+  "Rift Key Staff": "crafted",
+  "Rimeblight Pulverizer": "crafted",
+  "Ring of Magnetic Charisma": "crafted",
+  "Ritual Preparedness": "source",
+  "Ritual Tome": "tome",
+  "Robe of %s": "source",
+  "Robe of Agony": "crafted",
+  "Robe of Crystals": "crafted",
+  "Robe of Fire": "crafted",
+  "Robe of Frostfire": "crafted",
+  "Robe of Ice": "crafted",
+  "Robe of Rifts": "crafted",
+  "Robe of Storms": "crafted",
+  "Robe of Twilight": "crafted",
+  "Robe of Void": "crafted",
+  "Robe of the Druids": "crafted",
+  "Robes of Virtuous Sin": "crafted",
+  "Rod of Heaven's Assault": "crafted",
+  "Ruinous Curse Doll": "crafted",
+  "Runespeaker's Gorget": "crafted",
+  "Runic Hourglass": "crafted",
+  "Sacrificial Dagger": "crafted",
+  "Sandals of Virtuous Sin": "crafted",
+  "Sanguine Frost Wand": "crafted",
+  "Scales of Virtuous Sin": "crafted",
+  "Scepter of Sorrows": "crafted",
+  "Seal of Usmu": "observed",
+  "Searing Eye Stone": "crafted",
+  "Shatter Shards Necklace": "crafted",
+  "Shattering Frost Manual": "crafted",
+  "Shepherd's Staff": "crafted",
+  "Shrine Maiden": "observed",
+  "Silken Links": "crafted",
+  "Silken Sandals": "crafted",
+  "Silvered": "source",
+  "Silvermelt": "crafted",
+  "Skull Necklace": "crafted",
+  "Skybreaker Array": "crafted",
+  "Slime Staff": "crafted",
+  "Slime Striders": "crafted",
+  "Slime Timer": "crafted",
+  "Slime Tome": "tome",
+  "Slimebirth Cantromancy": "crafted",
+  "Slimecrusted Scarificator": "crafted",
+  "Slimy Voodoo Mantle": "crafted",
+  "Slippery Hex Dagger": "crafted",
+  "Snow Shoes": "crafted",
+  "Snow Staff": "crafted",
+  "Solid Steel Staff": "crafted",
+  "Sonic Shields": "crafted",
+  "Sorcery Staff": "crafted",
+  "Sorcery Tome": "tome",
+  "Sorcwinter": "crafted",
+  "Soul Harvester": "crafted",
+  "Soulmail": "crafted",
+  "Spark Conductor": "crafted",
+  "Spawning Venom": "crafted",
+  "Spear Charge": "source",
+  "Spider Carapace Robe": "source",
+  "Spider Form": "source",
+  "Spirit Visor": "crafted",
+  "Staff of Heaven's Vengeance": "crafted",
+  "Stagnation Basin": "crafted",
+  "Starblesser": "crafted",
+  "Starcharged": "source",
+  "Stolen Flame Choker": "crafted",
+  "Stone Curse Doll": "crafted",
+  "Stone Mask": "crafted",
+  "Stoneeater Amulet": "crafted",
+  "Storm Beacon": "crafted",
+  "Storm Boots": "crafted",
+  "Storm Caller Staff": "crafted",
+  "Storm Oculus": "crafted",
+  "Storm Wand": "crafted",
+  "Stormbrood Trickshoes": "crafted",
+  "Stormtroll Armor": "crafted",
+  "Sunforged Iris": "crafted",
+  "Talking Hat": "crafted",
+  "The Bladestaff": "crafted",
+  "The Blazeloom": "crafted",
+  "The Bloodwell": "crafted",
+  "The Boiler": "crafted",
+  "The Dynamo": "crafted",
+  "The Flamenweaver": "crafted",
+  "The Gloomthorn": "crafted",
+  "The Haemanthus": "crafted",
+  "The Lodestar": "crafted",
+  "The North Pole": "crafted",
+  "The Purifier": "crafted",
+  "The Sparkloom": "crafted",
+  "Thorn Hunter's Sigil": "crafted",
+  "Timelord's Staff": "crafted",
+  "Timestriders": "crafted",
+  "Titan's Bane": "crafted",
+  "Translocation Tome": "tome",
+  "Travellers Shoes": "crafted",
+  "Treelord Staff": "crafted",
+  "Tundra Mantle": "crafted",
+  "Twilight Lantern": "crafted",
+  "Twilight Oculus": "crafted",
+  "Twilight Sentinel": "source",
+  "Tzango's Cleaver": "crafted",
+  "Umbral Totem": "crafted",
+  "Unblinking Eye": "crafted",
+  "Unholy Expurgator": "crafted",
+  "Unidentified Concoction": "source",
+  "Valkyrie": "companion",
+  "Valkyrie's Oath": "source",
+  "Vampire Hunter": "companion",
+  "Vampiric Vestments": "crafted",
+  "Veilpiercer's Monocle": "crafted",
+  "Venom Spitter Casque": "crafted",
+  "Venomancer's Vial": "crafted",
+  "Vial of Ambrosia": "crafted",
+  "Vile Dagger": "crafted",
+  "Void Hunter's Sigil": "crafted",
+  "Void Oculus": "crafted",
+  "Void Spike Stone": "crafted",
+  "Void Traveler's Cloak": "crafted",
+  "Voidflame Lantern": "crafted",
+  "Volcanic Lance": "crafted",
+  "Voodoo Binding": "source",
+  "Voodoo Blessing": "source",
+  "Voodoo Bound": "source",
+  "Voodoo Doll": "crafted",
+  "Warlord Banner": "crafted",
+  "Warlord Helm": "crafted",
+  "Warlord Vestments": "crafted",
+  "Wild Healing Staff": "crafted",
+  "Winged Shoes": "crafted",
+  "Winter Links": "crafted",
+  "Wintersting": "crafted",
+  "Witch Doctor": "companion",
+  "Witching Hourglass": "crafted",
+  "Withering Aura": "source",
+  "Woadwyrd": "crafted",
+  "Word Tome": "tome",
+  "Wound Rot Amulet": "crafted",
+  "Wrath Links": "crafted",
+  "Wyrm Spirit Armor": "crafted"
+ },
+ "trials": [
+  "Limited Spellbook",
+  "Improviser",
+  "Pyromancer",
+  "Electromancer",
+  "Cryomancer",
+  "Necromancer",
+  "Phytomancer",
+  "Manamancer",
+  "Sanctumancer",
+  "Ferromancer",
+  "Hemomancer",
+  "Oner",
+  "Amnesiac",
+  "Wild Magic",
+  "Blood Rites",
+  "Flawless",
+  "Artificer",
+  "Scavenger",
+  "Adventuring Party",
+  "Chronomancer",
+  "Vanguard",
+  "Mordred's Vengeance"
+ ],
+ "sources": [
+  "..\\site\\data.json",
+  "..\\site\\data.beta.json",
+  "E:\\SteamLibrary\\steamapps\\common\\Rift Wizard 3"
+ ]
+}
